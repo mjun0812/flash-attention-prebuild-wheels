@@ -15,10 +15,10 @@ The built packages are available on the [release page](https://github.com/mjun08
 ## Table of Contents
 
 - [Install](#install)
-- [Self-build runner](#self-build)
 - [Packages](#packages)
   - [Linux x86_64](#linux-x86_64)
   - [Windows x86_64](#windows-x86_64)
+- [Self-build runner](#self-build)
 - [History](#history)
 - [Original Repository](#original-repository)
 
@@ -44,61 +44,6 @@ pip install https://github.com/mjun0812/flash-attention-prebuild-wheels/releases
 # Download and Local Install
 wget https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.0.0/flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
-```
-
-## Self build
-
-If you cannot find the version you are looking for, you can fork this repository and create a wheel on GitHub Actions.
-
-1. Fork this repository
-2. Edit workflow file [`.github/workflows/build.yml`](https://github.com/mjun0812/flash-attention-prebuild-wheels/blob/main/.github/workflows/build.yml) to set the version you want to build.
-3. Add tag `v*.*.*` to trigger the build workflow.
-
-Please note that depending on the combination of versions, it may not be possible to build.
-
-### Self-Hosted Runner Build
-
-In some version combinations, you cannot build wheels on GitHub-hosted runners due to job time limitations.
-To build the wheels for these versions, you can use self-hosted runners.
-
-```bash
-git clone https://github.com/mjun0812/flash-attention-prebuild-wheels.git
-cd self-hosted-runner
-cp env.template env
-```
-
-Edit `env` file to set the environment variables.
-
-```bash
-# Edit env
-PERSONAL_ACCESS_TOKEN=[Github Personal Access Token]
-```
-
-Edit compose.yml file if you use repository folked from this repository.
-
-```yaml
-services:
-  runner:
-    privileged: true
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        REPOSITORY_URL: [Target Repository URL]
-        PERSONAL_ACCESS_TOKEN: $PERSONAL_ACCESS_TOKEN
-        GH_RUNNER_VERSION: 2.324.0
-        RUNNER_NAME: self-hosted-runner
-        RUNNER_GROUP: default
-        RUNNER_LABELS: self-hosted
-        TARGET_ARCH: x64
-```
-
-Then, build and run the docker container.
-
-```bash
-# Build and run
-docker compose build
-docker compose up -d
 ```
 
 ## Packages
@@ -359,6 +304,7 @@ docker compose up -d
 
 | Python | PyTorch | CUDA | package |
 | ------ | ------- | ---- | ------- |
+| 3.12 | 2.9 | 13.0 | [Release1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.4.18) |
 | 3.12 | 2.7.0 | 12.6.3 | [Release1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.0.8) |
 | 3.12 | 2.7.0 | 12.4.1 | [Release1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.0.8) |
 | 3.12 | 2.7.0 | 11.8.0 | [Release1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.0.8) |
@@ -399,6 +345,7 @@ docker compose up -d
 | 3.11 | 2.1.2 | 12.4.1 | [Release1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.0.5) |
 | 3.11 | 2.0.1 | 12.6.3 | [Release1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.0.5) |
 | 3.11 | 2.0.1 | 12.4.1 | [Release1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.0.5) |
+| 3.10 | 2.9 | 13.0 | [Release1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.4.18) |
 | 3.10 | 2.7.0 | 12.6.3 | [Release1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.0.8) |
 | 3.10 | 2.7.0 | 12.4.1 | [Release1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.0.8) |
 | 3.10 | 2.7.0 | 11.8.0 | [Release1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.0.8) |
@@ -1118,7 +1065,6 @@ docker compose up -d
 | --- | --- | --- | --- |
 | 2.6.3, 2.8.3 | 3.10, 3.11, 3.12, 3.13 | 2.9 | 13.0 |
 
-
 ### v0.4.17
 
 [Release](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.4.17)
@@ -1129,7 +1075,6 @@ docker compose up -d
 | --- | --- | --- | --- |
 | 2.6.3, 2.8.3 | 3.10, 3.11, 3.12, 3.13 | 2.9 | 12.6, 12.8 |
 
-
 ### v0.4.16
 
 [Release](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.4.16)
@@ -1139,7 +1084,6 @@ docker compose up -d
 | Flash-Attention | Python | PyTorch | CUDA |
 | --- | --- | --- | --- |
 | 2.6.3, 2.8.3 | 3.9 | 2.5, 2.6, 2.7, 2.8 | 12.4, 12.6 |
-
 
 ### v0.4.15
 
@@ -1156,7 +1100,6 @@ docker compose up -d
 | Flash-Attention | Python | PyTorch | CUDA |
 | --- | --- | --- | --- |
 | 2.8.3 | 3.11, 3.12, 3.13 | 2.9 | 12.6 |
-
 
 ### v0.4.12
 
@@ -1389,6 +1332,61 @@ Skip for experimental reasons.
 | flash-attention            | Python     | PyTorch                                  | CUDA                   |
 | -------------------------- | ---------- | ---------------------------------------- | ---------------------- |
 | 2.4.3, 2.5.6, 2.5.9, 2.6.3 | 3.11, 3.12 | 2.0.1, 2.1.2, 2.2.2, 2.3.1, 2.4.1, 2.5.0 | 11.8.0, 12.1.1, 12.4.1 |
+
+## Self build
+
+If you cannot find the version you are looking for, you can fork this repository and create a wheel on GitHub Actions.
+
+1. Fork this repository
+2. Edit workflow file [`.github/workflows/build.yml`](https://github.com/mjun0812/flash-attention-prebuild-wheels/blob/main/.github/workflows/build.yml) to set the version you want to build.
+3. Add tag `v*.*.*` to trigger the build workflow.
+
+Please note that depending on the combination of versions, it may not be possible to build.
+
+### Self-Hosted Runner Build
+
+In some version combinations, you cannot build wheels on GitHub-hosted runners due to job time limitations.
+To build the wheels for these versions, you can use self-hosted runners.
+
+```bash
+git clone https://github.com/mjun0812/flash-attention-prebuild-wheels.git
+cd self-hosted-runner
+cp env.template env
+```
+
+Edit `env` file to set the environment variables.
+
+```bash
+# Edit env
+PERSONAL_ACCESS_TOKEN=[Github Personal Access Token]
+```
+
+Edit compose.yml file if you use repository folked from this repository.
+
+```yaml
+services:
+  runner:
+    privileged: true
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        REPOSITORY_URL: [Target Repository URL]
+        PERSONAL_ACCESS_TOKEN: $PERSONAL_ACCESS_TOKEN
+        GH_RUNNER_VERSION: 2.324.0
+        RUNNER_NAME: self-hosted-runner
+        RUNNER_GROUP: default
+        RUNNER_LABELS: self-hosted
+        TARGET_ARCH: x64
+```
+
+Then, build and run the docker container.
+
+```bash
+# Build and run
+docker compose build
+docker compose up -d
+```
 
 ## Original Repository
 

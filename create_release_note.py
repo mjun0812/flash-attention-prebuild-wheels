@@ -1,37 +1,8 @@
 import json
-import re
 import sys
 from pathlib import Path
 
-
-def parse_wheel_filename(filename):
-    """
-    Wheel filename から情報を抽出
-    例: flash_attn-2.6.3+cu124torch2.5-cp311-cp311-linux_x86_64.whl
-        flash_attn-2.7.4+cu124torch2.6-cp311-cp311-linux_x86_64.whl
-    """
-    # Flash Attention wheelのパターンに合わせて正規表現を調整
-    # PyTorchバージョンはパッチバージョンなしの形式 (例: torch2.5)
-    pattern = (
-        r"flash_attn-(\d+\.\d+\.\d+)\+cu(\d+)torch(\d+\.\d+)-cp(\d+)-cp\d+-(\w+)\.whl"
-    )
-    match = re.match(pattern, filename)
-
-    if match:
-        flash_version = match.group(1)
-        cuda_version = f"{match.group(2)[:2]}.{match.group(2)[2:]}"  # 124 -> 12.4
-        torch_version = match.group(3)
-        python_version = f"{match.group(4)[:1]}.{match.group(4)[1:]}"  # 311 -> 3.11
-        platform = match.group(5)  # linux, win32など
-
-        return {
-            "flash_version": flash_version,
-            "cuda_version": cuda_version,
-            "torch_version": torch_version,
-            "python_version": python_version,
-            "platform": platform,
-        }
-    return None
+from common import normalize_platform_name, parse_wheel_filename
 
 
 def generate_release_notes_from_assets(assets_info: dict):
@@ -74,13 +45,7 @@ def generate_release_notes_from_assets(assets_info: dict):
         if any(len(data[key]) == 0 for key in data):
             continue
 
-        platform_name = platform_name[:1].upper() + platform_name[1:]
-        platform_name = platform_name.replace("_", " ", 1)
-
-        if "Win" in platform_name:
-            platform_name = platform_name.replace("Win", "Windows")
-        if "amd64" in platform_name:
-            platform_name = platform_name.replace("amd64", "x86_64")
+        platform_name = normalize_platform_name(platform_name)
 
         notes.append(f"## {platform_name}")
         notes.append("")

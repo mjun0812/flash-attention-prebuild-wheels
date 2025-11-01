@@ -1,14 +1,16 @@
 """
-python generate_packages_table.py --update-readme
+python insert_packages_to_readme.py --assets assets.json --update
 """
 
 import argparse
-import itertools
+import json
 import re
 import sys
 from pathlib import Path
 
 import pandas as pd
+
+from common import normalize_platform_name, parse_wheel_filename
 
 
 def parse_numeric_version(text: str) -> tuple:
@@ -17,86 +19,180 @@ def parse_numeric_version(text: str) -> tuple:
     return tuple(int(n) for n in nums)
 
 
-def extract_packages_from_history(text: str) -> list[dict]:
-    """Extract package information from History section."""
-    lines = text.splitlines()
+def extract_release_url_from_download_url(download_url: str) -> str | None:
+    """Extract release tag from download URL and construct release page URL."""
+    # Pattern: /releases/download/{tag}/
+    match = re.search(r"/releases/download/([^/]+)/", download_url)
+    if not match:
+        return None
 
-    # Find start of History section
-    in_history = False
+    tag = match.group(1)
+    # Construct release page URL
+    # Extract repo path from download URL
+    repo_match = re.search(r"(https://github\.com/[^/]+/[^/]+)", download_url)
+    if not repo_match:
+        return None
+
+    repo_path = repo_match.group(1)
+    return f"{repo_path}/releases/tag/{tag}"
+
+
+def extract_packages_from_readme(readme_path: Path) -> list[dict]:
+    """Extract package information from existing Packages section in README.md."""
+    with readme_path.open("r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Find Packages section
+    packages_start = content.find("## Packages")
+    if packages_start == -1:
+        return []
+
+    # Find the end of Packages section
+    packages_end = content.find("## History", packages_start)
+    if packages_end == -1:
+        remaining_content = content[packages_start + len("## Packages") :]
+        next_section = remaining_content.find("\n## ")
+        if next_section != -1:
+            packages_end = packages_start + len("## Packages") + next_section
+        else:
+            packages_end = len(content)
+
+    packages_section = content[packages_start:packages_end]
+    lines = packages_section.splitlines()
+
+    packages = []
+    current_os = None
+    current_fa_version = None
+    in_table = False
+
     for i, line in enumerate(lines):
-        if line.strip().startswith("## ") and "History" in line:
-            in_history = True
-            lines = lines[i:]
-            break
+        line_stripped = line.strip()
 
-    if not in_history:
+        # Detect OS heading (### Linux x86_64)
+        if line_stripped.startswith("### ") and not line_stripped.startswith("#### "):
+            current_os = line_stripped[4:].strip()
+            current_fa_version = None
+            in_table = False
+            continue
+
+        # Detect Flash-Attention version heading (#### Flash-Attention 2.8.3)
+        if line_stripped.startswith("#### Flash-Attention "):
+            # Extract version after "#### Flash-Attention "
+            current_fa_version = line_stripped.replace(
+                "#### Flash-Attention ", ""
+            ).strip()
+            in_table = False
+            continue
+
+        # Detect table start
+        if "| Python | PyTorch | CUDA | package |" in line_stripped:
+            in_table = True
+            continue
+
+        # Skip table separator line
+        if in_table and "| ------ |" in line_stripped:
+            continue
+
+        # Process table rows
+        if (
+            in_table
+            and line_stripped.startswith("|")
+            and current_os
+            and current_fa_version
+        ):
+            # Parse table row: | Python | PyTorch | CUDA | package |
+            cells = [
+                c.strip() for c in line_stripped.split("|")[1:-1]
+            ]  # Remove empty first/last cells
+            cells = [c for c in cells if c]  # Remove empty cells
+            if len(cells) >= 4:
+                python_version = cells[0]
+                torch_version = cells[1]
+                cuda_version = cells[2]
+                package_cell = cells[3]
+
+                # Extract all release URLs from package cell
+                # Pattern: [Release1](url1), [Release2](url2), ...
+                release_urls = re.findall(r"\[Release\d+\]\(([^)]+)\)", package_cell)
+
+                if release_urls:
+                    # Create a package entry for each release URL
+                    for release_url in release_urls:
+                        packages.append(
+                            {
+                                "Flash-Attention": current_fa_version,
+                                "Python": python_version,
+                                "PyTorch": torch_version,
+                                "CUDA": cuda_version,
+                                "OS": current_os,
+                                "package": release_url,
+                            }
+                        )
+                elif package_cell != "-":
+                    # Handle single release or other formats
+                    packages.append(
+                        {
+                            "Flash-Attention": current_fa_version,
+                            "Python": python_version,
+                            "PyTorch": torch_version,
+                            "CUDA": cuda_version,
+                            "OS": current_os,
+                            "package": None,
+                        }
+                    )
+
+        # Detect end of table (empty line or closing </details>)
+        if in_table and (not line_stripped or line_stripped == "</details>"):
+            in_table = False
+
+    return packages
+
+
+def extract_packages_from_assets_json(assets_path: Path) -> list[dict]:
+    """Extract package information from assets.json file."""
+    with assets_path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    if "assets" not in data:
         return []
 
     packages = []
-    current_release_url = None
-    current_os = "Linux x86_64"  # default
 
-    i = 0
-    while i < len(lines):
-        line = lines[i].strip()
+    for asset in data["assets"]:
+        name = asset.get("name", "")
+        url = asset.get("url", "")
 
-        # Reset on new version
-        if line.startswith("### "):
-            current_release_url = None
-            current_os = "Linux x86_64"
-
-        # Capture Release link
-        elif "[Release](" in line:
-            match = re.search(r"\[Release\]\(([^)]+)\)", line)
-            if match:
-                current_release_url = match.group(1)
-
-        # Capture OS heading
-        elif line.startswith("#### "):
-            current_os = line[5:].strip() or "Linux x86_64"
-
-        # Process table
-        elif line.startswith("| Flash-Attention") or line.startswith(
-            "|Flash-Attention"
-        ):
-            # Skip header and separator
-            i += 2
-
-            # Process table rows
-            while i < len(lines):
-                row_line = lines[i].strip()
-                if not row_line.startswith("|") or not row_line:
-                    break
-
-                # Parse table row
-                cells = [c.strip() for c in row_line.split("|")]
-                cells = [c for c in cells if c]  # Remove empty cells
-
-                if len(cells) >= 4:
-                    fa_versions = [v.strip() for v in cells[0].split(",") if v.strip()]
-                    py_versions = [v.strip() for v in cells[1].split(",") if v.strip()]
-                    pt_versions = [v.strip() for v in cells[2].split(",") if v.strip()]
-                    cu_versions = [v.strip() for v in cells[3].split(",") if v.strip()]
-
-                    # Generate all combinations
-                    for fa, py, pt, cu in itertools.product(
-                        fa_versions, py_versions, pt_versions, cu_versions
-                    ):
-                        packages.append(
-                            {
-                                "Flash-Attention": fa,
-                                "Python": py,
-                                "PyTorch": pt,
-                                "CUDA": cu,
-                                "OS": current_os,
-                                "package": current_release_url,
-                            }
-                        )
-
-                i += 1
+        # Only process .whl files
+        if not name.endswith(".whl"):
             continue
 
-        i += 1
+        # Parse wheel filename
+        info = parse_wheel_filename(name)
+        if not info:
+            continue
+
+        # Extract release URL from download URL
+        release_url = extract_release_url_from_download_url(url)
+
+        # Normalize platform name
+        os_name = normalize_platform_name(info["platform"])
+
+        # Format versions for display
+        flash_version = info["flash_version"]
+        python_version = info["python_version"]
+        torch_version = info["torch_version"]  # Already in format like "2.9"
+        cuda_version = info["cuda_version"]
+
+        packages.append(
+            {
+                "Flash-Attention": flash_version,
+                "Python": python_version,
+                "PyTorch": torch_version,
+                "CUDA": cuda_version,
+                "OS": os_name,
+                "package": release_url,
+            }
+        )
 
     return packages
 
@@ -153,14 +249,28 @@ def merge_duplicate_rows(df: pd.DataFrame) -> pd.DataFrame:
     group_cols = ["Flash-Attention", "Python", "PyTorch", "CUDA", "OS"]
 
     def combine_packages(group):
-        # Get unique non-null packages
-        packages = [pkg for pkg in group["package"].dropna().unique() if pkg]
+        # Get unique non-null packages (handle both list and scalar values)
+        all_packages = []
+        for pkg in group["package"]:
+            if pd.notna(pkg):
+                if isinstance(pkg, list):
+                    all_packages.extend(pkg)
+                else:
+                    all_packages.append(pkg)
+
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_packages = []
+        for pkg in all_packages:
+            if pkg and pkg not in seen:
+                seen.add(pkg)
+                unique_packages.append(pkg)
 
         # Take the first row as base
         result = group.iloc[0].copy()
 
         # Combine packages into a list
-        result["package"] = packages if packages else [None]
+        result["package"] = unique_packages if unique_packages else [None]
 
         return result
 
@@ -351,47 +461,54 @@ def update_readme_packages_section(readme_path: Path, packages_markdown: str) ->
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Generate a one-row-per-package Markdown table from the History section of a README.md"
+        description="Generate a one-row-per-package Markdown table from assets.json file"
     )
     parser.add_argument(
-        "readme",
-        nargs="?",
-        type=Path,
-        default=Path("README.md"),
-        help="Path to README.md (default: README.md)",
+        "--assets",
+        type=str,
+        default="assets.json",
+        help="Path to assets.json file (default: assets.json)",
     )
     parser.add_argument(
-        "--update-readme",
+        "--update",
         action="store_true",
         help="Update the Packages section in README.md instead of printing to stdout",
     )
     args = parser.parse_args()
 
-    try:
-        with args.readme.open("r", encoding="utf-8") as f:
-            text = f.read()
+    assets_path = Path(args.assets)
+    if not assets_path.exists():
+        print(f"Error: {assets_path} not found", file=sys.stderr)
+        sys.exit(1)
 
-        packages = extract_packages_from_history(text)
+    readme_path = Path("README.md")
 
-        if not packages:
-            print("No packages found in History section", file=sys.stderr)
-            return
+    # Extract packages from assets.json
+    assets_packages = extract_packages_from_assets_json(assets_path)
 
-        df = pd.DataFrame(packages)
-        df_sorted = sort_packages(df)
-        df_merged = merge_duplicate_rows(df_sorted)
-        markdown = generate_markdown_table_by_os(df_merged)
+    # Extract packages from existing README.md
+    readme_packages = extract_packages_from_readme(readme_path)
 
-        if args.update_readme:
-            # Update the README.md file
-            update_readme_packages_section(args.readme, markdown)
-            print(f"Updated Packages section in {args.readme}")
-        else:
-            # Print to stdout (original behavior)
-            print(markdown)
+    # Combine both lists
+    all_packages = assets_packages + readme_packages
 
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+    if not all_packages:
+        print(f"No packages found in {assets_path} or README.md", file=sys.stderr)
+        return
+
+    # Convert to DataFrame and process
+    df = pd.DataFrame(all_packages)
+    df_sorted = sort_packages(df)
+    df_merged = merge_duplicate_rows(df_sorted)
+    markdown = generate_markdown_table_by_os(df_merged)
+
+    if args.update:
+        # Update the README.md file
+        update_readme_packages_section(readme_path, markdown)
+        print(f"Updated Packages section in {readme_path}")
+    else:
+        # Print to stdout (original behavior)
+        print(markdown)
 
 
 if __name__ == "__main__":
