@@ -68,9 +68,9 @@ def main():
                 # "windows_code_build": WINDOWS_CODEBUILD_MATRIX,
                 "windows_code_build": False,
                 "exclude": EXCLUDE,
-            }
-        ),
-        indent=2,
+            },
+            indent=2,
+        )
     )
 
 
