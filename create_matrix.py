@@ -57,17 +57,20 @@ WINDOWS_CODEBUILD_MATRIX = {
 
 
 def main():
-    json.dump(
-        {
-            "linux": LINUX_MATRIX,
-            # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
-            "linux_self_hosted": False,
-            # "windows": WINDOWS_MATRIX,
-            "windows": False,
-            # "windows_code_build": WINDOWS_CODEBUILD_MATRIX,
-            "windows_code_build": False,
-            "exclude": EXCLUDE,
-        }
+    print(
+        json.dumps(
+            {
+                "linux": LINUX_MATRIX,
+                # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
+                "linux_self_hosted": False,
+                # "windows": WINDOWS_MATRIX,
+                "windows": False,
+                # "windows_code_build": WINDOWS_CODEBUILD_MATRIX,
+                "windows_code_build": False,
+                "exclude": EXCLUDE,
+            }
+        ),
+        indent=2,
     )
 
 
