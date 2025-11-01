@@ -145,8 +145,8 @@ jobs:
           python create_release_note.py /tmp/assets.json > /tmp/release_notes.md
           gh release edit "${{ github.ref_name }}" --notes-file /tmp/release_notes.md
 
-  update_readme:
-    name: Update README
+  update_docs:
+    name: Update Docs
     needs:
       - build_wheels_linux
       - build_wheels_linux_self_hosted
@@ -160,22 +160,23 @@ jobs:
       DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
     steps:
       - uses: actions/checkout@v4
-      - name: Commit and push README updates
+      - name: Update release history and packages section in README.md
+        run: |
+          gh release view "${{ github.ref_name }}" --json assets > /tmp/assets.json
+          python create_release_history.py \
+            --assets /tmp/assets.json \
+            --tag "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --output docs/release_history.md
+          python insert_packages_to_readme.py --assets /tmp/assets.json --update
+
+      - name: Commit and push docs updates
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git diff --quiet; then
-            echo "No README updates to commit."
+            echo "No docs updates to commit."
             exit 0
           fi
-          git commit -am "docs: update README for ${{ github.ref_name }}"
+          git commit -am "docs: update docs for ${{ github.ref_name }}"
           git push origin HEAD:"${DEFAULT_BRANCH}"
-
-      - name: Update README history and packages
-        run: |
-          gh release view "${{ github.ref_name }}" --json assets > /tmp/assets.json
-          python insert_history_to_readme.py \
-            --assets /tmp/assets.json \
-            --tag "${{ github.ref_name }}" \
-            --repo "${{ github.repository }}"
-          python insert_packages_to_readme.py --update

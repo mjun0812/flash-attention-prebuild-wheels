@@ -104,6 +104,7 @@ def main() -> None:
     )
     parser.add_argument("--tag", required=True, help="Release tag name")
     parser.add_argument("--repo", required=True, help="Repository in owner/name format")
+    parser.add_argument("--output", type=Path, required=True, help="Output file path")
     args = parser.parse_args()
 
     data = json.loads(args.assets.read_text(encoding="utf-8"))
@@ -113,7 +114,7 @@ def main() -> None:
 
     section = build_history_section(args.tag, args.repo, history_body)
 
-    content = Path("README.md").read_text(encoding="utf-8")
+    content = args.output.read_text(encoding="utf-8")
     stripped = remove_existing_section(content, args.tag)
     updated = insert_history_section(stripped, section)
 
@@ -121,7 +122,7 @@ def main() -> None:
         print("No changes in README.md")
         return
 
-    Path("README.md").write_text(updated, encoding="utf-8")
+    args.output.write_text(updated, encoding="utf-8")
     print(f"Inserted history for {args.tag} into README.md")
 
 

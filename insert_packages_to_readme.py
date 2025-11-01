@@ -19,22 +19,23 @@ def parse_numeric_version(text: str) -> tuple:
     return tuple(int(n) for n in nums)
 
 
-def extract_release_url_from_download_url(download_url: str) -> str | None:
-    """Extract release tag from download URL and construct release page URL."""
-    # Pattern: /releases/download/{tag}/
-    match = re.search(r"/releases/download/([^/]+)/", download_url)
-    if not match:
-        return None
+def normalize_semantic_version(version: str) -> str:
+    """Normalize semantic version by removing patch version.
 
-    tag = match.group(1)
-    # Construct release page URL
-    # Extract repo path from download URL
-    repo_match = re.search(r"(https://github\.com/[^/]+/[^/]+)", download_url)
-    if not repo_match:
-        return None
+    Examples:
+        2.9.1 -> 2.9
+        2.8.1 -> 2.8
+        2.6.3 -> 2.6
+        2.9 -> 2.9 (no change if no patch version)
+    """
+    if pd.isna(version) or not version:
+        return version
 
-    repo_path = repo_match.group(1)
-    return f"{repo_path}/releases/tag/{tag}"
+    # Split by '.' and take only major.minor
+    parts = str(version).split(".")
+    if len(parts) >= 2:
+        return ".".join(parts[:2])
+    return version
 
 
 def extract_packages_from_readme(readme_path: Path) -> list[dict]:
@@ -111,13 +112,16 @@ def extract_packages_from_readme(readme_path: Path) -> list[dict]:
                 cuda_version = cells[2]
                 package_cell = cells[3]
 
-                # Extract all release URLs from package cell
-                # Pattern: [Release1](url1), [Release2](url2), ...
-                release_urls = re.findall(r"\[Release\d+\]\(([^)]+)\)", package_cell)
+                # Extract all URLs from package cell
+                # Pattern: [Release1](url1), [Download1](url1), [Release](url), [Download](url), ...
+                # Support both Release and Download patterns for backward compatibility
+                package_urls = re.findall(
+                    r"\[(?:Release|Download)\d*\]\(([^)]+)\)", package_cell
+                )
 
-                if release_urls:
-                    # Create a package entry for each release URL
-                    for release_url in release_urls:
+                if package_urls:
+                    # Create a package entry for each URL
+                    for package_url in package_urls:
                         packages.append(
                             {
                                 "Flash-Attention": current_fa_version,
@@ -125,11 +129,11 @@ def extract_packages_from_readme(readme_path: Path) -> list[dict]:
                                 "PyTorch": torch_version,
                                 "CUDA": cuda_version,
                                 "OS": current_os,
-                                "package": release_url,
+                                "package": package_url,
                             }
                         )
                 elif package_cell != "-":
-                    # Handle single release or other formats
+                    # Handle other formats
                     packages.append(
                         {
                             "Flash-Attention": current_fa_version,
@@ -171,9 +175,6 @@ def extract_packages_from_assets_json(assets_path: Path) -> list[dict]:
         if not info:
             continue
 
-        # Extract release URL from download URL
-        release_url = extract_release_url_from_download_url(url)
-
         # Normalize platform name
         os_name = normalize_platform_name(info["platform"])
 
@@ -190,51 +191,84 @@ def extract_packages_from_assets_json(assets_path: Path) -> list[dict]:
                 "PyTorch": torch_version,
                 "CUDA": cuda_version,
                 "OS": os_name,
-                "package": release_url,
+                "package": url,  # Use download URL directly
             }
         )
 
     return packages
 
 
-def sort_packages(df: pd.DataFrame) -> pd.DataFrame:
-    """Sort packages with custom priority."""
+def sort_packages(
+    df: pd.DataFrame,
+    flash_ascending: bool = False,
+    python_ascending: bool = False,
+    pytorch_ascending: bool = False,
+    cuda_ascending: bool = False,
+    os_ascending: bool = True,
+    package_ascending: bool = False,
+) -> pd.DataFrame:
+    """
+    Sort packages by columns from left to right.
 
-    # Add sorting keys
-    # Flash-Attention: descending order (newer versions first)
-    df["fa_sort"] = df["Flash-Attention"].apply(
-        lambda x: tuple(-v for v in parse_numeric_version(x))
-    )
+    Args:
+        df: DataFrame to sort
+        flash_ascending: Sort Flash-Attention in ascending order (default: False, newer first)
+        python_ascending: Sort Python in ascending order (default: False, newer first)
+        pytorch_ascending: Sort PyTorch in ascending order (default: False, newer first)
+        cuda_ascending: Sort CUDA in ascending order (default: False, newer first)
+        os_ascending: Sort OS in ascending order (default: True, alphabetical)
+        package_ascending: Sort package in ascending order (default: False, newer first)
+
+    Returns:
+        Sorted DataFrame
+    """
+    df = df.copy()
+
+    # Add sorting keys for version columns
+    df["fa_sort"] = df["Flash-Attention"].apply(parse_numeric_version)
+    df["py_sort"] = df["Python"].apply(parse_numeric_version)
+    df["pt_sort"] = df["PyTorch"].apply(parse_numeric_version)
+    df["cu_sort"] = df["CUDA"].apply(parse_numeric_version)
     df["os_sort"] = df["OS"].str.lower()
-    # Python, PyTorch, CUDA: descending order (newer versions first)
-    df["py_sort"] = df["Python"].apply(
-        lambda x: tuple(-v for v in parse_numeric_version(x))
-    )
-    df["pt_sort"] = df["PyTorch"].apply(
-        lambda x: tuple(-v for v in parse_numeric_version(x))
-    )
-    df["cu_sort"] = df["CUDA"].apply(
-        lambda x: tuple(-v for v in parse_numeric_version(x))
-    )
 
-    # Package sort: extract version from URL, newer first
+    # Package sort: extract version from download URL
     def package_sort_key(url):
-        if pd.isna(url) or not url:
-            return (1, tuple())  # No URL comes last
+        # Handle list of URLs (take the first one for sorting)
+        if isinstance(url, list):
+            if not url or all(pd.isna(u) or not u for u in url):
+                return tuple()
+            # Find first non-empty URL
+            for u in url:
+                if pd.notna(u) and u:
+                    url = u
+                    break
+            else:
+                return tuple()
 
-        tag_match = re.search(r"/tag/([^/]+)$", str(url))
+        if pd.isna(url) or not url:
+            return tuple()  # No URL
+
+        # Extract tag from download URL: /releases/download/{tag}/
+        tag_match = re.search(r"/releases/download/([^/]+)/", str(url))
         if not tag_match:
-            return (1, tuple())
+            return tuple()
 
         tag = tag_match.group(1)
-        version_tuple = parse_numeric_version(tag)
-        return (0, tuple(-v for v in version_tuple))  # Negate for descending
+        return parse_numeric_version(tag)
 
     df["pkg_sort"] = df["package"].apply(package_sort_key)
 
-    # Sort by priority: Flash-Attention > OS > Python > PyTorch > CUDA > package
+    # Sort by columns from left to right
     df_sorted = df.sort_values(
-        ["fa_sort", "os_sort", "py_sort", "pt_sort", "cu_sort", "pkg_sort"]
+        by=["fa_sort", "os_sort", "py_sort", "pt_sort", "cu_sort", "pkg_sort"],
+        ascending=[
+            flash_ascending,
+            os_ascending,
+            python_ascending,
+            pytorch_ascending,
+            cuda_ascending,
+            package_ascending,
+        ],
     )
 
     # Drop sorting columns
@@ -296,23 +330,14 @@ def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
     for os_name in sorted(df["OS"].unique()):
         os_df = df[df["OS"] == os_name].copy()
 
-        # Re-sort within each OS group to ensure Flash-Attention is in descending order
-        os_df["fa_sort"] = os_df["Flash-Attention"].apply(
-            lambda x: tuple(-v for v in parse_numeric_version(x))
+        # Sort within OS group: Flash-Attention > Python > PyTorch > CUDA
+        os_df = sort_packages(
+            os_df,
+            flash_ascending=False,
+            python_ascending=True,
+            pytorch_ascending=True,
+            cuda_ascending=True,
         )
-        os_df["py_sort"] = os_df["Python"].apply(
-            lambda x: tuple(-v for v in parse_numeric_version(x))
-        )
-        os_df["pt_sort"] = os_df["PyTorch"].apply(
-            lambda x: tuple(-v for v in parse_numeric_version(x))
-        )
-        os_df["cu_sort"] = os_df["CUDA"].apply(
-            lambda x: tuple(-v for v in parse_numeric_version(x))
-        )
-
-        # Sort by Flash-Attention > Python > PyTorch > CUDA
-        os_df = os_df.sort_values(["fa_sort", "py_sort", "pt_sort", "cu_sort"])
-        os_df = os_df.drop(columns=["fa_sort", "py_sort", "pt_sort", "cu_sort"])
 
         # Create OS section header
         os_lines = [f"### {os_name}", ""]
@@ -322,18 +347,13 @@ def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
         for fa_version in os_df["Flash-Attention"].unique():
             fa_df = os_df[os_df["Flash-Attention"] == fa_version].copy()
 
-            # Re-sort by Python > PyTorch > CUDA within each Flash-Attention version
-            fa_df["py_sort"] = fa_df["Python"].apply(
-                lambda x: tuple(-v for v in parse_numeric_version(x))
+            # Sort by Python > PyTorch > CUDA within each Flash-Attention version
+            fa_df = sort_packages(
+                fa_df,
+                python_ascending=True,
+                pytorch_ascending=True,
+                cuda_ascending=True,
             )
-            fa_df["pt_sort"] = fa_df["PyTorch"].apply(
-                lambda x: tuple(-v for v in parse_numeric_version(x))
-            )
-            fa_df["cu_sort"] = fa_df["CUDA"].apply(
-                lambda x: tuple(-v for v in parse_numeric_version(x))
-            )
-            fa_df = fa_df.sort_values(["py_sort", "pt_sort", "cu_sort"])
-            fa_df = fa_df.drop(columns=["py_sort", "pt_sort", "cu_sort"])
 
             # Create collapsible table for this Flash-Attention version
             table_lines = [
@@ -347,18 +367,18 @@ def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
                 # Handle case where packages is a list
                 if isinstance(packages, list):
                     if packages and any(pd.notna(pkg) and pkg for pkg in packages):
-                        # Create numbered release links
+                        # Create numbered download links
                         package_links = []
                         for i, pkg in enumerate(packages, 1):
                             if pd.notna(pkg) and pkg:
-                                package_links.append(f"[Release{i}]({pkg})")
+                                package_links.append(f"[Download{i}]({pkg})")
                         package_cell = ", ".join(package_links)
                     else:
                         package_cell = "-"
                 else:
                     # Handle single package (backward compatibility)
                     package_cell = (
-                        f"[Release]({packages})"
+                        f"[Download]({packages})"
                         if pd.notna(packages) and packages
                         else "-"
                     )
@@ -387,76 +407,39 @@ def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
     return "\n".join(all_sections)
 
 
-def generate_markdown_table(df: pd.DataFrame) -> str:
-    """Generate markdown table from DataFrame (legacy function for backward compatibility)."""
-    lines = [
-        "| Flash-Attention | Python | PyTorch | CUDA | OS | package |",
-        "| --------------- | ------ | ------- | ------ | ---- | ------- |",
-    ]
-
-    for _, row in df.iterrows():
-        packages = row["package"]
-
-        # Handle case where packages is a list
-        if isinstance(packages, list):
-            if packages and any(pd.notna(pkg) and pkg for pkg in packages):
-                # Create numbered release links
-                package_links = []
-                for i, pkg in enumerate(packages, 1):
-                    if pd.notna(pkg) and pkg:
-                        package_links.append(f"[Release{i}]({pkg})")
-                package_cell = ", ".join(package_links)
-            else:
-                package_cell = "-"
-        else:
-            # Handle single package (backward compatibility)
-            package_cell = (
-                f"[Release]({packages})" if pd.notna(packages) and packages else "-"
-            )
-
-        line = f"| {row['Flash-Attention']} | {row['Python']} | {row['PyTorch']} | {row['CUDA']} | {row['OS']} | {package_cell} |"
-        lines.append(line)
-
-    return "\n".join(lines)
-
-
 def update_readme_packages_section(readme_path: Path, packages_markdown: str) -> None:
     """Update the Packages section in README.md with new content."""
-    try:
-        with readme_path.open("r", encoding="utf-8") as f:
-            content = f.read()
+    with readme_path.open("r", encoding="utf-8") as f:
+        content = f.read()
 
-        # Find the Packages section
-        packages_start = content.find("## Packages")
-        if packages_start == -1:
-            raise ValueError("Packages section not found in README.md")
+    # Find the Packages section
+    packages_start = content.find("## Packages")
+    if packages_start == -1:
+        raise ValueError("Packages section not found in README.md")
 
-        # Find the end of Packages section (next ## section or History section)
-        packages_end = content.find("## History", packages_start)
-        if packages_end == -1:
-            # If no History section found, look for any other ## section
-            remaining_content = content[packages_start + len("## Packages") :]
-            next_section = remaining_content.find("\n## ")
-            if next_section != -1:
-                packages_end = packages_start + len("## Packages") + next_section
-            else:
-                packages_end = len(content)
+    # Find the end of Packages section (next ## section or History section)
+    packages_end = content.find("## History", packages_start)
+    if packages_end == -1:
+        # If no History section found, look for any other ## section
+        remaining_content = content[packages_start + len("## Packages") :]
+        next_section = remaining_content.find("\n## ")
+        if next_section != -1:
+            packages_end = packages_start + len("## Packages") + next_section
+        else:
+            packages_end = len(content)
 
-        # Replace the Packages section
-        new_content = (
-            content[:packages_start]
-            + "## Packages\n\n"
-            + packages_markdown
-            + "\n\n"
-            + content[packages_end:]
-        )
+    # Replace the Packages section
+    new_content = (
+        content[:packages_start]
+        + "## Packages\n\n"
+        + packages_markdown
+        + "\n\n"
+        + content[packages_end:]
+    )
 
-        # Write back to file
-        with readme_path.open("w", encoding="utf-8") as f:
-            f.write(new_content)
-
-    except Exception as e:
-        raise RuntimeError(f"Failed to update README.md: {e}")
+    # Write back to file
+    with readme_path.open("w", encoding="utf-8") as f:
+        f.write(new_content)
 
 
 def main() -> None:
@@ -498,6 +481,12 @@ def main() -> None:
 
     # Convert to DataFrame and process
     df = pd.DataFrame(all_packages)
+    # Normalize CUDA versions (remove patch version)
+    df["CUDA"] = df["CUDA"].apply(normalize_semantic_version)
+    # Normalize PyTorch versions (remove patch version)
+    df["PyTorch"] = df["PyTorch"].apply(normalize_semantic_version)
+    # Normalize Python versions (remove patch version)
+    df["Python"] = df["Python"].apply(normalize_semantic_version)
     df_sorted = sort_packages(df)
     df_merged = merge_duplicate_rows(df_sorted)
     markdown = generate_markdown_table_by_os(df_merged)
