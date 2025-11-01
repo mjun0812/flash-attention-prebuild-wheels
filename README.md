@@ -48,7 +48,7 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 
 ## Packages
 
-### Linux x86_64
+### 🐧 Linux x86_64
 
 #### Flash-Attention 2.8.3
 
@@ -935,7 +935,7 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 
 </details>
 
-### Windows x86_64
+### 🪟 Windows x86_64
 
 #### Flash-Attention 2.8.3
 

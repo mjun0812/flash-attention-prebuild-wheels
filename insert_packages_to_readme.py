@@ -319,6 +319,17 @@ def merge_duplicate_rows(df: pd.DataFrame) -> pd.DataFrame:
     return merged_df
 
 
+def get_os_emoji(os_name: str) -> str:
+    """Get emoji for OS name."""
+    os_lower = os_name.lower()
+    if "linux" in os_lower:
+        return "🐧 "
+    elif "windows" in os_lower:
+        return "🪟 "
+    else:
+        return ""
+
+
 def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
     """Generate markdown tables grouped by OS and Flash-Attention version."""
     if df.empty:
@@ -339,8 +350,9 @@ def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
             cuda_ascending=True,
         )
 
-        # Create OS section header
-        os_lines = [f"### {os_name}", ""]
+        # Create OS section header with emoji
+        os_emoji = get_os_emoji(os_name)
+        os_lines = [f"### {os_emoji}{os_name}", ""]
 
         # Group by Flash-Attention version within each OS
         fa_versions = []
