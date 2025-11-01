@@ -3,6 +3,13 @@ import re
 
 def parse_wheel_filename(filename: str) -> dict | None:
     """
+    Extract information from a wheel filename.
+    Examples:
+        flash_attn-2.6.3+cu124torch2.5-cp311-cp311-linux_x86_64.whl
+        flash_attn-2.7.4+cu124torch2.6-cp311-cp311-linux_x86_64.whl
+        flash_attn-2.7.4.post1+cu130torch2.9-cp310-cp310-linux_x86_64.whl
+
+    ---
     Wheel filename から情報を抽出
     例: flash_attn-2.6.3+cu124torch2.5-cp311-cp311-linux_x86_64.whl
         flash_attn-2.7.4+cu124torch2.6-cp311-cp311-linux_x86_64.whl
