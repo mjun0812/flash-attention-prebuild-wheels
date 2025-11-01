@@ -14,7 +14,8 @@ jobs:
       - name: Create Matrix
         id: create_matrix
         run: |
-          echo "matrix=$(python create_matrix.py)" >> $GITHUB_OUTPUT
+          python create_matrix.py | tee /tmp/matrix.json
+          echo "matrix=$(cat /tmp/matrix.json)" >> $GITHUB_OUTPUT
 
   # #########################################################
   # Linux
