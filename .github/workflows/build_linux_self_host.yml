@@ -80,7 +80,7 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      - uses: Jimver/cuda-toolkit@master
+      - uses: Jimver/cuda-toolkit@v0.2.29
         with:
           cuda: ${{ inputs.cuda-version }}
           sub-packages: '["nvcc", "toolkit"]'

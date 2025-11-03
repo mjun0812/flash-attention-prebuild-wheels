@@ -42,7 +42,7 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      - uses: Jimver/cuda-toolkit@v0.2.24
+      - uses: Jimver/cuda-toolkit@v0.2.29
         with:
           cuda: ${{ inputs.cuda-version }}
           method: "network"
