@@ -169,7 +169,7 @@ jobs:
       - name: Install dependencies
         run: pip install pandas
 
-      - name: Update release history and packages section in README.md
+      - name: Update docs
         run: |
           gh release view "${{ github.ref_name }}" --json assets > /tmp/assets.json
           python create_release_history.py \
@@ -177,7 +177,7 @@ jobs:
             --tag "${{ github.ref_name }}" \
             --repo "${{ github.repository }}" \
             --output docs/release_history.md
-          python insert_packages_to_readme.py --assets /tmp/assets.json --update
+          python create_packages.py --assets /tmp/assets.json --output docs/packages.md
 
       - name: Commit and push docs updates
         run: |
