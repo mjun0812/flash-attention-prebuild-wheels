@@ -2,30 +2,28 @@
 
 ## Table of Contents
 
-- [Packages](#packages)
-  - [Table of Contents](#table-of-contents)
-  - [🐧 Linux x86\_64](#-linux-x86_64)
-    - [Flash-Attention 2.8.3](#flash-attention-283)
-    - [Flash-Attention 2.8.2](#flash-attention-282)
-    - [Flash-Attention 2.8.1](#flash-attention-281)
-    - [Flash-Attention 2.8.0](#flash-attention-280)
-    - [Flash-Attention 2.7.4.post1](#flash-attention-274post1)
-    - [Flash-Attention 2.7.4](#flash-attention-274)
-    - [Flash-Attention 2.7.3](#flash-attention-273)
-    - [Flash-Attention 2.7.2.post1](#flash-attention-272post1)
-    - [Flash-Attention 2.7.0.post2](#flash-attention-270post2)
-    - [Flash-Attention 2.6.3](#flash-attention-263)
-    - [Flash-Attention 2.5.9](#flash-attention-259)
-    - [Flash-Attention 2.5.6](#flash-attention-256)
-    - [Flash-Attention 2.4.3](#flash-attention-243)
-    - [Flash-Attention 1.0.9](#flash-attention-109)
-  - [🪟 Windows x86\_64](#-windows-x86_64)
-    - [Flash-Attention 2.8.3](#flash-attention-283-1)
-    - [Flash-Attention 2.8.2](#flash-attention-282-1)
-    - [Flash-Attention 2.7.4.post1](#flash-attention-274post1-1)
-    - [Flash-Attention 2.7.4](#flash-attention-274-1)
-    - [Flash-Attention 2.6.3](#flash-attention-263-1)
-    - [Flash-Attention 2.5.9](#flash-attention-259-1)
+- [Linux x86_64](#linux-x86_64)
+  - [Flash-Attention 2.8.3](#flash-attention-283)
+  - [Flash-Attention 2.8.2](#flash-attention-282)
+  - [Flash-Attention 2.8.1](#flash-attention-281)
+  - [Flash-Attention 2.8.0](#flash-attention-280)
+  - [Flash-Attention 2.7.4.post1](#flash-attention-274post1)
+  - [Flash-Attention 2.7.4](#flash-attention-274)
+  - [Flash-Attention 2.7.3](#flash-attention-273)
+  - [Flash-Attention 2.7.2.post1](#flash-attention-272post1)
+  - [Flash-Attention 2.7.0.post2](#flash-attention-270post2)
+  - [Flash-Attention 2.6.3](#flash-attention-263)
+  - [Flash-Attention 2.5.9](#flash-attention-259)
+  - [Flash-Attention 2.5.6](#flash-attention-256)
+  - [Flash-Attention 2.4.3](#flash-attention-243)
+  - [Flash-Attention 1.0.9](#flash-attention-109)
+- [Windows x86_64](#windows-x86_64)
+  - [Flash-Attention 2.8.3](#flash-attention-283)
+  - [Flash-Attention 2.8.2](#flash-attention-282)
+  - [Flash-Attention 2.7.4.post1](#flash-attention-274post1)
+  - [Flash-Attention 2.7.4](#flash-attention-274)
+  - [Flash-Attention 2.6.3](#flash-attention-263)
+  - [Flash-Attention 2.5.9](#flash-attention-259)
 
 ## 🐧 Linux x86_64
 
@@ -162,14 +160,22 @@
 | 3.10 | 2.5 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.13/flash_attn-2.8.1%2Bcu128torch2.5-cp310-cp310-linux_x86_64.whl) |
 | 3.10 | 2.6 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.13/flash_attn-2.8.1%2Bcu128torch2.6-cp310-cp310-linux_x86_64.whl) |
 | 3.10 | 2.7 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.13/flash_attn-2.8.1%2Bcu128torch2.7-cp310-cp310-linux_x86_64.whl) |
+| 3.10 | 2.9 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.22/flash_attn-2.8.1%2Bcu128torch2.9-cp310-cp310-linux_x86_64.whl) |
+| 3.10 | 2.9 | 13.0 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.22/flash_attn-2.8.1%2Bcu130torch2.9-cp310-cp310-linux_x86_64.whl) |
 | 3.11 | 2.4 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.13/flash_attn-2.8.1%2Bcu128torch2.4-cp311-cp311-linux_x86_64.whl) |
 | 3.11 | 2.5 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.13/flash_attn-2.8.1%2Bcu128torch2.5-cp311-cp311-linux_x86_64.whl) |
 | 3.11 | 2.6 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.13/flash_attn-2.8.1%2Bcu128torch2.6-cp311-cp311-linux_x86_64.whl) |
 | 3.11 | 2.7 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.13/flash_attn-2.8.1%2Bcu128torch2.7-cp311-cp311-linux_x86_64.whl) |
+| 3.11 | 2.9 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.22/flash_attn-2.8.1%2Bcu128torch2.9-cp311-cp311-linux_x86_64.whl) |
+| 3.11 | 2.9 | 13.0 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.22/flash_attn-2.8.1%2Bcu130torch2.9-cp311-cp311-linux_x86_64.whl) |
 | 3.12 | 2.4 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.13/flash_attn-2.8.1%2Bcu128torch2.4-cp312-cp312-linux_x86_64.whl) |
 | 3.12 | 2.5 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.13/flash_attn-2.8.1%2Bcu128torch2.5-cp312-cp312-linux_x86_64.whl) |
 | 3.12 | 2.6 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.13/flash_attn-2.8.1%2Bcu128torch2.6-cp312-cp312-linux_x86_64.whl) |
 | 3.12 | 2.7 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.13/flash_attn-2.8.1%2Bcu128torch2.7-cp312-cp312-linux_x86_64.whl) |
+| 3.12 | 2.9 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.22/flash_attn-2.8.1%2Bcu128torch2.9-cp312-cp312-linux_x86_64.whl) |
+| 3.12 | 2.9 | 13.0 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.22/flash_attn-2.8.1%2Bcu130torch2.9-cp312-cp312-linux_x86_64.whl) |
+| 3.13 | 2.9 | 12.8 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.22/flash_attn-2.8.1%2Bcu128torch2.9-cp313-cp313-linux_x86_64.whl) |
+| 3.13 | 2.9 | 13.0 | [Download1](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.22/flash_attn-2.8.1%2Bcu130torch2.9-cp313-cp313-linux_x86_64.whl) |
 
 </details>
 
