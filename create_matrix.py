@@ -18,7 +18,7 @@ EXCLUDE = [
     {"torch-version": "2.6.3", "cuda-version": "12.9.1"},
     {"torch-version": "2.7.1", "cuda-version": "12.9.1"},
     # torch >= 2.9 does not support Python 3.9
-    {"torch-version": "2.9.0", "python-version": "3.9"},
+    {"torch-version": "2.9.1", "python-version": "3.9"},
 ]
 
 LINUX_MATRIX = {
@@ -32,7 +32,7 @@ LINUX_MATRIX = {
     ],
     "torch-version": [
         # "2.5.1", "2.6.0", "2.7.1", "2.8.0",
-        "2.9.0",
+        "2.9.1",
     ],
     "cuda-version": [
         # "12.4.1", "12.6.3", "12.8.1", "12.9.1",
@@ -44,7 +44,7 @@ LINUX_MATRIX = {
 LINUX_SELF_HOSTED_MATRIX = {
     "flash-attn-version": ["2.7.4"],
     "python-version": ["3.10", "3.11", "3.12", "3.13"],
-    "torch-version": ["2.9.0"],
+    "torch-version": ["2.9.1"],
     "cuda-version": ["12.8.1", "13.0.1"],
 }
 
@@ -59,7 +59,7 @@ WINDOWS_MATRIX = {
     ],
     "torch-version": [
         # "2.5.1", "2.6.0", "2.7.1", "2.8.0",
-        "2.9.0"
+        "2.9.1"
     ],
     "cuda-version": [
         # "12.4.1", "12.6.3", "12.8.1", "12.9.1",
@@ -70,7 +70,7 @@ WINDOWS_MATRIX = {
 WINDOWS_CODEBUILD_MATRIX = {
     "flash-attn-version": ["2.6.3", "2.7.4.post1", "2.8.3"],
     "python-version": ["3.10", "3.11", "3.12", "3.13"],
-    "torch-version": ["2.9.0"],
+    "torch-version": ["2.9.1"],
     "cuda-version": ["13.0.1"],
 }
 
