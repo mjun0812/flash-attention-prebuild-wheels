@@ -49,7 +49,5 @@ echo "Building wheels..."
 cd flash-attention
 LOCAL_VERSION_LABEL="cu${MATRIX_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}"
 FLASH_ATTENTION_FORCE_BUILD=TRUE FLASH_ATTN_LOCAL_VERSION=${LOCAL_VERSION_LABEL} python setup.py bdist_wheel --dist-dir=dist
-base_wheel_name=$(basename $(ls dist/*.whl | head -n 1))
-wheel_name=$(echo $base_wheel_name | sed "s/$FLASH_ATTN_VERSION/$FLASH_ATTN_VERSION+cu${MATRIX_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}/")
-mv -v dist/$base_wheel_name dist/$wheel_name
+wheel_name=$(basename $(ls dist/*.whl | head -n 1))
 echo "Built wheel: $wheel_name"
