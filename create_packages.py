@@ -108,8 +108,10 @@ def extract_packages_from_packages_md(packages_md_path: Path) -> list[dict]:
                 # Extract all URLs from package cell
                 # Pattern: [Release1](url1), [Download1](url1), [Release](url), [Download](url), ...
                 # Support both Release and Download patterns for backward compatibility
+                # Also support version suffix: [Download1(v1.0.0)](url)
                 package_urls = re.findall(
-                    r"\[(?:Release|Download)\d*\]\(([^)]+)\)", package_cell
+                    r"\[(?:Release|Download)\d*(?:\([^)]*\))?\]\(([^)]+)\)",
+                    package_cell,
                 )
 
                 if package_urls:
@@ -312,6 +314,14 @@ def merge_duplicate_rows(df: pd.DataFrame) -> pd.DataFrame:
     return merged_df
 
 
+def get_tag_from_url(url: str) -> str:
+    """Extract tag from GitHub release URL."""
+    if pd.isna(url) or not url:
+        return ""
+    match = re.search(r"/releases/download/([^/]+)/", str(url))
+    return match.group(1) if match else ""
+
+
 def get_os_emoji(os_name: str) -> str:
     """Get emoji for OS name."""
     os_lower = os_name.lower()
@@ -394,14 +404,18 @@ def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
                         package_links = []
                         for i, pkg in enumerate(packages, 1):
                             if pd.notna(pkg) and pkg:
-                                package_links.append(f"[Download{i}]({pkg})")
+                                tag = get_tag_from_url(pkg)
+                                tag_str = f"({tag})" if tag else ""
+                                package_links.append(f"[Download{i}{tag_str}]({pkg})")
                         package_cell = ", ".join(package_links)
                     else:
                         package_cell = "-"
                 else:
                     # Handle single package (backward compatibility)
+                    tag = get_tag_from_url(packages)
+                    tag_str = f"({tag})" if tag else ""
                     package_cell = (
-                        f"[Download]({packages})"
+                        f"[Download{tag_str}]({packages})"
                         if pd.notna(packages) and packages
                         else "-"
                     )

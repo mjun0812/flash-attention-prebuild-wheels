@@ -14,17 +14,6 @@ The built packages are available on the [release page](https://github.com/mjun08
 
 [![buy-me-a-coffee](https://img.shields.io/badge/Buy_Me_A_Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/mjun0812)
 
-## Table of Contents
-
-- [flash-attention pre-build wheels](#flash-attention-pre-build-wheels)
-  - [Table of Contents](#table-of-contents)
-  - [Install](#install)
-  - [Packages](#packages)
-  - [History](#history)
-  - [Self build](#self-build)
-    - [Self-Hosted Runner Build](#self-hosted-runner-build)
-  - [Original Repository](#original-repository)
-
 ## Install
 
 1. Select the versions for Python, CUDA, PyTorch, and flash_attn.
