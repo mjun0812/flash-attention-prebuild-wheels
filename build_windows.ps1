@@ -1,13 +1,13 @@
 param(
     [Parameter(Mandatory=$true)]
     [string]$FlashAttnVersion,
-    
+
     [Parameter(Mandatory=$true)]
     [string]$PythonVersion,
-    
+
     [Parameter(Mandatory=$true)]
     [string]$TorchVersion,
-    
+
     [Parameter(Mandatory=$true)]
     [string]$CudaVersion
 )
@@ -72,8 +72,5 @@ $env:FLASH_ATTN_LOCAL_VERSION = "cu$MatrixCudaVersion" + "torch$MatrixTorchVersi
 
 cd flash-attention
 python setup.py bdist_wheel --dist-dir=dist
-$baseWheelName = Get-ChildItem -Path "dist\*.whl" | Select-Object -First 1 | ForEach-Object { $_.Name }
-$wheelName = $baseWheelName.Replace($FlashAttnVersion, "$FlashAttnVersion+cu$MatrixCudaVersion" + "torch$MatrixTorchVersion")
-Move-Item "dist\$baseWheelName" "dist\$wheelName"
+$WheelName = Get-ChildItem -Path "dist\*.whl" | Select-Object -First 1 | ForEach-Object { $_.Name }
 Write-Host "Built wheel: $wheelName"
-cd ..
