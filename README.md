@@ -1,5 +1,7 @@
 # flash-attention pre-build wheels
 
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/mjun0812/flash-attention-prebuild-wheels/total?style=for-the-badge)
+
 This repository provides wheels for the pre-built [flash-attention](https://github.com/Dao-AILab/flash-attention).
 
 Since building flash-attention takes a **very long time** and is resource-intensive,
