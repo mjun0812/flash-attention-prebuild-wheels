@@ -15,6 +15,11 @@ import pandas as pd
 
 from common import normalize_platform_name, parse_wheel_filename
 
+ADD_NOTE = """> [!NOTE]
+> Since v0.5.0, wheels are built with a local version label indicating the CUDA and PyTorch versions.  
+> Example: `pip list` -> `flash_attn==2.8.3 -> flash_attn==2.8.3+cu130torch2.9`
+"""
+
 
 def parse_numeric_version(text: str) -> tuple:
     """Extract numeric version tuple for sorting."""
@@ -496,7 +501,7 @@ def main() -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Generate markdown with "# Packages" header for standalone file
-    standalone_markdown = f"# Packages\n\n{markdown}"
+    standalone_markdown = f"# Packages\n\n{ADD_NOTE}\n{markdown}"
 
     with output_path.open("w", encoding="utf-8") as f:
         f.write(standalone_markdown)

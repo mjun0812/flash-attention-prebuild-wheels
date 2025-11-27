@@ -42,6 +42,10 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 
 ## Packages
 
+> [!NOTE]
+> Since v0.5.0, wheels are built with a local version label indicating the CUDA and PyTorch versions.  
+> Example: `pip list` -> `flash_attn==2.8.3 -> flash_attn==2.8.3+cu130torch2.9`
+
 See [./docs/packages.md](./docs/packages.md) for the full list of available packages.
 
 ## History

@@ -1,5 +1,9 @@
 # Packages
 
+> [!NOTE]
+> Since v0.5.0, wheels are built with a local version label indicating the CUDA and PyTorch versions.  
+> Example: `pip list` -> `flash_attn==2.8.3 -> flash_attn==2.8.3+cu130torch2.9`
+
 ## Table of Contents
 
 - [Linux x86_64](#linux-x86_64)
@@ -106,7 +110,7 @@
 | 3.13 | 2.8 | 12.9 | [Download1(v0.4.12)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.12/flash_attn-2.8.3%2Bcu129torch2.8-cp313-cp313-linux_x86_64.whl) |
 | 3.13 | 2.9 | 12.6 | [Download1(v0.4.17)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.17/flash_attn-2.8.3%2Bcu126torch2.9-cp313-cp313-linux_x86_64.whl), [Download2(v0.4.15)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.15/flash_attn-2.8.3%2Bcu126torch2.9-cp313-cp313-linux_x86_64.whl) |
 | 3.13 | 2.9 | 12.8 | [Download1(v0.4.17)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.17/flash_attn-2.8.3%2Bcu128torch2.9-cp313-cp313-linux_x86_64.whl), [Download2(v0.4.15)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.15/flash_attn-2.8.3%2Bcu128torch2.9-cp313-cp313-linux_x86_64.whl) |
-| 3.13 | 2.9 | 13.0 | [Download1(v0.4.18)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.18/flash_attn-2.8.3%2Bcu130torch2.9-cp313-cp313-linux_x86_64.whl) |
+| 3.13 | 2.9 | 13.0 | [Download1(v0.5.2)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.5.2/flash_attn-2.8.3%2Bcu130torch2.9-cp313-cp313-linux_x86_64.whl), [Download2(v0.4.18)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.18/flash_attn-2.8.3%2Bcu130torch2.9-cp313-cp313-linux_x86_64.whl) |
 
 </details>
 
