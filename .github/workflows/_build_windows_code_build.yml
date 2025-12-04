@@ -22,10 +22,15 @@ on:
         description: "CUDA version"
         required: true
         type: string
+      is-upload:
+        description: "Whether to upload the release asset"
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build_wheels:
-    name: Build wheels and Upload (Windows x86_64, AWS CodeBuild, ${{ inputs.flash-attn-version }}, ${{ inputs.python-version }}, ${{ inputs.torch-version }}, ${{ inputs.cuda-version }})
+    name: Build wheels and Upload (Windows x86_64, AWS CodeBuild)
     timeout-minutes: 2160
     runs-on: codebuild-flash-attention-pre-build-wheel-windows-${{ github.run_id }}-${{ github.run_attempt }}
     # Large Instance
@@ -84,6 +89,7 @@ jobs:
           python -c "import flash_attn; print(flash_attn.__version__)"
 
       - name: Upload Release Asset
+        if: ${{ inputs.is-upload }}
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
