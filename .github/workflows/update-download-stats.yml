@@ -1,0 +1,39 @@
+name: Update Download Statistics
+
+on:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  update-stats:
+    name: Update download statistics and graph
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+
+      - name: Install dependencies
+        run: |
+          pip install requests matplotlib
+
+      - name: Update download statistics
+        run: |
+          python update_download_stats.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data/download_history.json docs/data/download_graph.png
+          git diff --staged --quiet || git commit -m "chore: update download statistics
+
+          Update download statistics and graph for $(date -u +%Y-%m-%d)"
+          git push
