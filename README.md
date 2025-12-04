@@ -13,7 +13,6 @@ The built packages are available on the [release page](https://github.com/mjun08
 **This repository uses a self-hosted runner and AWS CodeBuild for building the wheels. If you find this project helpful, please consider sponsoring to help maintain the infrastructure!**
 
 [![github-sponsor](https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#white)](https://github.com/sponsors/mjun0812)
-
 [![buy-me-a-coffee](https://img.shields.io/badge/Buy_Me_A_Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/mjun0812)
 
 ## Install
@@ -57,8 +56,8 @@ History of this repository is available [here](./docs/release_history.md).
 If you cannot find the version you are looking for, you can fork this repository and create a wheel on GitHub Actions.
 
 1. Fork this repository
-2. Edit workflow file [`.github/workflows/build.yml`](https://github.com/mjun0812/flash-attention-prebuild-wheels/blob/main/.github/workflows/build.yml) to set the version you want to build.
-3. Add tag `v*.*.*` to trigger the build workflow.
+2. Edit Python script [`create_matrix.py`](https://github.com/mjun0812/flash-attention-prebuild-wheels/blob/main/create_matrix.py) to set the version you want to build.
+3. Add tag `v*.*.*` to trigger the build workflow. `git tag v*.*.* && git push --tags`
 
 Please note that depending on the combination of versions, it may not be possible to build.
 
