@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         flash-attn-version: ["2.8.0"]
-        python-version: ["3.11", "3.11"]
+        python-version: ["3.11"]
         torch-version: ["2.7.1"]
         # https://developer.nvidia.com/cuda-toolkit-archive
         cuda-version: ["12.8.1"]
@@ -51,6 +51,9 @@ jobs:
       - name: Build wheels
         id: build_wheels
         shell: bash
+        env:
+          MAX_JOBS: 2
+          NVCC_THREADS: 1
         run: |
           chmod +x build_linux.sh
           ./build_linux.sh ${{ matrix.flash-attn-version }} ${{ matrix.python-version }} ${{ matrix.torch-version }} ${{ matrix.cuda-version }}

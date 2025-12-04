@@ -51,20 +51,23 @@ echo "System resources:"
 echo "  CPU threads: $NUM_THREADS"
 echo "  RAM: ${RAM_GB}GB"
 
-# Calculate max product based on following constraints:
-# - MAX_JOBS x NVCC_THREADS <= NUM_THREADS
-# - 2.5GB x MAX_JOBS x NVCC_THREADS <= RAM_GB
-MAX_PRODUCT_CPU=$NUM_THREADS
-MAX_PRODUCT_RAM=$(awk -v ram="$RAM_GB" 'BEGIN {print int(ram / 2.5)}')
-MAX_PRODUCT=$((MAX_PRODUCT_CPU < MAX_PRODUCT_RAM ? MAX_PRODUCT_CPU : MAX_PRODUCT_RAM))
+# Determine MAX_JOBS and NVCC_THREADS based on system resources
+if [[ -z "${MAX_JOBS:-}" && -z "${NVCC_THREADS:-}" ]]; then
+  # Calculate max product based on following constraints:
+  # - MAX_JOBS x NVCC_THREADS <= NUM_THREADS
+  # - 2.5GB x MAX_JOBS x NVCC_THREADS <= RAM_GB
+  MAX_PRODUCT_CPU=$NUM_THREADS
+  MAX_PRODUCT_RAM=$(awk -v ram="$RAM_GB" 'BEGIN {print int(ram / 2.5)}')
+  MAX_PRODUCT=$((MAX_PRODUCT_CPU < MAX_PRODUCT_RAM ? MAX_PRODUCT_CPU : MAX_PRODUCT_RAM))
 
-# Set MAX_JOBS = NVCC_THREADS = floor(sqrt(MAX_PRODUCT))
-MAX_JOBS=$(awk -v max="$MAX_PRODUCT" 'BEGIN {print int(sqrt(max))}')
-NVCC_THREADS=$MAX_JOBS
+  # Set MAX_JOBS = NVCC_THREADS = floor(sqrt(MAX_PRODUCT))
+  MAX_JOBS=$(awk -v max="$MAX_PRODUCT" 'BEGIN {print int(sqrt(max))}')
+  NVCC_THREADS=$MAX_JOBS
 
-# Ensure minimum values of 1
-MAX_JOBS=$((MAX_JOBS < 1 ? 1 : MAX_JOBS))
-NVCC_THREADS=$((NVCC_THREADS < 1 ? 1 : NVCC_THREADS))
+  # Ensure minimum values of 1
+  MAX_JOBS=$((MAX_JOBS < 1 ? 1 : MAX_JOBS))
+  NVCC_THREADS=$((NVCC_THREADS < 1 ? 1 : NVCC_THREADS))
+fi
 
 echo "Build parallelism settings:"
 echo "  MAX_JOBS: $MAX_JOBS"
