@@ -143,6 +143,7 @@ jobs:
     name: Update Release Notes
     needs:
       - build_wheels_linux
+      - build_wheels_linux_arm64
       - build_wheels_linux_self_hosted
       - build_wheels_windows
       - build_wheels_windows_code_build
@@ -170,6 +171,7 @@ jobs:
     name: Update Docs
     needs:
       - build_wheels_linux
+      - build_wheels_linux_arm64
       - build_wheels_linux_self_hosted
       - build_wheels_windows
       - build_wheels_windows_code_build
