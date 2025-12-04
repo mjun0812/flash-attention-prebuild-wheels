@@ -25,4 +25,4 @@ jobs:
       torch-version: ${{ matrix.torch-version }}
       cuda-version: ${{ matrix.cuda-version }}
       is-upload: false
-      runner: ${{ matrix.cuda-version}}
+      runner: ${{ matrix.runner}}

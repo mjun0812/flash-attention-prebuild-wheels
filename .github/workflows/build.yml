@@ -73,7 +73,7 @@ jobs:
       python-version: ${{ matrix.python-version }}
       torch-version: ${{ matrix.torch-version }}
       cuda-version: ${{ matrix.cuda-version }}
-      runner: "ubuntu-22.04-arm64"
+      runner: "ubuntu-22.04-arm"
     secrets: inherit
 
   build_wheels_linux_self_hosted:
