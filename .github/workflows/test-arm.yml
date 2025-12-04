@@ -45,7 +45,7 @@ jobs:
       - name: Install build dependencies
         shell: bash
         run: |
-          sudo apt install -y ninja-build clang
+          sudo apt install -y ninja-build clang time
           pip install -U pip setuptools==75.8.0 wheel setuptools packaging psutil
 
       - name: Build wheels

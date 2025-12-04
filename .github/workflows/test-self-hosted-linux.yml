@@ -45,7 +45,8 @@ jobs:
             g++ \
             clang \
             ninja-build \
-            keyboard-configuration
+            keyboard-configuration \
+            time
 
       - name: Install gh
         shell: bash
