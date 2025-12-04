@@ -80,33 +80,20 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      - uses: Jimver/cuda-toolkit@v0.2.29
+      - uses: mjun0812/setup-cuda@v1
         with:
-          cuda: ${{ inputs.cuda-version }}
-          sub-packages: '["nvcc", "toolkit"]'
-          method: "network"
-          use-github-cache: false
-          use-local-cache: false
+          version: ${{ inputs.cuda-version }}
 
       - name: Install build dependencies
         shell: bash
         run: |
           sudo apt install -y ninja-build clang
-          pip install -U pip setuptools==75.8.0 wheel setuptools packaging psutil
-
-      - name: Set environment variables
-        shell: bash
-        run: |
-          export PATH=/usr/local/nvidia/bin:/usr/local/nvidia/lib64:$PATH
-          export LD_LIBRARY_PATH=/usr/local/nvidia/lib64:/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+          pip install -U pip setuptools==75.8.0 wheel packaging psutil
 
       - name: Build wheels
         timeout-minutes: 2160
         id: build_wheels
         shell: bash
-        env:
-          MAX_JOBS: 3
-          NVCC_THREADS: 3
         run: |
           chmod +x build_linux.sh
           ./build_linux.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.cuda-version }}

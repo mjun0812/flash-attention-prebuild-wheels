@@ -51,15 +51,14 @@ echo "System resources:"
 echo "  CPU threads: $NUM_THREADS"
 echo "  RAM: ${RAM_GB}GB"
 
-# Calculate max product based on constraints:
+# Calculate max product based on following constraints:
 # - MAX_JOBS x NVCC_THREADS <= NUM_THREADS
-# - 4GB x MAX_JOBS x NVCC_THREADS <= RAM_GB
+# - 2.5GB x MAX_JOBS x NVCC_THREADS <= RAM_GB
 MAX_PRODUCT_CPU=$NUM_THREADS
-MAX_PRODUCT_RAM=$((RAM_GB / 4))
+MAX_PRODUCT_RAM=$(awk -v ram="$RAM_GB" 'BEGIN {print int(ram / 2.5)}')
 MAX_PRODUCT=$((MAX_PRODUCT_CPU < MAX_PRODUCT_RAM ? MAX_PRODUCT_CPU : MAX_PRODUCT_RAM))
 
 # Set MAX_JOBS = NVCC_THREADS = floor(sqrt(MAX_PRODUCT))
-# This balances parallelism across both dimensions
 MAX_JOBS=$(awk -v max="$MAX_PRODUCT" 'BEGIN {print int(sqrt(max))}')
 NVCC_THREADS=$MAX_JOBS
 

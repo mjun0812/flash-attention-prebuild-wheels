@@ -1,4 +1,4 @@
-name: Test self-hosted Linux build
+name: Test ARM Linux build
 
 on:
   workflow_dispatch:
@@ -8,17 +8,11 @@ jobs:
   # Build wheels with self-hosted runner
   # #########################################################
   build_wheels_self_hosted:
-    name: Build wheels and Upload (Linux x86_64, self-hosted runner)
-    runs-on: self-hosted
-    container:
-      image: ubuntu:22.04
-    defaults:
-      run:
-        shell: bash
+    name: Build wheels and Upload (Linux arm64)
+    runs-on: ubuntu-22.04-arm
     env:
       DEBIAN_FRONTEND: noninteractive
       TERM: xterm-256color
-    timeout-minutes: 2000
     strategy:
       fail-fast: false
       matrix:
@@ -28,43 +22,17 @@ jobs:
         # https://developer.nvidia.com/cuda-toolkit-archive
         cuda-version: ["12.8.1"]
     steps:
-      - name: Install tools
-        shell: bash
-        run: |
-          apt-get update && apt-get install -y --no-install-recommends \
-            curl \
-            ca-certificates \
-            sudo \
-            software-properties-common \
-            wget \
-            unzip \
-            zip \
-            git \
-            build-essential \
-            gcc \
-            g++ \
-            clang \
-            ninja-build \
-            keyboard-configuration
-
-      - name: Install gh
-        shell: bash
-        run: |
-          sudo mkdir -p -m 755 /etc/apt/keyrings
-          out=$(mktemp)
-          wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg
-          cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
-          sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-          sudo apt update
-          sudo apt install gh -y
-
       - uses: actions/checkout@v4
 
-      - name: Configure Git safe directory
-        shell: bash
+      - name: Maximize build space
         run: |
-          git config --global --add safe.directory $(pwd)
+          df -h
+          echo "-----------------------------"
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          df -h
 
       - uses: actions/setup-python@v5
         with:
@@ -81,7 +49,6 @@ jobs:
           pip install -U pip setuptools==75.8.0 wheel setuptools packaging psutil
 
       - name: Build wheels
-        timeout-minutes: 1200
         id: build_wheels
         shell: bash
         run: |
@@ -96,9 +63,3 @@ jobs:
           pip uninstall -y flash-attn > /dev/null 2>&1
           pip install --no-cache-dir flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }}
           python -c "import flash_attn; print(flash_attn.__version__)"
-
-      - name: Clean up
-        shell: bash
-        if: always()
-        run: |
-          rm -rf /opt/hostedtoolcache/Python

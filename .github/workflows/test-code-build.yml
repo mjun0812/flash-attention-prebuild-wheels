@@ -1,4 +1,4 @@
-name: "Test Code build"
+name: Test Code build
 on:
   workflow_dispatch:
 

@@ -1,5 +1,5 @@
 # #########################################################
-# Build wheels with GitHub hosted runner
+# Build wheels with GitHub-hosted runner
 # #########################################################
 
 name: "[Linux x86_64] Build wheels and upload to GitHub Releases"
@@ -44,38 +44,21 @@ jobs:
           sudo rm -rf /opt/hostedtoolcache/CodeQL
           df -h
 
-      - name: Set Swap Space
-        uses: pierotofy/set-swap-space@master
-        with:
-          swap-size-gb: 48
-
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
 
-      - uses: Jimver/cuda-toolkit@v0.2.29
+      - uses: mjun0812/setup-cuda@v1
         with:
-          cuda: ${{ inputs.cuda-version }}
-          sub-packages: '["nvcc", "toolkit"]'
-          method: "network"
-          use-github-cache: false
-          use-local-cache: false
+          version: ${{ inputs.cuda-version }}
 
       - name: Install build dependencies
         run: |
           sudo apt install -y ninja-build clang
-          pip install -U pip setuptools==75.8.0 wheel setuptools packaging psutil
-
-      - name: Set environment variables
-        run: |
-          export PATH=/usr/local/nvidia/bin:/usr/local/nvidia/lib64:$PATH
-          export LD_LIBRARY_PATH=/usr/local/nvidia/lib64:/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+          pip install -U pip setuptools==75.8.0 wheel packaging psutil
 
       - name: Build wheels
         id: build_wheels
-        env:
-          MAX_JOBS: 2
-          NVCC_THREADS: 2
         run: |
           chmod +x build_linux.sh
           ./build_linux.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.cuda-version }}
@@ -84,6 +67,7 @@ jobs:
 
       - name: Install Test
         run: |
+          pip uninstall -y flash-attn > /dev/null 2>&1
           pip install --no-cache-dir flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }}
           python -c "import flash_attn; print(flash_attn.__version__)"
 

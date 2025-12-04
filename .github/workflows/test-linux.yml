@@ -1,4 +1,4 @@
-name: Build wheels and upload to GitHub Releases
+name: Test GHA runner environment
 
 on:
   workflow_dispatch:
@@ -16,4 +16,3 @@ jobs:
       - shell: bash
         run: |
           python -c "import platform, os; print(platform.libc_ver())"
-
