@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         flash-attn-version: ["2.8.0"]
-        python-version: ["3.11"]
+        python-version: ["3.11", "3.12"]
         torch-version: ["2.7.1"]
         # https://developer.nvidia.com/cuda-toolkit-archive
         cuda-version: ["12.8.1"]
@@ -92,6 +92,7 @@ jobs:
 
       - name: Build wheels
         timeout-minutes: 1200
+        id: build_wheels
         shell: bash
         env:
           MAX_JOBS: 4
@@ -105,7 +106,8 @@ jobs:
       - name: Install Test
         shell: bash
         run: |
-          pip install --no-cache-dir --force-reinstall flash-attention/dist/${{ env.wheel_name }}
+          pip uninstall -y flash-attn > /dev/null 2>&1
+          pip install --no-cache-dir flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }}
           python -c "import flash_attn; print(flash_attn.__version__)"
 
       - name: Clean up
@@ -113,4 +115,3 @@ jobs:
         if: always()
         run: |
           rm -rf /opt/hostedtoolcache/Python
-          rm -rf ~/.cache/pip

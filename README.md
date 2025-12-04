@@ -13,7 +13,6 @@ The built packages are available on the [release page](https://github.com/mjun08
 **This repository uses a self-hosted runner and AWS CodeBuild for building the wheels. If you find this project helpful, please consider sponsoring to help maintain the infrastructure!**
 
 [![github-sponsor](https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#white)](https://github.com/sponsors/mjun0812)
-
 [![buy-me-a-coffee](https://img.shields.io/badge/Buy_Me_A_Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/mjun0812)
 
 ## Install
@@ -57,8 +56,8 @@ History of this repository is available [here](./docs/release_history.md).
 If you cannot find the version you are looking for, you can fork this repository and create a wheel on GitHub Actions.
 
 1. Fork this repository
-2. Edit workflow file [`.github/workflows/build.yml`](https://github.com/mjun0812/flash-attention-prebuild-wheels/blob/main/.github/workflows/build.yml) to set the version you want to build.
-3. Add tag `v*.*.*` to trigger the build workflow.
+2. Edit Python script [`create_matrix.py`](https://github.com/mjun0812/flash-attention-prebuild-wheels/blob/main/create_matrix.py) to set the version you want to build.
+3. Add tag `v*.*.*` to trigger the build workflow. `git tag v*.*.* && git push --tags`
 
 Please note that depending on the combination of versions, it may not be possible to build.
 
@@ -76,8 +75,13 @@ cp env.template env
 Edit `env` file to set the environment variables.
 
 ```bash
-# Edit env
+# Registry Token for GitHub Personal Access Token
 PERSONAL_ACCESS_TOKEN=[Github Personal Access Token]
+# or Registry Token for GitHub Actions Runner
+REGISTRY_TOKEN=[Runner Registry Token]
+
+# Optional
+RUNNER_LABELS=Linux,self-hosted
 ```
 
 Edit compose.yml file if you use repository folked from this repository.
@@ -86,16 +90,19 @@ Edit compose.yml file if you use repository folked from this repository.
 services:
   runner:
     privileged: true
+    restart: always
+    env_file:
+      - .env
+    environment:
+      REPOSITORY_URL: https://github.com/[OWNER]/[REPOSITORY]
+      RUNNER_NAME: self-hosted-runner
+      RUNNER_GROUP: default
+      TARGET_ARCH: x64
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        REPOSITORY_URL: [Target Repository URL]
-        PERSONAL_ACCESS_TOKEN: $PERSONAL_ACCESS_TOKEN
-        GH_RUNNER_VERSION: 2.324.0
-        RUNNER_NAME: self-hosted-runner
-        RUNNER_GROUP: default
-        RUNNER_LABELS: self-hosted
+        GH_RUNNER_VERSION: 2.329.0
         TARGET_ARCH: x64
 ```
 
@@ -107,21 +114,28 @@ docker compose build
 docker compose up -d
 ```
 
+### Getting One-Time Registry Token for GitHub Actions Runner
+
+```bash
+gh api \
+  -X POST \
+  /repos/[OWNER]/[REPOSITORY]/actions/runners/registration-token
+```
+
+## Citation
+
+If you use this repository in your research and find it helpful, please cite the following paper!
+
+```bibtex
+@misc{flash-attention-prebuild-wheels,
+ author = {Morioka, Junya},
+ year = {2025},
+ title = {mjun0812/flash-attention-prebuild-wheels},
+ url = {https://github.com/mjun0812/flash-attention-prebuild-wheels},
+ howpublished = {https://github.com/mjun0812/flash-attention-prebuild-wheels},
+}
+```
+
 ## Original Repository
 
 [repo](https://github.com/Dao-AILab/flash-attention)
-
-```bibtex
-@inproceedings{dao2022flashattention,
-  title={Flash{A}ttention: Fast and Memory-Efficient Exact Attention with {IO}-Awareness},
-  author={Dao, Tri and Fu, Daniel Y. and Ermon, Stefano and Rudra, Atri and R{\'e}, Christopher},
-  booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
-  year={2022}
-}
-@inproceedings{dao2023flashattention2,
-  title={Flash{A}ttention-2: Faster Attention with Better Parallelism and Work Partitioning},
-  author={Dao, Tri},
-  booktitle={International Conference on Learning Representations (ICLR)},
-  year={2024}
-}
-```

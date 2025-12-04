@@ -1,11 +1,6 @@
 FROM ubuntu:24.04
 
-ARG REPOSITORY_URL
-ARG PERSONAL_ACCESS_TOKEN
-ARG GH_RUNNER_VERSION="2.324.0"
-ARG RUNNER_NAME="self-hosted-github-actions-runner"
-ARG RUNNER_GROUP="default"
-ARG RUNNER_LABELS="self-hosted,Linux"
+ARG GH_RUNNER_VERSION="2.329.0"
 ARG TARGET_ARCH="x64"
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -64,15 +59,4 @@ WORKDIR /home/ubuntu
 RUN curl -fsSL -o actions-runner.tar.gz -L "https://github.com/actions/runner/releases/download/v${GH_RUNNER_VERSION}/actions-runner-linux-${TARGET_ARCH}-${GH_RUNNER_VERSION}.tar.gz" \
     && tar xf actions-runner.tar.gz \
     && rm actions-runner.tar.gz \
-    && sudo ./bin/installdependencies.sh \
-    && ./config.sh \
-    --unattended \
-    --url $REPOSITORY_URL \
-    --pat $PERSONAL_ACCESS_TOKEN \
-    --name $RUNNER_NAME \
-    --runnergroup $RUNNER_GROUP \
-    --labels "${RUNNER_LABELS},${TARGET_ARCH}" \
-    --work /home/ubuntu/actions-runner \
-    --replace
-
-CMD ["./run.sh"]
+    && sudo ./bin/installdependencies.sh
