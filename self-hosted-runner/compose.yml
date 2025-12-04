@@ -9,9 +9,7 @@ services:
       dockerfile: Dockerfile
       args:
         REPOSITORY_URL: https://github.com/mjun0812/flash-attention-prebuild-wheels
-        PERSONAL_ACCESS_TOKEN: $PERSONAL_ACCESS_TOKEN
         GH_RUNNER_VERSION: 2.329.0
         RUNNER_NAME: self-hosted-runner
         RUNNER_GROUP: default
-        RUNNER_LABELS: self-hosted,Linux
         TARGET_ARCH: x64

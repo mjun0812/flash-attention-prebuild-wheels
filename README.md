@@ -75,8 +75,13 @@ cp env.template env
 Edit `env` file to set the environment variables.
 
 ```bash
-# Edit env
+# Registry Token for GitHub Personal Access Token
 PERSONAL_ACCESS_TOKEN=[Github Personal Access Token]
+# or Registry Token for GitHub Actions Runner
+REGISTRY_TOKEN=[Runner Registry Token]
+
+# Optional
+RUNNER_LABELS=Linux,self-hosted
 ```
 
 Edit compose.yml file if you use repository folked from this repository.
@@ -90,11 +95,9 @@ services:
       dockerfile: Dockerfile
       args:
         REPOSITORY_URL: [Target Repository URL]
-        PERSONAL_ACCESS_TOKEN: $PERSONAL_ACCESS_TOKEN
-        GH_RUNNER_VERSION: 2.324.0
+        GH_RUNNER_VERSION: 2.329.0
         RUNNER_NAME: self-hosted-runner
         RUNNER_GROUP: default
-        RUNNER_LABELS: self-hosted
         TARGET_ARCH: x64
 ```
 
@@ -106,21 +109,28 @@ docker compose build
 docker compose up -d
 ```
 
+### Getting One-Time Registry Token for GitHub Actions Runner
+
+```bash
+gh api \
+  -X POST \
+  /repos/[OWNER]/[REPOSITORY]/actions/runners/registration-token
+```
+
+## Citation
+
+If you use this repository in your research and find it helpful, please cite the following paper!
+
+```bibtex
+@misc{flash-attention-prebuild-wheels,
+ author = {Morioka, Junya},
+ year = {2025},
+ title = {mjun0812/flash-attention-prebuild-wheels},
+ url = {https://github.com/mjun0812/flash-attention-prebuild-wheels},
+ howpublished = {https://github.com/mjun0812/flash-attention-prebuild-wheels},
+}
+```
+
 ## Original Repository
 
 [repo](https://github.com/Dao-AILab/flash-attention)
-
-```bibtex
-@inproceedings{dao2022flashattention,
-  title={Flash{A}ttention: Fast and Memory-Efficient Exact Attention with {IO}-Awareness},
-  author={Dao, Tri and Fu, Daniel Y. and Ermon, Stefano and Rudra, Atri and R{\'e}, Christopher},
-  booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
-  year={2022}
-}
-@inproceedings{dao2023flashattention2,
-  title={Flash{A}ttention-2: Faster Attention with Better Parallelism and Work Partitioning},
-  author={Dao, Tri},
-  booktitle={International Conference on Learning Representations (ICLR)},
-  year={2024}
-}
-```
