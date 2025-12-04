@@ -15,6 +15,8 @@ The built packages are available on the [release page](https://github.com/mjun08
 [![github-sponsor](https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#white)](https://github.com/sponsors/mjun0812)
 [![buy-me-a-coffee](https://img.shields.io/badge/Buy_Me_A_Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/mjun0812)
 
+**Special thanks to [@KiralyCraft](https://github.com/KiralyCraft) for providing the computing resources used to build wheels. Thank you!!**
+
 ## Install
 
 1. Select the versions for Python, CUDA, PyTorch, and flash_attn.
@@ -64,6 +66,14 @@ If you use this repository in your research and find it helpful, please cite the
  howpublished = {https://github.com/mjun0812/flash-attention-prebuild-wheels},
 }
 ```
+
+## Acknowledgments
+
+- [@okaris](https://github.com/okaris) : Sponsored me!
+- [@xhiroga](https://github.com/xhiroga) : Sponsored me!
+- cjustus613 : Buy me a coffee!
+- [@KiralyCraft](https://github.com/KiralyCraft) : Provided with computing resource!
+
 
 ## Star History and Download Statistics
 
