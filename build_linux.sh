@@ -44,10 +44,38 @@ python -c "from torch.utils import cpp_extension; print(cpp_extension.CUDA_HOME)
 echo "Checking out flash-attention v$FLASH_ATTN_VERSION..."
 git clone https://github.com/Dao-AILab/flash-attention.git -b "v$FLASH_ATTN_VERSION"
 
+# Determine MAX_JOBS and NVCC_THREADS based on system resources
+NUM_THREADS=$(nproc)
+RAM_GB=$(free -g | awk '/^Mem:/{print $2}')
+echo "System resources:"
+echo "  CPU threads: $NUM_THREADS"
+echo "  RAM: ${RAM_GB}GB"
+
+# Calculate max product based on constraints:
+# - MAX_JOBS x NVCC_THREADS <= NUM_THREADS
+# - 4GB x MAX_JOBS x NVCC_THREADS <= RAM_GB
+MAX_PRODUCT_CPU=$NUM_THREADS
+MAX_PRODUCT_RAM=$((RAM_GB / 4))
+MAX_PRODUCT=$((MAX_PRODUCT_CPU < MAX_PRODUCT_RAM ? MAX_PRODUCT_CPU : MAX_PRODUCT_RAM))
+
+# Set MAX_JOBS = NVCC_THREADS = floor(sqrt(MAX_PRODUCT))
+# This balances parallelism across both dimensions
+MAX_JOBS=$(awk -v max="$MAX_PRODUCT" 'BEGIN {print int(sqrt(max))}')
+NVCC_THREADS=$MAX_JOBS
+
+# Ensure minimum values of 1
+MAX_JOBS=$((MAX_JOBS < 1 ? 1 : MAX_JOBS))
+NVCC_THREADS=$((NVCC_THREADS < 1 ? 1 : NVCC_THREADS))
+
+echo "Build parallelism settings:"
+echo "  MAX_JOBS: $MAX_JOBS"
+echo "  NVCC_THREADS: $NVCC_THREADS"
+
 # Build wheels
 echo "Building wheels..."
 cd flash-attention
 LOCAL_VERSION_LABEL="cu${MATRIX_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}"
-FLASH_ATTENTION_FORCE_BUILD=TRUE FLASH_ATTN_LOCAL_VERSION=${LOCAL_VERSION_LABEL} python setup.py bdist_wheel --dist-dir=dist
+NVCC_THREADS=$NVCC_THREADS MAX_JOBS=$MAX_JOBS FLASH_ATTENTION_FORCE_BUILD=TRUE FLASH_ATTN_LOCAL_VERSION=${LOCAL_VERSION_LABEL} \
+  python setup.py bdist_wheel --dist-dir=dist
 wheel_name=$(basename $(ls dist/*.whl | head -n 1))
 echo "Built wheel: $wheel_name"

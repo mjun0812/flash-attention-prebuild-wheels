@@ -70,13 +70,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: Jimver/cuda-toolkit@master
+      - uses: mjun0812/setup-cuda@v1
         with:
-          cuda: ${{ matrix.cuda-version }}
-          sub-packages: '["nvcc", "toolkit"]'
-          method: "network"
-          use-github-cache: false
-          use-local-cache: false
+          version: "${{ matrix.cuda-version }}"
 
       - name: Install build dependencies
         shell: bash
@@ -84,19 +80,10 @@ jobs:
           sudo apt install -y ninja-build clang
           pip install -U pip setuptools==75.8.0 wheel setuptools packaging psutil
 
-      - name: Set environment variables
-        shell: bash
-        run: |
-          export PATH=/usr/local/nvidia/bin:/usr/local/nvidia/lib64:$PATH
-          export LD_LIBRARY_PATH=/usr/local/nvidia/lib64:/usr/local/cuda/lib64:$LD_LIBRARY_PATH
-
       - name: Build wheels
         timeout-minutes: 1200
         id: build_wheels
         shell: bash
-        env:
-          MAX_JOBS: 4
-          NVCC_THREADS: 4
         run: |
           chmod +x build_linux.sh
           ./build_linux.sh ${{ matrix.flash-attn-version }} ${{ matrix.python-version }} ${{ matrix.torch-version }} ${{ matrix.cuda-version }}
