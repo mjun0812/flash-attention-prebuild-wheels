@@ -23,11 +23,21 @@ on:
         description: "CUDA version"
         required: true
         type: string
+      runner:
+        description: "Runner type"
+        required: false
+        type: string
+        default: "windows-2022"
+      is-upload:
+        description: "Whether to upload the release asset"
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build_windows_wheels:
-    name: Build wheels and Upload (Windows x86_64, GitHub hosted runner, ${{ inputs.flash-attn-version }}, ${{ inputs.python-version }}, ${{ inputs.torch-version }}, ${{ inputs.cuda-version }})
-    runs-on: windows-2022
+    name: Build wheels and Upload (Windows x86_64, GitHub hosted runner)
+    runs-on: ${{ inputs.runner }}
     env:
       MAX_JOBS: 2
       NVCC_THREADS: 2
@@ -82,6 +92,7 @@ jobs:
           python -c "import flash_attn; print(flash_attn.__version__)"
 
       - name: Upload Release Asset
+        if: ${{ inputs.is-upload }}
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

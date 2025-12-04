@@ -9,97 +9,20 @@ jobs:
   # #########################################################
   build_wheels_self_hosted:
     name: Build wheels and Upload (Linux x86_64, self-hosted runner)
-    runs-on: self-hosted
-    container:
-      image: ubuntu:22.04
-    defaults:
-      run:
-        shell: bash
-    env:
-      DEBIAN_FRONTEND: noninteractive
-      TERM: xterm-256color
-    timeout-minutes: 2000
+    uses: ./.github/workflows/_build_linux_self_host.yml
     strategy:
       fail-fast: false
       matrix:
-        flash-attn-version: ["2.8.0"]
-        python-version: ["3.11", "3.11"]
-        torch-version: ["2.7.1"]
+        flash-attn-version: ["2.8.3"]
+        python-version: ["3.13", "3.13"]
+        torch-version: ["2.9.1"]
         # https://developer.nvidia.com/cuda-toolkit-archive
-        cuda-version: ["12.8.1"]
-    steps:
-      - name: Install tools
-        shell: bash
-        run: |
-          apt-get update && apt-get install -y --no-install-recommends \
-            curl \
-            ca-certificates \
-            sudo \
-            software-properties-common \
-            wget \
-            unzip \
-            zip \
-            git \
-            build-essential \
-            gcc \
-            g++ \
-            clang \
-            ninja-build \
-            keyboard-configuration \
-            time
-
-      - name: Install gh
-        shell: bash
-        run: |
-          sudo mkdir -p -m 755 /etc/apt/keyrings
-          out=$(mktemp)
-          wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg
-          cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
-          sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-          sudo apt update
-          sudo apt install gh -y
-
-      - uses: actions/checkout@v4
-
-      - name: Configure Git safe directory
-        shell: bash
-        run: |
-          git config --global --add safe.directory $(pwd)
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - uses: mjun0812/setup-cuda@v1
-        with:
-          version: "${{ matrix.cuda-version }}"
-
-      - name: Install build dependencies
-        shell: bash
-        run: |
-          sudo apt install -y ninja-build clang
-          pip install -U pip setuptools==75.8.0 wheel setuptools packaging psutil
-
-      - name: Build wheels
-        timeout-minutes: 1200
-        id: build_wheels
-        shell: bash
-        run: |
-          chmod +x build_linux.sh
-          ./build_linux.sh ${{ matrix.flash-attn-version }} ${{ matrix.python-version }} ${{ matrix.torch-version }} ${{ matrix.cuda-version }}
-          wheel_name=$(basename $(ls flash-attention/dist/*.whl | head -n 1))
-          echo "WHEEL_NAME=$wheel_name" >> $GITHUB_OUTPUT
-
-      - name: Install Test
-        shell: bash
-        run: |
-          pip uninstall -y flash-attn > /dev/null 2>&1
-          pip install --no-cache-dir flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }}
-          python -c "import flash_attn; print(flash_attn.__version__)"
-
-      - name: Clean up
-        shell: bash
-        if: always()
-        run: |
-          rm -rf /opt/hostedtoolcache/Python
+        cuda-version: ["13.0.1"]
+        runner: ["self-hosted", "openci-runner-beta"]
+    with:
+      flash-attn-version: ${{ matrix.flash-attn-version }}
+      python-version: ${{ matrix.python-version }}
+      torch-version: ${{ matrix.torch-version }}
+      cuda-version: ${{ matrix.cuda-version }}
+      is-upload: false
+      runner: ${{ matrix.cuda-version}}

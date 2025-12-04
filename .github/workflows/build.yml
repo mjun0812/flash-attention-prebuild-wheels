@@ -36,7 +36,7 @@ jobs:
   # Linux
   # #########################################################
   build_wheels_linux:
-    name: Build Linux
+    name: Build Linux x86_64
     needs: [create_releases, create_matrix]
     if: ${{ fromjson(needs.create_matrix.outputs.matrix).linux }}
     strategy:
@@ -53,6 +53,27 @@ jobs:
       python-version: ${{ matrix.python-version }}
       torch-version: ${{ matrix.torch-version }}
       cuda-version: ${{ matrix.cuda-version }}
+    secrets: inherit
+
+  build_wheels_linux_arm64:
+    name: Build Linux ARM64
+    needs: [create_releases, create_matrix]
+    if: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64 }}
+    strategy:
+      fail-fast: false
+      matrix:
+        flash-attn-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64.flash-attn-version }}
+        python-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64.python-version }}
+        torch-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64.torch-version }}
+        cuda-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64.cuda-version }}
+        exclude: ${{ fromjson(needs.create_matrix.outputs.matrix).exclude }}
+    uses: ./.github/workflows/_build_linux.yml
+    with:
+      flash-attn-version: ${{ matrix.flash-attn-version }}
+      python-version: ${{ matrix.python-version }}
+      torch-version: ${{ matrix.torch-version }}
+      cuda-version: ${{ matrix.cuda-version }}
+      runner: "ubuntu-22.04-arm64"
     secrets: inherit
 
   build_wheels_linux_self_hosted:

@@ -8,61 +8,21 @@ jobs:
   # Build wheels with self-hosted runner
   # #########################################################
   build_wheels_self_hosted:
-    name: Build wheels and Upload (Linux arm64)
-    runs-on: ubuntu-22.04-arm
-    env:
-      DEBIAN_FRONTEND: noninteractive
-      TERM: xterm-256color
+    name: Build wheels and Upload (Linux ARM64, self-hosted runner)
+    uses: ./.github/workflows/_build_linux.yml
     strategy:
       fail-fast: false
       matrix:
-        flash-attn-version: ["2.8.0"]
-        python-version: ["3.11"]
-        torch-version: ["2.7.1"]
+        flash-attn-version: ["2.8.3"]
+        python-version: ["3.13"]
+        torch-version: ["2.9.1"]
         # https://developer.nvidia.com/cuda-toolkit-archive
-        cuda-version: ["12.8.1"]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Maximize build space
-        run: |
-          df -h
-          echo "-----------------------------"
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
-          df -h
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - uses: mjun0812/setup-cuda@v1
-        with:
-          version: "${{ matrix.cuda-version }}"
-
-      - name: Install build dependencies
-        shell: bash
-        run: |
-          sudo apt install -y ninja-build clang time
-          pip install -U pip setuptools==75.8.0 wheel setuptools packaging psutil
-
-      - name: Build wheels
-        id: build_wheels
-        shell: bash
-        env:
-          MAX_JOBS: 2
-          NVCC_THREADS: 1
-        run: |
-          chmod +x build_linux.sh
-          ./build_linux.sh ${{ matrix.flash-attn-version }} ${{ matrix.python-version }} ${{ matrix.torch-version }} ${{ matrix.cuda-version }}
-          wheel_name=$(basename $(ls flash-attention/dist/*.whl | head -n 1))
-          echo "wheel_name=$wheel_name" >> $GITHUB_ENV
-
-      - name: Install Test
-        shell: bash
-        run: |
-          pip uninstall -y flash-attn > /dev/null 2>&1
-          pip install --no-cache-dir flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }}
-          python -c "import flash_attn; print(flash_attn.__version__)"
+        cuda-version: ["13.0.1"]
+        runner: ["ubuntu-22.04-arm64"]
+    with:
+      flash-attn-version: ${{ matrix.flash-attn-version }}
+      python-version: ${{ matrix.python-version }}
+      torch-version: ${{ matrix.torch-version }}
+      cuda-version: ${{ matrix.cuda-version }}
+      is-upload: false
+      runner: ${{ matrix.cuda-version}}

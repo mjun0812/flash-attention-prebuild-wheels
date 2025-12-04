@@ -2,7 +2,7 @@
 # Build wheels with self-hosted runner
 # #########################################################
 
-name: "[Linux x86_64, self-hosted runner] Build wheels and upload to GitHub Releases"
+name: "[Linux x86_64, self-hosted] Build wheels and upload to GitHub Releases"
 
 on:
   workflow_call:
@@ -23,11 +23,21 @@ on:
         description: "CUDA version"
         required: true
         type: string
+      runner:
+        description: "Runner type"
+        required: false
+        type: string
+        default: "self-hosted"
+      is-upload:
+        description: "Whether to upload the release asset"
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build_wheels_self_hosted:
-    name: Build wheels and Upload (Linux x86_64, self-hosted runner, ${{ inputs.flash-attn-version }}, ${{ inputs.python-version }}, ${{ inputs.torch-version }}, ${{ inputs.cuda-version }})
-    runs-on: self-hosted
+    name: Build wheels and Upload (Linux x86_64, self-hosted runner)
+    runs-on: ${{ inputs.runner }}
     container:
       image: ubuntu:22.04
     defaults:
@@ -109,6 +119,7 @@ jobs:
           python -c "import flash_attn; print(flash_attn.__version__)"
 
       - name: Upload Release Asset
+        if: ${{ inputs.is-upload }}
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
