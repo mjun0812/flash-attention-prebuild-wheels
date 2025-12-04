@@ -74,7 +74,8 @@ echo "  NVCC_THREADS: $NVCC_THREADS"
 echo "Building wheels..."
 cd flash-attention
 LOCAL_VERSION_LABEL="cu${MATRIX_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}"
-NVCC_THREADS=$NVCC_THREADS MAX_JOBS=$MAX_JOBS FLASH_ATTENTION_FORCE_BUILD=TRUE FLASH_ATTN_LOCAL_VERSION=${LOCAL_VERSION_LABEL} \
-  python setup.py bdist_wheel --dist-dir=dist
+NVCC_THREADS=$NVCC_THREADS MAX_JOBS=$MAX_JOBS \
+  FLASH_ATTENTION_FORCE_BUILD=TRUE FLASH_ATTN_LOCAL_VERSION=${LOCAL_VERSION_LABEL} \
+  time python setup.py bdist_wheel --dist-dir=dist
 wheel_name=$(basename $(ls dist/*.whl | head -n 1))
 echo "Built wheel: $wheel_name"
