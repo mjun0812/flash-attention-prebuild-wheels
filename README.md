@@ -136,6 +136,34 @@ If you use this repository in your research and find it helpful, please cite the
 }
 ```
 
+## Star History and Download Statistics
+
+<div style="display: flex; flex-direction: row; gap: 24px; width: 100%;">
+  <a href="https://www.star-history.com/#mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left" style="display: inline-block;">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&theme=dark&legend=top-left" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left" />
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left" height="300"/>
+    </picture>
+  </a>
+  <img alt="Download Statistics" src="./docs/data/download_graph.png" height="300" style="display: inline-block;"/>
+</div>
+
 ## Original Repository
 
 [repo](https://github.com/Dao-AILab/flash-attention)
+
+```bibtex
+@inproceedings{dao2022flashattention,
+  title={Flash{A}ttention: Fast and Memory-Efficient Exact Attention with {IO}-Awareness},
+  author={Dao, Tri and Fu, Daniel Y. and Ermon, Stefano and Rudra, Atri and R{\'e}, Christopher},
+  booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
+  year={2022}
+}
+@inproceedings{dao2023flashattention2,
+  title={Flash{A}ttention-2: Faster Attention with Better Parallelism and Work Partitioning},
+  author={Dao, Tri},
+  booktitle={International Conference on Learning Representations (ICLR)},
+  year={2024}
+}
+```
