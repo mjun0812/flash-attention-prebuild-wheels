@@ -15,3 +15,8 @@ services:
       args:
         GH_RUNNER_VERSION: 2.329.0
         TARGET_ARCH: x64
+    volumes:
+      - fa-self:/var/lib/docker
+
+volumes:
+  fa-self:
