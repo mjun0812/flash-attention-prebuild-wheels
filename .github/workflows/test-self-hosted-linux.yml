@@ -89,7 +89,7 @@ jobs:
           chmod +x build_linux.sh
           ./build_linux.sh ${{ matrix.flash-attn-version }} ${{ matrix.python-version }} ${{ matrix.torch-version }} ${{ matrix.cuda-version }}
           wheel_name=$(basename $(ls flash-attention/dist/*.whl | head -n 1))
-          echo "wheel_name=$wheel_name" >> $GITHUB_ENV
+          echo "WHEEL_NAME=$wheel_name" >> $GITHUB_OUTPUT
 
       - name: Install Test
         shell: bash
