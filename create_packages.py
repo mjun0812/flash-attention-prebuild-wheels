@@ -346,7 +346,14 @@ def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
     all_sections = []
 
     # Generate Table of Contents
-    os_names = sorted(df["OS"].unique())
+    # Custom order: Linux x86_64, Linux arm64, Windows
+    os_order = ["Linux x86_64", "Linux arm64", "Windows"]
+    all_os_names = df["OS"].unique()
+    os_names = [os for os in os_order if os in all_os_names]
+    # Add any OS not in the predefined order (for flexibility)
+    for os in sorted(all_os_names):
+        if os not in os_names:
+            os_names.append(os)
     toc_lines = ["## Table of Contents", ""]
     for os_name in os_names:
         # Create anchor link (lowercase, replace spaces with hyphens)

@@ -18,9 +18,7 @@ def parse_wheel_filename(filename: str) -> dict | None:
     # Flash Attention wheelのパターンに合わせて正規表現を調整
     # PyTorchバージョンはマイナーバージョン1桁の形式も対応 (例: torch2.9)
     # post1 のようなバージョンサフィックスにも対応 (例: 2.7.4.post1)
-    pattern = (
-        r"flash_attn-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)\+cu(\d+)torch(\d+\.\d+)-cp(\d+)-cp\d+-(\w+)\.whl"
-    )
+    pattern = r"flash_attn-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)\+cu(\d+)torch(\d+\.\d+)-cp(\d+)-cp\d+-(\w+)\.whl"
     match = re.match(pattern, filename)
 
     if match:
@@ -54,4 +52,6 @@ def normalize_platform_name(raw: str) -> str:
         name = name.replace("Win", "Windows")
     if "amd64" in name:
         name = name.replace("amd64", "x86_64")
+    if "aarch64" in name:
+        name = name.replace("aarch64", "arm64")
     return name
