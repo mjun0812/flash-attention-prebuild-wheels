@@ -77,22 +77,15 @@ If you use this repository in your research and find it helpful, please cite the
 
 ## Star History and Download Statistics
 
-<table>
-  <tr>
-    <td>
-      <a href="https://www.star-history.com/#mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&theme=dark&legend=top-left" />
-          <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left" />
-          <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left" height="300"/>
-        </picture>
-      </a>
-    </td>
-    <td>
-      <img alt="Download Statistics" src="./docs/data/download_graph.png" height="300"/>
-    </td>
-  </tr>
-</table>
+<a href="https://www.star-history.com/#mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&theme=dark&legend=top-left" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left" height="300"/>
+  </picture>
+</a>
+
+![DownloadStatistics](./docs/data/download_graph.png)
 
 ## Original Repository
 
