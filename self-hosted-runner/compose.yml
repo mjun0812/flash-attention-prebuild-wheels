@@ -4,12 +4,14 @@ services:
     restart: always
     env_file:
       - .env
+    environment:
+      REPOSITORY_URL: https://github.com/mjun0812/flash-attention-prebuild-wheels
+      RUNNER_NAME: self-hosted-runner
+      RUNNER_GROUP: default
+      TARGET_ARCH: x64
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        REPOSITORY_URL: https://github.com/mjun0812/flash-attention-prebuild-wheels
         GH_RUNNER_VERSION: 2.329.0
-        RUNNER_NAME: self-hosted-runner
-        RUNNER_GROUP: default
         TARGET_ARCH: x64

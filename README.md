@@ -90,14 +90,19 @@ Edit compose.yml file if you use repository folked from this repository.
 services:
   runner:
     privileged: true
+    restart: always
+    env_file:
+      - .env
+    environment:
+      REPOSITORY_URL: https://github.com/[OWNER]/[REPOSITORY]
+      RUNNER_NAME: self-hosted-runner
+      RUNNER_GROUP: default
+      TARGET_ARCH: x64
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        REPOSITORY_URL: [Target Repository URL]
         GH_RUNNER_VERSION: 2.329.0
-        RUNNER_NAME: self-hosted-runner
-        RUNNER_GROUP: default
         TARGET_ARCH: x64
 ```
 

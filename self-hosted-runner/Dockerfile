@@ -1,13 +1,7 @@
 FROM ubuntu:24.04
 
-ARG REPOSITORY_URL="https://github.com/user/repo"
 ARG GH_RUNNER_VERSION="2.329.0"
-ARG RUNNER_NAME="self-hosted-github-actions-runner"
-ARG RUNNER_GROUP="default"
-ARG RUNNER_LABELS="self-hosted,Linux"
 ARG TARGET_ARCH="x64"
-ARG PERSONAL_ACCESS_TOKEN=""
-ARG REGISTRY_TOKEN=""
 
 ENV DEBIAN_FRONTEND=noninteractive \
     AGENT_TOOLSDIRECTORY=/opt/hostedtoolcache
@@ -65,27 +59,4 @@ WORKDIR /home/ubuntu
 RUN curl -fsSL -o actions-runner.tar.gz -L "https://github.com/actions/runner/releases/download/v${GH_RUNNER_VERSION}/actions-runner-linux-${TARGET_ARCH}-${GH_RUNNER_VERSION}.tar.gz" \
     && tar xf actions-runner.tar.gz \
     && rm actions-runner.tar.gz \
-    && sudo ./bin/installdependencies.sh \
-    && if [ -n "$PERSONAL_ACCESS_TOKEN" ]; then \
-    ./config.sh \
-    --unattended \
-    --url $REPOSITORY_URL \
-    --pat "$PERSONAL_ACCESS_TOKEN" \
-    --name $RUNNER_NAME \
-    --runnergroup $RUNNER_GROUP \
-    --labels "${RUNNER_LABELS},${TARGET_ARCH}" \
-    --work /home/ubuntu/actions-runner \
-    --replace; \
-    else \
-    ./config.sh \
-    --unattended \
-    --url $REPOSITORY_URL \
-    --token "$REGISTRY_TOKEN" \
-    --name $RUNNER_NAME \
-    --runnergroup $RUNNER_GROUP \
-    --labels "${RUNNER_LABELS},${TARGET_ARCH}" \
-    --work /home/ubuntu/actions-runner \
-    --replace; \
-    fi
-
-CMD ["./run.sh"]
+    && sudo ./bin/installdependencies.sh
