@@ -51,9 +51,9 @@ jobs:
             BASE_THREADS=$(awk -v max="$MAX_PRODUCT" 'BEGIN {print int(sqrt(max))}')
 
             if awk "BEGIN {exit !($RAM_GB <= 16)}"; then
-              # If RAM is less than 16GB, set NVCC_THREADS to 1
+              # If RAM is less than 16GB, set NVCC_THREADS to 1 and MAX_JOBS to 2
               NVCC_THREADS=1
-              MAX_JOBS=$((MAX_PRODUCT / NVCC_THREADS))
+              MAX_JOBS=2
             elif (( BASE_THREADS <= 4 )); then
               NVCC_THREADS=$BASE_THREADS
               MAX_JOBS=$BASE_THREADS
