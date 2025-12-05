@@ -81,11 +81,11 @@ If you use this repository in your research and find it helpful, please cite the
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&theme=dark&legend=top-left" />
     <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left" height="300"/>
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left" height="400px"/>
   </picture>
 </a>
 
-![DownloadStatistics](./docs/data/download_graph.png)
+<img src="./docs/data/download_graph.png" height="400">
 
 ## Original Repository
 
