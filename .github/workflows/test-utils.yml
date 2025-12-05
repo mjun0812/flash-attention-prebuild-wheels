@@ -1,0 +1,71 @@
+name: Test runner environment
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create_releases:
+    name: Create Releases
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13", "3.12"]
+        runner:
+          [
+            "ubuntu-22.04-arm64",
+            "ubuntu-22.04",
+            "self-hosted",
+            "openci-runner-beta",
+          ]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Check environment
+        shell: bash
+        run: |
+          cat /etc/os-release || true
+          echo "-----------------------------"
+          cat /etc/lsb-release || true
+          echo "-----------------------------"
+          lscpu || true
+          echo "-----------------------------"
+          df -h || true
+          echo "-----------------------------"
+          free -h || true
+
+      - name: Determine MAX_JOBS and NVCC_THREADS
+        shell: bash
+        run: |
+          # Determine MAX_JOBS and NVCC_THREADS based on system resources
+          NUM_THREADS=$(nproc)
+          RAM_GB=$(free -g | awk '/^Mem:/{print $2}')
+          echo "System resources:"
+          echo "  CPU threads: $NUM_THREADS"
+          echo "  RAM: ${RAM_GB}GB"
+
+          # Determine MAX_JOBS and NVCC_THREADS based on system resources
+          if [[ -z "${MAX_JOBS:-}" && -z "${NVCC_THREADS:-}" ]]; then
+            # Calculate max product based on following constraints:
+            # - MAX_JOBS x NVCC_THREADS(<= 4) <= NUM_THREADS
+            # - 2.5GB x MAX_JOBS x NVCC_THREADS(<= 4) <= RAM_GB
+            MAX_PRODUCT_CPU=$NUM_THREADS
+            MAX_PRODUCT_RAM=$(awk -v ram="$RAM_GB" 'BEGIN {print int(ram / 2.4)}')
+            MAX_PRODUCT=$((MAX_PRODUCT_CPU < MAX_PRODUCT_RAM ? MAX_PRODUCT_CPU : MAX_PRODUCT_RAM))
+
+            # Set MAX_JOBS and NVCC_THREADS so that MAX_JOBS x NVCC_THREADS ≈ MAX_PRODUCT with NVCC_THREADS <= 4
+            BASE_THREADS=$(awk -v max="$MAX_PRODUCT" 'BEGIN {print int(sqrt(max))}')
+            if (( BASE_THREADS <= 4 )); then
+              MAX_JOBS=$BASE_THREADS
+              NVCC_THREADS=$BASE_THREADS
+            else
+              NVCC_THREADS=4
+              MAX_JOBS=$((MAX_PRODUCT / NVCC_THREADS))
+            fi
+
+            # Ensure minimum values of 1
+            MAX_JOBS=$((MAX_JOBS < 1 ? 1 : MAX_JOBS))
+            NVCC_THREADS=$((NVCC_THREADS < 1 ? 1 : NVCC_THREADS))
+          fi
+
+          echo "Build parallelism settings:"
+          echo "  MAX_JOBS: $MAX_JOBS"
+          echo "  NVCC_THREADS: $NVCC_THREADS"
