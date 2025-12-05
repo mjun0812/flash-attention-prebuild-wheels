@@ -8,7 +8,7 @@ jobs:
   # Build wheels with self-hosted runner
   # #########################################################
   build_wheels_self_hosted:
-    name: Build wheels and Upload (Linux ARM64, self-hosted runner)
+    name: Build wheels and Upload (Linux ARM64)
     uses: ./.github/workflows/_build_linux.yml
     strategy:
       fail-fast: false
@@ -18,7 +18,7 @@ jobs:
         torch-version: ["2.9.1"]
         # https://developer.nvidia.com/cuda-toolkit-archive
         cuda-version: ["13.0.1"]
-        runner: ["ubuntu-22.04-arm64"]
+        runner: ["ubuntu-22.04-arm"]
     with:
       flash-attn-version: ${{ matrix.flash-attn-version }}
       python-version: ${{ matrix.python-version }}
