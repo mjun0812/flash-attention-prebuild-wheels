@@ -56,15 +56,22 @@ if [[ -z "${MAX_JOBS:-}" && -z "${NVCC_THREADS:-}" ]]; then
   # Calculate max product based on following constraints:
   # - MAX_JOBS x NVCC_THREADS(<= 4) <= NUM_THREADS
   # - 2.5GB x MAX_JOBS x NVCC_THREADS(<= 4) <= RAM_GB
+
+  # Set MAX_PRODUCT from RAM
   MAX_PRODUCT_CPU=$NUM_THREADS
-  MAX_PRODUCT_RAM=$(awk -v ram="$RAM_GB" 'BEGIN {print int(ram / 2.25)}')
+  MAX_PRODUCT_RAM=$(awk -v ram="$RAM_GB" 'BEGIN {print int(ram / 2.5)}')
   MAX_PRODUCT=$((MAX_PRODUCT_CPU < MAX_PRODUCT_RAM ? MAX_PRODUCT_CPU : MAX_PRODUCT_RAM))
 
   # Set MAX_JOBS and NVCC_THREADS so that MAX_JOBS x NVCC_THREADS ≈ MAX_PRODUCT with NVCC_THREADS <= 4
   BASE_THREADS=$(awk -v max="$MAX_PRODUCT" 'BEGIN {print int(sqrt(max))}')
-  if (( BASE_THREADS <= 4 )); then
-    MAX_JOBS=$BASE_THREADS
+
+  if awk "BEGIN {exit !($RAM_GB <= 16)}"; then
+    # If RAM is less than 16GB, set NVCC_THREADS to 1
+    NVCC_THREADS=1
+    MAX_JOBS=$((MAX_PRODUCT / NVCC_THREADS))
+  elif (( BASE_THREADS <= 4 )); then
     NVCC_THREADS=$BASE_THREADS
+    MAX_JOBS=$BASE_THREADS
   else
     NVCC_THREADS=4
     MAX_JOBS=$((MAX_PRODUCT / NVCC_THREADS))
