@@ -57,9 +57,9 @@ LINUX_MATRIX = {
 
 LINUX_ARM64_MATRIX = {
     "flash-attn-version": [
-        "2.6.3",
-        # "2.7.4",
-        # "2.8.3",
+        # "2.6.3",
+        "2.7.4",
+        "2.8.3",
     ],
     "python-version": [
         "3.10",
@@ -71,7 +71,7 @@ LINUX_ARM64_MATRIX = {
         "2.5.1",
         "2.6.0",
         "2.7.1",
-        "2.8.0",
+        # "2.8.0",
         "2.9.1",
     ],
     "cuda-version": [
