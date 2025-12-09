@@ -55,7 +55,7 @@ History of this repository is available [here](./docs/release_history.md).
 
 ## Citation
 
-If you use this repository in your research and find it helpful, please cite the following paper!
+If you use this repository in your research and find it helpful, please cite this repository!
 
 ```bibtex
 @misc{flash-attention-prebuild-wheels,
