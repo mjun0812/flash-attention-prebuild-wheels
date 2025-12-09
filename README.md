@@ -74,6 +74,7 @@ If you use this repository in your research and find it helpful, please cite thi
 - cjustus613 : Buy me a coffee!
 - [@KiralyCraft](https://github.com/KiralyCraft) : Provided with computing resource!
 - [@kun432](https://github.com/kun432) : Buy me a coffee!
+- [@wodeyuzhou](https://github.com/wodeyuzhou) : Sponsored me!
 
 
 ## Star History and Download Statistics
