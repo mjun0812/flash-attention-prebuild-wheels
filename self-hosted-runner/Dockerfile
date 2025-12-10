@@ -37,6 +37,7 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     containerd.io \
     docker-buildx-plugin \
     docker-compose-plugin \
+    qemu-user-static \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dotnet

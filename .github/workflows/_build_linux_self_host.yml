@@ -38,6 +38,11 @@ on:
         required: false
         type: boolean
         default: true
+      container-image:
+        description: "Container image"
+        required: false
+        type: string
+        default: "ubuntu:22.04"
 
 jobs:
   build_wheels_self_hosted:
@@ -45,7 +50,7 @@ jobs:
     name: Build wheels and Upload (Linux x86_64, self-hosted runner)
     runs-on: ${{ inputs.runner }}
     container:
-      image: ubuntu:22.04
+      image: ${{ inputs.container-image }}
     defaults:
       run:
         shell: bash
@@ -53,6 +58,7 @@ jobs:
       DEBIAN_FRONTEND: noninteractive
       TERM: xterm-256color
     timeout-minutes: 2160
+
     steps:
       - name: Install tools
         shell: bash
