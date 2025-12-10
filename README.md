@@ -122,23 +122,22 @@ Please note that depending on the combination of versions, it may not be possibl
 In some version combinations, you cannot build wheels on GitHub-hosted runners due to job time limitations.
 To build the wheels for these versions, you can use self-hosted runners.
 
+#### Setup x86_64 Runner
+
+Clone the repository and navigate to the self-hosted-runner directory.
+
 ```bash
 git clone https://github.com/mjun0812/flash-attention-prebuild-wheels.git
 cd flash-attention-prebuild-wheels/self-hosted-runner
 ```
 
-Install qemu-user-static for ARM64 support.
-
-```bash
-sudo apt install qemu-user-static
-```
-
-Edit `env` and `env.arm` files to set the environment variables.
+Create the environment file from the template.
 
 ```bash
 cp env.template env
-cp env.template env.arm
 ```
+
+Edit the `env` file to set the environment variables.
 
 ```bash
 # Registry Token for GitHub Personal Access Token
@@ -150,7 +149,7 @@ REGISTRY_TOKEN=[Runner Registry Token]
 RUNNER_LABELS=Linux,self-hosted
 ```
 
-Edit compose.yml file if you use repository folked from this repository.
+Edit the `compose.yml` file if you use a repository forked from this repository.
 
 ```yaml
 services:
@@ -170,6 +169,40 @@ services:
       args:
         GH_RUNNER_VERSION: 2.329.0
         TARGET_ARCH: x64
+```
+
+Build and run the docker container.
+
+```bash
+# Build and run
+docker compose build runner
+docker compose up -d runner
+```
+
+#### (Optional) Setup ARM64 Runner
+
+If you also want to build wheels for ARM64 architecture, follow these additional steps.
+
+Install qemu-user-static for ARM64 support.
+
+```bash
+sudo apt install qemu-user-static
+```
+
+Create the environment file for ARM64 runner.
+
+```bash
+cp env.template env.arm
+```
+
+Edit the `env.arm` file with the same configuration as the `env` file.
+
+Add the ARM64 runner service to your `compose.yml` file.
+
+```yaml
+services:
+  runner:
+    # ... (existing x86_64 runner configuration)
 
   runner-arm:
     privileged: true
@@ -178,7 +211,7 @@ services:
       - .env.arm
     environment:
       REPOSITORY_URL: https://github.com/[OWNER]/[REPOSITORY]
-      RUNNER_NAME: self-hosted-runner
+      RUNNER_NAME: self-hosted-runner-arm
       RUNNER_GROUP: default
       TARGET_ARCH: arm64
     build:
@@ -190,12 +223,12 @@ services:
         PLATFORM: linux/arm64
 ```
 
-Then, build and run the docker container.
+Build and run the ARM64 runner container.
 
 ```bash
-# Build and run
-docker compose build
-docker compose up -d
+# Build and run both x86_64 and ARM64 runners
+docker compose build runner-arm
+docker compose up -d runner-arm
 ```
 
 ### Getting One-Time Registry Token for GitHub Actions Runner
