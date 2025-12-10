@@ -25,6 +25,11 @@ EXCLUDE = [
     {"torch-version": "2.7.1", "cuda-version": "13.0"},
     {"torch-version": "2.8.1", "cuda-version": "13.0"},
     {"torch-version": "2.8.0", "cuda-version": "13.0"},
+    # Python 3.14 is supported from torch 2.9
+    {"torch-version": "2.5.1", "python-version": "3.14"},
+    {"torch-version": "2.6.3", "python-version": "3.14"},
+    {"torch-version": "2.7.1", "python-version": "3.14"},
+    {"torch-version": "2.8.0", "python-version": "3.14"},
 ]
 
 LINUX_MATRIX = {
