@@ -1,0 +1,30 @@
+name: Test ARM Linux build (self-hosted)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # #########################################################
+  # Build wheels with self-hosted runner
+  # #########################################################
+  build_wheels_self_hosted:
+    name: Build wheels and Upload (Linux ARM64, self-hosted runner)
+    uses: ./.github/workflows/_build_linux_self_host.yml
+    strategy:
+      fail-fast: false
+      matrix:
+        flash-attn-version: ["2.8.3"]
+        python-version: ["3.13"]
+        torch-version: ["2.9.1"]
+        # https://developer.nvidia.com/cuda-toolkit-archive
+        cuda-version: ["13.0.1"]
+        runner: ["self-hosted"]
+    with:
+      flash-attn-version: ${{ matrix.flash-attn-version }}
+      python-version: ${{ matrix.python-version }}
+      torch-version: ${{ matrix.torch-version }}
+      cuda-version: ${{ matrix.cuda-version }}
+      is-upload: false
+      runner: ${{ matrix.runner}}
+      use-container: true
+      container-image: "arm64v8/ubuntu:22.04"
