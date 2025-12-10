@@ -94,6 +94,7 @@ jobs:
       python-version: ${{ matrix.python-version }}
       torch-version: ${{ matrix.torch-version }}
       cuda-version: ${{ matrix.cuda-version }}
+      runner: '["self-hosted", "x64"]'
     secrets: inherit
 
   build_wheels_linux_arm64_self_hosted:
@@ -114,6 +115,7 @@ jobs:
       python-version: ${{ matrix.python-version }}
       torch-version: ${{ matrix.torch-version }}
       cuda-version: ${{ matrix.cuda-version }}
+      runner: '["self-hosted-arm", "arm64"]'
     secrets: inherit
 
   # #########################################################

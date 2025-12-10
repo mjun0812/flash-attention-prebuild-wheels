@@ -42,9 +42,7 @@ on:
 jobs:
   build_wheels_self_hosted:
     name: Build wheels and Upload (Linux x86_64, self-hosted runner)
-    runs-on:
-      - ${{ inputs.runner }}
-      - arm64
+    runs-on: ${{ inputs.runner }}
     container:
       image: ${{ inputs.container-image }}
       options: --platform linux/arm64

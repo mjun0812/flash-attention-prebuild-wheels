@@ -18,7 +18,7 @@ jobs:
         torch-version: ["2.9.1"]
         # https://developer.nvidia.com/cuda-toolkit-archive
         cuda-version: ["13.0.1"]
-        runner: ["openci-runner-beta"]
+        runner: ['["openci-runner-beta"]']
         use-container: [false]
     with:
       flash-attn-version: ${{ matrix.flash-attn-version }}
