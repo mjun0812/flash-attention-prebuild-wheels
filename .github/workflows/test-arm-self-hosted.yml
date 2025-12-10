@@ -9,7 +9,7 @@ jobs:
   # #########################################################
   build_wheels_self_hosted:
     name: Build wheels and Upload (Linux ARM64, self-hosted runner)
-    uses: ./.github/workflows/_build_linux_self_host.yml
+    uses: ./.github/workflows/_build_linux_arm_self_host.yml
     strategy:
       fail-fast: false
       matrix:
@@ -26,5 +26,4 @@ jobs:
       cuda-version: ${{ matrix.cuda-version }}
       is-upload: false
       runner: ${{ matrix.runner}}
-      use-container: true
-      container-image: "arm64v8/ubuntu:22.04"
+      container-image: "ubuntu:22.04"
