@@ -54,12 +54,18 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
 
-USER ubuntu
 WORKDIR /home/ubuntu
+USER ubuntu
 
 RUN curl -fsSL -o actions-runner.tar.gz -L "https://github.com/actions/runner/releases/download/v${GH_RUNNER_VERSION}/actions-runner-linux-${TARGET_ARCH}-${GH_RUNNER_VERSION}.tar.gz" \
     && tar xf actions-runner.tar.gz \
-    && rm actions-runner.tar.gz \
-    && sudo ./bin/installdependencies.sh
+    && rm actions-runner.tar.gz
+
+USER root
+
+RUN ./bin/installdependencies.sh
+
+USER ubuntu
+ENTRYPOINT ["/entrypoint.sh"]
+
