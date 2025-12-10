@@ -1,4 +1,4 @@
 .DS_Store
-.env
+.env*
 __pycache__/
 .ruff_cache/
