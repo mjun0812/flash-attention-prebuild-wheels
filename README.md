@@ -76,7 +76,6 @@ If you use this repository in your research and find it helpful, please cite thi
 - [@kun432](https://github.com/kun432) : Buy me a coffee!
 - [@wodeyuzhou](https://github.com/wodeyuzhou) : Sponsored me!
 
-
 ## Star History and Download Statistics
 
 <a href="https://www.star-history.com/#mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left">
@@ -125,11 +124,21 @@ To build the wheels for these versions, you can use self-hosted runners.
 
 ```bash
 git clone https://github.com/mjun0812/flash-attention-prebuild-wheels.git
-cd self-hosted-runner
-cp env.template env
+cd flash-attention-prebuild-wheels/self-hosted-runner
 ```
 
-Edit `env` file to set the environment variables.
+Install qemu-user-static for ARM64 support.
+
+```bash
+sudo apt install qemu-user-static
+```
+
+Edit `env` and `env.arm` files to set the environment variables.
+
+```bash
+cp env.template env
+cp env.template env.arm
+```
 
 ```bash
 # Registry Token for GitHub Personal Access Token
@@ -161,6 +170,24 @@ services:
       args:
         GH_RUNNER_VERSION: 2.329.0
         TARGET_ARCH: x64
+
+  runner-arm:
+    privileged: true
+    restart: always
+    env_file:
+      - .env.arm
+    environment:
+      REPOSITORY_URL: https://github.com/[OWNER]/[REPOSITORY]
+      RUNNER_NAME: self-hosted-runner
+      RUNNER_GROUP: default
+      TARGET_ARCH: arm64
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        GH_RUNNER_VERSION: 2.329.0
+        TARGET_ARCH: arm64
+        PLATFORM: linux/arm64
 ```
 
 Then, build and run the docker container.

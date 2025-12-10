@@ -27,7 +27,7 @@ on:
         description: "Runner type"
         required: false
         type: string
-        default: "self-hosted"
+        default: "self-hosted-arm"
       is-upload:
         description: "Whether to upload the release asset"
         required: false

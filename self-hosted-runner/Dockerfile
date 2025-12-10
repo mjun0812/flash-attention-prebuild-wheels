@@ -1,4 +1,6 @@
-FROM ubuntu:24.04
+ARG PLATFORM="linux/amd64"
+
+FROM --platform=${PLATFORM} ubuntu:24.04
 
 ARG GH_RUNNER_VERSION="2.329.0"
 ARG TARGET_ARCH="x64"

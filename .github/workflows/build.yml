@@ -96,6 +96,26 @@ jobs:
       cuda-version: ${{ matrix.cuda-version }}
     secrets: inherit
 
+  build_wheels_linux_arm64_self_hosted:
+    name: Build Linux ARM64 (self-hosted)
+    needs: [create_releases, create_matrix]
+    if: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64_self_hosted }}
+    strategy:
+      fail-fast: false
+      matrix:
+        flash-attn-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64_self_hosted.flash-attn-version }}
+        python-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64_self_hosted.python-version }}
+        torch-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64_self_hosted.torch-version }}
+        cuda-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64_self_hosted.cuda-version }}
+        exclude: ${{ fromjson(needs.create_matrix.outputs.matrix).exclude }}
+    uses: ./.github/workflows/_build_linux_arm_self_host.yml
+    with:
+      flash-attn-version: ${{ matrix.flash-attn-version }}
+      python-version: ${{ matrix.python-version }}
+      torch-version: ${{ matrix.torch-version }}
+      cuda-version: ${{ matrix.cuda-version }}
+    secrets: inherit
+
   # #########################################################
   # Windows
   # #########################################################
@@ -145,6 +165,7 @@ jobs:
       - build_wheels_linux
       - build_wheels_linux_arm64
       - build_wheels_linux_self_hosted
+      - build_wheels_linux_arm64_self_hosted
       - build_wheels_windows
       - build_wheels_windows_code_build
     if: always()
@@ -173,6 +194,7 @@ jobs:
       - build_wheels_linux
       - build_wheels_linux_arm64
       - build_wheels_linux_self_hosted
+      - build_wheels_linux_arm64_self_hosted
       - build_wheels_windows
       - build_wheels_windows_code_build
     permissions:
