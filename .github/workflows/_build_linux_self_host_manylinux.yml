@@ -96,7 +96,7 @@ jobs:
           uv venv -p ${{ inputs.python-version }}
           uv pip install -U pip setuptools==75.8.0 wheel packaging psutil
           current_dir=$(pwd)
-          export PATH="$current_dir/.venv/bin:$PATH"
+          echo "$current_dir/.venv/bin" >> $GITHUB_PATH
 
       - uses: mjun0812/setup-cuda@v1
         with:
