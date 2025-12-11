@@ -84,18 +84,23 @@ jobs:
         run: |
           git config --global --add safe.directory $(pwd)
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ inputs.python-version }}
+      # - uses: actions/setup-python@v5
+      #   with:
+      #     python-version: ${{ inputs.python-version }}
+
+      - name: Install Python
+        shell: bash
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          source $HOME/.local/bin/env
+          uv venv -p ${{ inputs.python-version }}
+          uv pip install -U pip setuptools==75.8.0 wheel packaging psutil
+          current_dir=$(pwd)
+          export PATH="$current_dir/.venv/bin:$PATH"
 
       - uses: mjun0812/setup-cuda@v1
         with:
           version: ${{ inputs.cuda-version }}
-
-      - name: Install build dependencies
-        shell: bash
-        run: |
-          pip install -U pip setuptools==75.8.0 wheel packaging psutil
 
       - name: Build wheels
         timeout-minutes: 2160
