@@ -1,0 +1,29 @@
+name: Test self-hosted Linux build (Manylinux 2_28)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # #########################################################
+  # Build wheels with self-hosted runner
+  # #########################################################
+  build_wheels_self_hosted:
+    name: Build wheels and Upload (Linux x86_64, self-hosted runner, Manylinux 2_28)
+    uses: ./.github/workflows/_build_linux_self_host_manylinux.yml
+    strategy:
+      fail-fast: false
+      matrix:
+        flash-attn-version: ["2.8.3"]
+        python-version: ["3.13"]
+        torch-version: ["2.9.1"]
+        # https://developer.nvidia.com/cuda-toolkit-archive
+        cuda-version: ["13.0.1"]
+        runner: ['["self-hosted", "x64"]']
+        use-container: [false]
+    with:
+      flash-attn-version: ${{ matrix.flash-attn-version }}
+      python-version: ${{ matrix.python-version }}
+      torch-version: ${{ matrix.torch-version }}
+      cuda-version: ${{ matrix.cuda-version }}
+      is-upload: false
+      runner: ${{ matrix.runner}}

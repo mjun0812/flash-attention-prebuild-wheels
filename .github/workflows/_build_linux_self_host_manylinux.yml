@@ -1,0 +1,139 @@
+# #########################################################
+# Build wheels with self-hosted runner
+# #########################################################
+
+name: "[Linux x86_64, self-hosted] Build wheels and upload to GitHub Releases"
+
+on:
+  workflow_call:
+    inputs:
+      flash-attn-version:
+        description: "Flash-Attention version"
+        required: true
+        type: string
+      python-version:
+        description: "Python version"
+        required: true
+        type: string
+      torch-version:
+        description: "PyTorch version"
+        required: true
+        type: string
+      cuda-version:
+        description: "CUDA version"
+        required: true
+        type: string
+      runner:
+        description: "Runner type"
+        required: false
+        type: string
+        default: '["self-hosted"]'
+      is-upload:
+        description: "Whether to upload the release asset"
+        required: false
+        type: boolean
+        default: true
+      container-image:
+        description: "Container image"
+        required: false
+        type: string
+        default: "quay.io/pypa/manylinux_2_28_x86_64"
+
+jobs:
+  build_wheels_self_hosted:
+    name: Build wheels and Upload (Linux x86_64, self-hosted runner)
+    runs-on: ${{ fromjson(inputs.runner) }}
+    container:
+      image: ${{ inputs.container-image }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      TERM: xterm-256color
+    timeout-minutes: 2160
+
+    steps:
+      - name: Install tools
+        shell: bash
+        run: |
+          dnf install -y \
+            curl \
+            ca-certificates \
+            sudo \
+            wget \
+            unzip \
+            zip \
+            git \
+            gcc \
+            gcc-c++ \
+            clang \
+            ninja-build \
+            time
+
+      - name: Install gh
+        shell: bash
+        run: |
+          sudo dnf install 'dnf-command(config-manager)'
+          sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+          sudo dnf -y install gh --repo gh-cli
+
+      - uses: actions/checkout@v4
+
+      - name: Configure Git safe directory
+        shell: bash
+        run: |
+          git config --global --add safe.directory $(pwd)
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - uses: mjun0812/setup-cuda@v1
+        with:
+          version: ${{ inputs.cuda-version }}
+
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          pip install -U pip setuptools==75.8.0 wheel packaging psutil
+
+      - name: Build wheels
+        timeout-minutes: 2160
+        id: build_wheels
+        shell: bash
+        run: |
+          chmod +x build_linux.sh
+          ./build_linux.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.cuda-version }}
+          wheel_name=$(basename $(ls flash-attention/dist/*.whl | head -n 1))
+          echo "WHEEL_NAME=$wheel_name" >> $GITHUB_OUTPUT
+
+      - name: Install Test
+        shell: bash
+        run: |
+          pip uninstall -y flash-attn > /dev/null 2>&1
+          pip install --no-cache-dir flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }}
+          python -c "import flash_attn; print(flash_attn.__version__)"
+
+      - name: Upload Release Asset
+        if: ${{ inputs.is-upload }}
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag_name=${{ github.ref_name }}
+          wheel_path="flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }}"
+
+          # Check if the file exists
+          if [ ! -f "$wheel_path" ]; then
+            echo "Error: Wheel file not found at $wheel_path"
+            exit 1
+          fi
+
+          # Upload the release asset using GitHub CLI
+          gh release upload "$tag_name" "$wheel_path" --clobber
+
+      - name: Clean up
+        shell: bash
+        if: always()
+        run: |
+          rm -rf /opt/hostedtoolcache/Python

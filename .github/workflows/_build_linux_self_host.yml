@@ -110,7 +110,6 @@ jobs:
       - name: Install build dependencies
         shell: bash
         run: |
-          sudo apt install -y ninja-build clang
           pip install -U pip setuptools==75.8.0 wheel packaging psutil
 
       - name: Build wheels
