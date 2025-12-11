@@ -99,30 +99,30 @@ jobs:
           # Upload the release asset using GitHub CLI
           gh release upload "$tag_name" "$wheel_path" --clobber
 
-      - name: Apply auditwheel repair
-        continue-on-error: true
-        run: |
-          pip install auditwheel
-          auditwheel show flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }}
-          auditwheel repair flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }} -w flash-attention/dist_manylinux
-          wheel_name=$(basename $(ls flash-attention/dist_manylinux/*.whl | head -n 1))
-          echo "WHEEL_NAME_MANYLINUX=$wheel_name" >> $GITHUB_OUTPUT
+      # - name: Apply auditwheel repair
+      #   continue-on-error: true
+      #   run: |
+      #     pip install auditwheel
+      #     auditwheel show flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }}
+      #     auditwheel repair flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }} -w flash-attention/dist_manylinux
+      #     wheel_name=$(basename $(ls flash-attention/dist_manylinux/*.whl | head -n 1))
+      #     echo "WHEEL_NAME_MANYLINUX=$wheel_name" >> $GITHUB_OUTPUT
 
-      - name: Apply auditwheel repair
-        if: ${{ inputs.is-upload }}
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          pip uninstall -y flash-attn > /dev/null 2>&1
-          pip install --no-cache-dir flash-attention/dist_manylinux/${{ steps.build_wheels.outputs.WHEEL_NAME_MANYLINUX }}
-          python -c "import flash_attn; print(flash_attn.__version__)"
+      # - name: Apply auditwheel repair
+      #   if: ${{ inputs.is-upload }}
+      #   continue-on-error: true
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     pip uninstall -y flash-attn > /dev/null 2>&1
+      #     pip install --no-cache-dir flash-attention/dist_manylinux/${{ steps.build_wheels.outputs.WHEEL_NAME_MANYLINUX }}
+      #     python -c "import flash_attn; print(flash_attn.__version__)"
 
-          wheel_path_manylinux="flash-attention/dist_manylinux/${{ steps.build_wheels.outputs.WHEEL_NAME_MANYLINUX }}"
-          if [ ! -f "$wheel_path_manylinux" ]; then
-            echo "Error: Wheel file not found at $wheel_path_manylinux"
-            exit 1
-          fi
+      #     wheel_path_manylinux="flash-attention/dist_manylinux/${{ steps.build_wheels.outputs.WHEEL_NAME_MANYLINUX }}"
+      #     if [ ! -f "$wheel_path_manylinux" ]; then
+      #       echo "Error: Wheel file not found at $wheel_path_manylinux"
+      #       exit 1
+      #     fi
 
-          # Upload the release asset using GitHub CLI
-          gh release upload "$tag_name" "$wheel_path_manylinux" --clobber
+      #     # Upload the release asset using GitHub CLI
+      #     gh release upload "$tag_name" "$wheel_path_manylinux" --clobber
