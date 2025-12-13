@@ -73,7 +73,8 @@ jobs:
             clang \
             ninja-build \
             keyboard-configuration \
-            time
+            time \
+            patchelf
 
       - name: Install gh
         shell: bash
@@ -146,6 +147,7 @@ jobs:
 
       - name: Apply auditwheel repair
         continue-on-error: true
+        id: auditwheel_repair
         run: |
           auditwheel show ${{ steps.build_wheels.outputs.WHEEL_PATH }}
           auditwheel repair \
@@ -158,7 +160,7 @@ jobs:
         continue-on-error: true
         run: |
           pip uninstall -y flash-attn > /dev/null 2>&1
-          pip install --no-cache-dir ${{ steps.build_wheels.outputs.WHEEL_PATH_MANYLINUX }}
+          pip install --no-cache-dir ${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}
           python -c "import flash_attn; print(flash_attn.__version__)"
 
       - name: Upload manylinux wheel
@@ -166,7 +168,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          wheel_path_manylinux="${{ steps.build_wheels.outputs.WHEEL_PATH_MANYLINUX }}"
+          wheel_path_manylinux="${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}"
           if [ ! -f "$wheel_path_manylinux" ]; then
             echo "Error: Wheel file not found at $wheel_path_manylinux"
             exit 1
