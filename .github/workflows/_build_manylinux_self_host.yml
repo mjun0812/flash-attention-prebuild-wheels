@@ -71,6 +71,11 @@ jobs:
             time \
             patchelf
 
+      - name: Configure sudo
+        shell: bash
+        run: |
+          echo "root ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
       - name: Install gh
         shell: bash
         run: |
