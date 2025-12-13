@@ -116,14 +116,14 @@ jobs:
         run: |
           chmod +x build_linux.sh
           ./build_linux.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.cuda-version }}
-          wheel_name=$(basename $(ls flash-attention/dist/*.whl | head -n 1))
-          echo "WHEEL_NAME=$wheel_name" >> $GITHUB_OUTPUT
+          wheel_path=$(ls flash-attention/dist/*.whl | head -n 1)
+          echo "WHEEL_PATH=$wheel_path" >> $GITHUB_OUTPUT
 
       - name: Install Test
         shell: bash
         run: |
           pip uninstall -y flash-attn > /dev/null 2>&1
-          pip install --no-cache-dir flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }}
+          pip install --no-cache-dir ${{ steps.build_wheels.outputs.WHEEL_PATH }}
           python -c "import flash_attn; print(flash_attn.__version__)"
 
       - name: Upload Release Asset
@@ -133,7 +133,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag_name=${{ github.ref_name }}
-          wheel_path="flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }}"
+          wheel_path="${{ steps.build_wheels.outputs.WHEEL_PATH }}"
 
           # Check if the file exists
           if [ ! -f "$wheel_path" ]; then
@@ -147,18 +147,18 @@ jobs:
       - name: Apply auditwheel repair
         continue-on-error: true
         run: |
-          auditwheel show flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }}
+          auditwheel show ${{ steps.build_wheels.outputs.WHEEL_PATH }}
           auditwheel repair \
             --exclude libc10* --exclude libtorch* --exclude libcu* --exclude libnv* --exclude 'libtorch*' \
-            flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }} -w flash-attention/dist_manylinux
-          wheel_name=$(basename $(ls flash-attention/dist_manylinux/*manylinux*.whl | head -n 1))
-          echo "WHEEL_NAME_MANYLINUX=$wheel_name" >> $GITHUB_OUTPUT
+            ${{ steps.build_wheels.outputs.WHEEL_PATH }} -w flash-attention/dist_manylinux
+          wheel_path_manylinux=$(ls flash-attention/dist_manylinux/*manylinux*.whl | head -n 1)
+          echo "WHEEL_PATH_MANYLINUX=$wheel_path_manylinux" >> $GITHUB_OUTPUT
 
       - name: Test manylinux wheel
         continue-on-error: true
         run: |
           pip uninstall -y flash-attn > /dev/null 2>&1
-          pip install --no-cache-dir flash-attention/dist_manylinux/${{ steps.build_wheels.outputs.WHEEL_NAME_MANYLINUX }}
+          pip install --no-cache-dir ${{ steps.build_wheels.outputs.WHEEL_PATH_MANYLINUX }}
           python -c "import flash_attn; print(flash_attn.__version__)"
 
       - name: Upload manylinux wheel
@@ -166,7 +166,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          wheel_path_manylinux="flash-attention/dist_manylinux/${{ steps.build_wheels.outputs.WHEEL_NAME_MANYLINUX }}"
+          wheel_path_manylinux="${{ steps.build_wheels.outputs.WHEEL_PATH_MANYLINUX }}"
           if [ ! -f "$wheel_path_manylinux" ]; then
             echo "Error: Wheel file not found at $wheel_path_manylinux"
             exit 1
