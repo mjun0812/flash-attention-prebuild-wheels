@@ -14,12 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         flash-attn-version: ["2.8.3"]
-        python-version: ["3.13", "3.13"]
+        python-version: ["3.13"]
         torch-version: ["2.9.1"]
         # https://developer.nvidia.com/cuda-toolkit-archive
         cuda-version: ["13.0.1"]
-        runner: ['["openci-runner-beta"]']
-        use-container: [false]
+        # runner: ['["openci-runner-beta"]']
+        runner: ['["self-hosted", "x64"]']
     with:
       flash-attn-version: ${{ matrix.flash-attn-version }}
       python-version: ${{ matrix.python-version }}
@@ -27,4 +27,4 @@ jobs:
       cuda-version: ${{ matrix.cuda-version }}
       is-upload: false
       runner: ${{ matrix.runner}}
-      use-container: ${{ matrix.use-container}}
+      use-container: true

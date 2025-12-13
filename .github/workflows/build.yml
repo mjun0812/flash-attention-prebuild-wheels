@@ -88,7 +88,7 @@ jobs:
         torch-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_self_hosted.torch-version }}
         cuda-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_self_hosted.cuda-version }}
         exclude: ${{ fromjson(needs.create_matrix.outputs.matrix).exclude }}
-    uses: ./.github/workflows/_build_linux_self_host.yml
+    uses: ./.github/workflows/_build_manylinux_self_host.yml
     with:
       flash-attn-version: ${{ matrix.flash-attn-version }}
       python-version: ${{ matrix.python-version }}

@@ -9,7 +9,7 @@ jobs:
   # #########################################################
   build_wheels_self_hosted:
     name: Build wheels and Upload (Linux x86_64, self-hosted runner, Manylinux 2_28)
-    uses: ./.github/workflows/_build_linux_self_host_manylinux.yml
+    uses: ./.github/workflows/_build_manylinux_self_host.yml
     strategy:
       fail-fast: false
       matrix:
@@ -19,7 +19,7 @@ jobs:
         # https://developer.nvidia.com/cuda-toolkit-archive
         cuda-version: ["13.0.1"]
         runner: ['["self-hosted", "x64"]']
-        use-container: [false]
+        use-container: [true]
     with:
       flash-attn-version: ${{ matrix.flash-attn-version }}
       python-version: ${{ matrix.python-version }}
