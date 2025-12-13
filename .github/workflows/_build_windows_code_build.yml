@@ -44,9 +44,16 @@ jobs:
         shell: pwsh
         run: git config --system core.longpaths true
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ inputs.python-version }}
+      # Install Python using uv because setup-python needs newer version of glibc
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+      - name: Install Python
+        shell: pwsh
+        run: |
+          uv venv -p ${{ inputs.python-version }}
+          uv pip install -U pip setuptools==75.8.0 wheel packaging psutil numpy ninja auditwheel
+          current_dir=$(pwd)
+          echo "$current_dir/.venv/bin" >> $GITHUB_PATH
 
       - uses: mjun0812/setup-cuda@v1
         with:
@@ -68,11 +75,6 @@ jobs:
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v2
-
-      - name: Install build dependencies
-        shell: pwsh
-        run: |
-          pip install -U pip setuptools==75.8.0 wheel packaging psutil numpy ninja
 
       - name: Build wheels
         shell: pwsh

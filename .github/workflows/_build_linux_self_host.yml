@@ -99,18 +99,20 @@ jobs:
         run: |
           git config --global --add safe.directory $(pwd)
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ inputs.python-version }}
+      # Install Python using uv because setup-python needs newer version of glibc
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+      - name: Install Python
+        shell: bash
+        run: |
+          uv venv -p ${{ inputs.python-version }}
+          uv pip install -U pip setuptools==75.8.0 wheel packaging psutil auditwheel
+          current_dir=$(pwd)
+          echo "$current_dir/.venv/bin" >> $GITHUB_PATH
 
       - uses: mjun0812/setup-cuda@v1
         with:
           version: ${{ inputs.cuda-version }}
-
-      - name: Install build dependencies
-        shell: bash
-        run: |
-          pip install -U pip setuptools==75.8.0 wheel packaging psutil
 
       - name: Build wheels
         timeout-minutes: 2160
@@ -224,7 +226,8 @@ jobs:
             clang \
             ninja-build \
             keyboard-configuration \
-            time
+            time \
+            patchelf
 
       - name: Install gh
         shell: bash
@@ -245,19 +248,20 @@ jobs:
         run: |
           git config --global --add safe.directory $(pwd)
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ inputs.python-version }}
+      # Install Python using uv because setup-python needs newer version of glibc
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+      - name: Install Python
+        shell: bash
+        run: |
+          uv venv -p ${{ inputs.python-version }}
+          uv pip install -U pip setuptools==75.8.0 wheel packaging psutil auditwheel
+          current_dir=$(pwd)
+          echo "$current_dir/.venv/bin" >> $GITHUB_PATH
 
       - uses: mjun0812/setup-cuda@v1
         with:
           version: ${{ inputs.cuda-version }}
-
-      - name: Install build dependencies
-        shell: bash
-        run: |
-          sudo apt install -y ninja-build clang
-          pip install -U pip setuptools==75.8.0 wheel packaging psutil
 
       - name: Build wheels
         timeout-minutes: 2160
@@ -294,33 +298,35 @@ jobs:
           # Upload the release asset using GitHub CLI
           gh release upload "$tag_name" "$wheel_path" --clobber
 
-      # - name: Apply auditwheel repair
-      #   continue-on-error: true
-      #   run: |
-      #     pip install auditwheel
-      #     auditwheel show flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }}
-      #     auditwheel repair flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }} -w flash-attention/dist_manylinux
-      #     wheel_name=$(basename $(ls flash-attention/dist_manylinux/*.whl | head -n 1))
-      #     echo "WHEEL_NAME_MANYLINUX=$wheel_name" >> $GITHUB_OUTPUT
+      - name: Apply auditwheel repair
+        continue-on-error: true
+        run: |
+          auditwheel show flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }}
+          auditwheel repair \
+            --exclude libc10* --exclude libtorch* --exclude libcu* --exclude libnv* --exclude 'libtorch*' \
+            flash-attention/dist/${{ steps.build_wheels.outputs.WHEEL_NAME }} -w flash-attention/dist_manylinux
+          wheel_name=$(basename $(ls flash-attention/dist_manylinux/*manylinux*.whl | head -n 1))
+          echo "WHEEL_NAME_MANYLINUX=$wheel_name" >> $GITHUB_OUTPUT
 
-      # - name: Apply auditwheel repair
-      #   if: ${{ inputs.is-upload }}
-      #   continue-on-error: true
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   run: |
-      #     pip uninstall -y flash-attn > /dev/null 2>&1
-      #     pip install --no-cache-dir flash-attention/dist_manylinux/${{ steps.build_wheels.outputs.WHEEL_NAME_MANYLINUX }}
-      #     python -c "import flash_attn; print(flash_attn.__version__)"
+      - name: Test manylinux wheel
+        continue-on-error: true
+        run: |
+          pip uninstall -y flash-attn > /dev/null 2>&1
+          pip install --no-cache-dir flash-attention/dist_manylinux/${{ steps.build_wheels.outputs.WHEEL_NAME_MANYLINUX }}
+          python -c "import flash_attn; print(flash_attn.__version__)"
 
-      #     wheel_path_manylinux="flash-attention/dist_manylinux/${{ steps.build_wheels.outputs.WHEEL_NAME_MANYLINUX }}"
-      #     if [ ! -f "$wheel_path_manylinux" ]; then
-      #       echo "Error: Wheel file not found at $wheel_path_manylinux"
-      #       exit 1
-      #     fi
-
-      #     # Upload the release asset using GitHub CLI
-      #     gh release upload "$tag_name" "$wheel_path_manylinux" --clobber
+      - name: Upload manylinux wheel
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          wheel_path_manylinux="flash-attention/dist_manylinux/${{ steps.build_wheels.outputs.WHEEL_NAME_MANYLINUX }}"
+          if [ ! -f "$wheel_path_manylinux" ]; then
+            echo "Error: Wheel file not found at $wheel_path_manylinux"
+            exit 1
+          fi
+          # Upload the release asset using GitHub CLI
+          gh release upload "$tag_name" "$wheel_path_manylinux" --clobber
 
       - name: Clean up
         shell: bash
