@@ -161,6 +161,7 @@ jobs:
           python -c "import flash_attn; print(flash_attn.__version__)"
 
       - name: Upload manylinux wheel
+        if: ${{ inputs.is-upload }}
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
