@@ -149,6 +149,7 @@ jobs:
           auditwheel repair \
             --exclude libc10* --exclude libtorch* --exclude libcu* --exclude libnv* --exclude 'libtorch*' \
             ${{ steps.build_wheels.outputs.WHEEL_PATH }} -w flash-attention/dist_manylinux
+          ls -l flash-attention/dist_manylinux
           wheel_path_manylinux=$(ls flash-attention/dist_manylinux/*manylinux*.whl | head -n 1)
           echo "WHEEL_PATH_MANYLINUX=$wheel_path_manylinux" >> $GITHUB_OUTPUT
 
