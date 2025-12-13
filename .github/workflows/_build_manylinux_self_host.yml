@@ -74,9 +74,9 @@ jobs:
       - name: Install gh
         shell: bash
         run: |
-          sudo dnf install 'dnf-command(config-manager)'
-          sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
-          sudo dnf -y install gh --repo gh-cli
+          dnf install -y 'dnf-command(config-manager)'
+          dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+          dnf -y install gh --repo gh-cli
 
       - uses: actions/checkout@v4
 
