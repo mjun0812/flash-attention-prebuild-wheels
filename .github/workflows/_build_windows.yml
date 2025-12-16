@@ -57,7 +57,7 @@ jobs:
           uv venv -p ${{ inputs.python-version }}
           uv pip install -U pip setuptools==75.8.0 wheel packaging psutil ninja auditwheel
           current_dir=$(pwd)
-          echo "$current_dir/.venv/bin" >> $GITHUB_PATH
+          echo "$current_dir/.venv/Scripts" >> $GITHUB_PATH
 
       - uses: mjun0812/setup-cuda@v1
         with:
