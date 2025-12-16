@@ -52,12 +52,12 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
       - name: Install Python
-        shell: bash
+        shell: pwsh
         run: |
           uv venv -p ${{ inputs.python-version }}
-          uv pip install -U pip setuptools==75.8.0 wheel packaging psutil ninja auditwheel
-          current_dir=$(pwd)
-          echo "$current_dir/.venv/Scripts" >> $GITHUB_PATH
+          uv pip install -U pip setuptools==75.8.0 wheel packaging psutil numpy ninja auditwheel
+          $current_dir = (Get-Location).Path
+          echo "$current_dir\.venv\Scripts" >> $env:GITHUB_PATH
 
       - uses: mjun0812/setup-cuda@v1
         with:
