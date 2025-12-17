@@ -166,6 +166,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          tag_name=${{ github.ref_name }}
           wheel_path_manylinux="${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}"
           if [ ! -f "$wheel_path_manylinux" ]; then
             echo "Error: Wheel file not found at $wheel_path_manylinux"
