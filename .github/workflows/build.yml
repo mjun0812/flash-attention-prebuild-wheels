@@ -35,6 +35,8 @@ jobs:
   # #########################################################
   # Linux
   # #########################################################
+
+  # ################ GitHub-hosted runner ################
   build_wheels_linux:
     name: Build Linux x86_64
     needs: [create_releases, create_matrix]
@@ -76,6 +78,7 @@ jobs:
       runner: "ubuntu-22.04-arm"
     secrets: inherit
 
+  # ################ Self-hosted runner ################
   build_wheels_linux_self_hosted:
     name: Build Linux (self-hosted)
     needs: [create_releases, create_matrix]
@@ -116,6 +119,27 @@ jobs:
       torch-version: ${{ matrix.torch-version }}
       cuda-version: ${{ matrix.cuda-version }}
       runner: '["self-hosted-arm", "arm64"]'
+    secrets: inherit
+
+  build_wheels_manylinux_self_hosted:
+    name: Build manylinux (self-hosted)
+    needs: [create_releases, create_matrix]
+    if: ${{ fromjson(needs.create_matrix.outputs.matrix).manylinux_self_hosted }}
+    strategy:
+      fail-fast: false
+      matrix:
+        flash-attn-version: ${{ fromjson(needs.create_matrix.outputs.matrix).manylinux_self_hosted.flash-attn-version }}
+        python-version: ${{ fromjson(needs.create_matrix.outputs.matrix).manylinux_self_hosted.python-version }}
+        torch-version: ${{ fromjson(needs.create_matrix.outputs.matrix).manylinux_self_hosted.torch-version }}
+        cuda-version: ${{ fromjson(needs.create_matrix.outputs.matrix).manylinux_self_hosted.cuda-version }}
+        exclude: ${{ fromjson(needs.create_matrix.outputs.matrix).exclude }}
+    uses: ./.github/workflows/_build_manylinux_self_host.yml
+    with:
+      flash-attn-version: ${{ matrix.flash-attn-version }}
+      python-version: ${{ matrix.python-version }}
+      torch-version: ${{ matrix.torch-version }}
+      cuda-version: ${{ matrix.cuda-version }}
+      runner: '["self-hosted", "x64"]'
     secrets: inherit
 
   # #########################################################
@@ -168,6 +192,7 @@ jobs:
       - build_wheels_linux_arm64
       - build_wheels_linux_self_hosted
       - build_wheels_linux_arm64_self_hosted
+      - build_wheels_manylinux_self_hosted
       - build_wheels_windows
       - build_wheels_windows_code_build
     if: always()
@@ -197,6 +222,7 @@ jobs:
       - build_wheels_linux_arm64
       - build_wheels_linux_self_hosted
       - build_wheels_linux_arm64_self_hosted
+      - build_wheels_manylinux_self_hosted
       - build_wheels_windows
       - build_wheels_windows_code_build
     permissions:
