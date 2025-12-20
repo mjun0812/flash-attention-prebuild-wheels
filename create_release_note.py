@@ -1,61 +1,57 @@
-import json
+"""Generate release notes from assets.json.
+
+This script generates markdown release notes from a GitHub release assets JSON file.
+It extracts version information from wheel filenames and creates a formatted table
+showing supported Flash-Attention, Python, PyTorch, and CUDA versions for each platform.
+
+Usage:
+    python create_release_note.py <assets.json>
+
+Arguments:
+    assets.json: Path to JSON file containing GitHub release assets
+                 (obtained via `gh release view --json assets`)
+
+Output:
+    Markdown-formatted release notes to stdout
+
+Example:
+    gh release view v0.7.0 --json assets > assets.json
+    python create_release_note.py assets.json > release_notes.md
+"""
+
 import sys
 from pathlib import Path
 
-from common import normalize_platform_name, parse_wheel_filename
+from common import collect_versions_from_assets, format_versions, load_assets_json
 
 
-def generate_release_notes_from_assets(assets_info: dict):
-    assets_names = [
-        asset["name"] for asset in assets_info if asset["name"].endswith(".whl")
-    ]
-    if len(assets_names) == 0:
-        sys.exit(1)
+def generate_release_notes(assets: list[dict]) -> str:
+    """Generate release notes from assets.
 
-    assets_dict = {}
+    Args:
+        assets: List of asset dictionaries
 
-    for asset_name in assets_names:
-        asset_info = parse_wheel_filename(asset_name)
-        if asset_info is None:
-            continue
+    Returns:
+        Formatted release notes as markdown string
+    """
+    versions_by_platform = collect_versions_from_assets(assets)
 
-        if asset_info["platform"] not in assets_dict:
-            assets_dict[asset_info["platform"]] = {
-                "flash_versions": set(),
-                "python_versions": set(),
-                "torch_versions": set(),
-                "cuda_versions": set(),
-            }
-        assets_dict[asset_info["platform"]]["flash_versions"].add(
-            asset_info["flash_version"]
-        )
-        assets_dict[asset_info["platform"]]["python_versions"].add(
-            asset_info["python_version"]
-        )
-        assets_dict[asset_info["platform"]]["torch_versions"].add(
-            asset_info["torch_version"]
-        )
-        assets_dict[asset_info["platform"]]["cuda_versions"].add(
-            asset_info["cuda_version"]
-        )
+    if not versions_by_platform:
+        return ""
 
     notes = []
-
-    for platform_name, data in sorted(assets_dict.items()):
-        if any(len(data[key]) == 0 for key in data):
-            continue
-
-        platform_name = normalize_platform_name(platform_name)
+    for platform_name in sorted(versions_by_platform.keys()):
+        data = versions_by_platform[platform_name]
 
         notes.append(f"## {platform_name}")
         notes.append("")
         notes.append("| Flash-Attention | Python | PyTorch | CUDA |")
         notes.append("| --- | --- | --- | --- |")
 
-        flash_versions = ", ".join(sorted(data["flash_versions"]))
-        python_versions = ", ".join(sorted(data["python_versions"]))
-        torch_versions = ", ".join(sorted(data["torch_versions"]))
-        cuda_versions = ", ".join(sorted(data["cuda_versions"]))
+        flash_versions = format_versions(data["flash_versions"])
+        python_versions = format_versions(data["python_versions"])
+        torch_versions = format_versions(data["torch_versions"])
+        cuda_versions = format_versions(data["cuda_versions"])
 
         notes.append(
             f"| {flash_versions} | {python_versions} | {torch_versions} | {cuda_versions} |"
@@ -68,21 +64,26 @@ def generate_release_notes_from_assets(assets_info: dict):
 def main():
     try:
         if len(sys.argv) != 2:
+            print("Usage: python create_release_note.py <assets.json>", file=sys.stderr)
             sys.exit(1)
 
         assets_json_path = Path(sys.argv[1])
         if not assets_json_path.exists():
+            print(f"File not found: {assets_json_path}", file=sys.stderr)
             sys.exit(1)
 
-        with open(assets_json_path, "r") as f:
-            assets_info = json.load(f)["assets"]
-
-        if len(assets_info) == 0:
+        assets = load_assets_json(assets_json_path)
+        if not assets:
+            print("No assets found in JSON file", file=sys.stderr)
             sys.exit(1)
 
-        text = generate_release_notes_from_assets(assets_info)
+        text = generate_release_notes(assets)
         if text:
             print(text)
+        else:
+            print("No wheel assets found", file=sys.stderr)
+            sys.exit(1)
+
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)

@@ -1,49 +1,58 @@
-"""
-Create and update docs/packages.md from assets.json
+"""Create and update docs/packages.md from assets.json.
+
+This script generates a comprehensive package documentation page (docs/packages.md) from
+GitHub release assets. It combines information from both assets.json and any existing
+packages.md file, creating organized tables grouped by OS and Flash-Attention version.
+
+The script:
+- Parses wheel filenames to extract version information
+- Merges data from assets.json and existing packages.md
+- Generates collapsible tables organized by OS and Flash-Attention version
+- Creates a table of contents for easy navigation
+- Handles multiple download links per package
 
 Usage:
+    python create_packages.py [--assets <assets.json>] [--output <packages.md>]
+
+Arguments:
+    --assets: Path to assets.json file (default: assets.json)
+              Can be obtained via `gh release view --json assets`
+    --output: Output file path (default: docs/packages.md)
+
+Example:
+    # Basic usage
     python create_packages.py --assets assets.json --output docs/packages.md
+
+    # Using defaults
+    python create_packages.py
+
+    # Generate from GitHub release
+    gh release view v0.7.0 --json assets > assets.json
+    python create_packages.py
 """
 
 import argparse
-import json
 import re
 import sys
 from pathlib import Path
+from urllib.parse import unquote
 
 import pandas as pd
 
-from common import normalize_platform_name, parse_wheel_filename
+from common import (
+    get_os_emoji,
+    get_tag_from_url,
+    load_assets_json,
+    normalize_platform_name,
+    normalize_semantic_version,
+    parse_numeric_version,
+    parse_wheel_filename,
+)
 
 ADD_NOTE = """> [!NOTE]
-> Since v0.5.0, wheels are built with a local version label indicating the CUDA and PyTorch versions.  
+> Since v0.5.0, wheels are built with a local version label indicating the CUDA and PyTorch versions.
 > Example: `pip list` -> `flash_attn==2.8.3 -> flash_attn==2.8.3+cu130torch2.9`
 """
-
-
-def parse_numeric_version(text: str) -> tuple:
-    """Extract numeric version tuple for sorting."""
-    nums = re.findall(r"\d+", text)
-    return tuple(int(n) for n in nums)
-
-
-def normalize_semantic_version(version: str) -> str:
-    """Normalize semantic version by removing patch version.
-
-    Examples:
-        2.9.1 -> 2.9
-        2.8.1 -> 2.8
-        2.6.3 -> 2.6
-        2.9 -> 2.9 (no change if no patch version)
-    """
-    if pd.isna(version) or not version:
-        return version
-
-    # Split by '.' and take only major.minor
-    parts = str(version).split(".")
-    if len(parts) >= 2:
-        return ".".join(parts[:2])
-    return version
 
 
 def extract_packages_from_packages_md(packages_md_path: Path) -> list[dict]:
@@ -122,6 +131,8 @@ def extract_packages_from_packages_md(packages_md_path: Path) -> list[dict]:
                 if package_urls:
                     # Create a package entry for each URL
                     for package_url in package_urls:
+                        # Decode URL to make it more readable
+                        decoded_url = unquote(package_url)
                         packages.append(
                             {
                                 "Flash-Attention": current_fa_version,
@@ -129,7 +140,7 @@ def extract_packages_from_packages_md(packages_md_path: Path) -> list[dict]:
                                 "PyTorch": torch_version,
                                 "CUDA": cuda_version,
                                 "OS": current_os,
-                                "package": package_url,
+                                "package": decoded_url,
                             }
                         )
                 elif package_cell != "-":
@@ -154,15 +165,10 @@ def extract_packages_from_packages_md(packages_md_path: Path) -> list[dict]:
 
 def extract_packages_from_assets_json(assets_path: Path) -> list[dict]:
     """Extract package information from assets.json file."""
-    with assets_path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    if "assets" not in data:
-        return []
-
+    assets = load_assets_json(assets_path)
     packages = []
 
-    for asset in data["assets"]:
+    for asset in assets:
         name = asset.get("name", "")
         url = asset.get("url", "")
 
@@ -178,20 +184,17 @@ def extract_packages_from_assets_json(assets_path: Path) -> list[dict]:
         # Normalize platform name
         os_name = normalize_platform_name(info["platform"])
 
-        # Format versions for display
-        flash_version = info["flash_version"]
-        python_version = info["python_version"]
-        torch_version = info["torch_version"]  # Already in format like "2.9"
-        cuda_version = info["cuda_version"]
+        # Decode URL to make it more readable
+        decoded_url = unquote(url)
 
         packages.append(
             {
-                "Flash-Attention": flash_version,
-                "Python": python_version,
-                "PyTorch": torch_version,
-                "CUDA": cuda_version,
+                "Flash-Attention": info["flash_version"],
+                "Python": info["python_version"],
+                "PyTorch": info["torch_version"],
+                "CUDA": info["cuda_version"],
                 "OS": os_name,
-                "package": url,  # Use download URL directly
+                "package": decoded_url,
             }
         )
 
@@ -317,25 +320,6 @@ def merge_duplicate_rows(df: pd.DataFrame) -> pd.DataFrame:
     merged_df = merged_df.reset_index(drop=True)
 
     return merged_df
-
-
-def get_tag_from_url(url: str) -> str:
-    """Extract tag from GitHub release URL."""
-    if pd.isna(url) or not url:
-        return ""
-    match = re.search(r"/releases/download/([^/]+)/", str(url))
-    return match.group(1) if match else ""
-
-
-def get_os_emoji(os_name: str) -> str:
-    """Get emoji for OS name."""
-    os_lower = os_name.lower()
-    if "linux" in os_lower:
-        return "🐧 "
-    elif "windows" in os_lower:
-        return "🪟 "
-    else:
-        return ""
 
 
 def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
