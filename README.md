@@ -238,3 +238,15 @@ gh api \
   -X POST \
   /repos/[OWNER]/[REPOSITORY]/actions/runners/registration-token
 ```
+
+## Build Environments
+
+This repository builds wheels across multiple platforms and environments:
+
+| Platform           | Runner Type                    | Container Image                            |
+| ------------------ | ------------------------------ | ------------------------------------------ |
+| **Linux x86_64**   | GitHub-hosted (`ubuntu-22.04`) | -                                          |
+| **Linux x86_64**   | Self-hosted                    | `ubuntu:22.04` or `manylinux_2_28_x86_64`  |
+| **Linux ARM64**    | Self-hosted (`linux/arm64`)    | `ubuntu:22.04` or `manylinux_2_28_aarch64` |
+| **Windows x86_64** | GitHub-hosted (`windows-2022`) | -                                          |
+| **Windows x86_64** | AWS CodeBuild                  | -                                          |
