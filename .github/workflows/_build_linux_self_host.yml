@@ -100,93 +100,15 @@ jobs:
         run: |
           git config --global --add safe.directory $(pwd)
 
-      # Install Python using uv because setup-python needs newer version of glibc
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-      - name: Install Python
-        shell: bash
-        run: |
-          uv venv -p ${{ inputs.python-version }}
-          uv pip install -U pip setuptools==75.8.0 wheel packaging psutil auditwheel
-          current_dir=$(pwd)
-          echo "$current_dir/.venv/bin" >> $GITHUB_PATH
-
-      - uses: mjun0812/setup-cuda@v1
+      - name: Build and upload wheels
+        uses: ./.github/actions/build-and-upload
         with:
-          version: ${{ inputs.cuda-version }}
-
-      - name: Build wheels
-        timeout-minutes: 2160
-        id: build_wheels
-        shell: bash
-        run: |
-          chmod +x build_linux.sh
-          ./build_linux.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.cuda-version }}
-          wheel_path=$(ls flash-attention/dist/*.whl | head -n 1)
-          echo "WHEEL_PATH=$wheel_path" >> $GITHUB_OUTPUT
-
-      - name: Install Test
-        shell: bash
-        run: |
-          pip uninstall -y flash-attn > /dev/null 2>&1
-          pip install --no-cache-dir ${{ steps.build_wheels.outputs.WHEEL_PATH }}
-          python -c "import flash_attn; print(flash_attn.__version__)"
-
-      - name: Upload Release Asset
-        if: ${{ inputs.is-upload }}
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          tag_name=${{ github.ref_name }}
-          wheel_path="${{ steps.build_wheels.outputs.WHEEL_PATH }}"
-
-          # Check if the file exists
-          if [ ! -f "$wheel_path" ]; then
-            echo "Error: Wheel file not found at $wheel_path"
-            exit 1
-          fi
-
-          # Upload the release asset using GitHub CLI
-          gh release upload "$tag_name" "$wheel_path" --clobber
-
-      - name: Apply auditwheel repair
-        continue-on-error: true
-        id: auditwheel_repair
-        run: |
-          auditwheel show ${{ steps.build_wheels.outputs.WHEEL_PATH }}
-          auditwheel repair \
-            --exclude libc10* --exclude libtorch* --exclude libcu* --exclude libnv* --exclude 'libtorch*' \
-            ${{ steps.build_wheels.outputs.WHEEL_PATH }} -w flash-attention/dist_manylinux
-          wheel_path_manylinux=$(ls flash-attention/dist_manylinux/*manylinux*.whl | head -n 1)
-          echo "WHEEL_PATH_MANYLINUX=$wheel_path_manylinux" >> $GITHUB_OUTPUT
-
-      - name: Test manylinux wheel
-        continue-on-error: true
-        run: |
-          pip uninstall -y flash-attn > /dev/null 2>&1
-          pip install --no-cache-dir ${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}
-          python -c "import flash_attn; print(flash_attn.__version__)"
-
-      - name: Upload manylinux wheel
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          tag_name=${{ github.ref_name }}
-          wheel_path_manylinux="${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}"
-          if [ ! -f "$wheel_path_manylinux" ]; then
-            echo "Error: Wheel file not found at $wheel_path_manylinux"
-            exit 1
-          fi
-          # Upload the release asset using GitHub CLI
-          gh release upload "$tag_name" "$wheel_path_manylinux" --clobber
-
-      - name: Clean up
-        shell: bash
-        if: always()
-        run: |
-          rm -rf /opt/hostedtoolcache/Python
+          flash-attn-version: ${{ inputs.flash-attn-version }}
+          python-version: ${{ inputs.python-version }}
+          torch-version: ${{ inputs.torch-version }}
+          cuda-version: ${{ inputs.cuda-version }}
+          is-upload: ${{ inputs.is-upload }}
+          cleanup: "true"
 
   build_wheels_self_hosted_no_container:
     if: ${{ !inputs.use-container }}
@@ -253,90 +175,12 @@ jobs:
         run: |
           git config --global --add safe.directory $(pwd)
 
-      # Install Python using uv because setup-python needs newer version of glibc
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-      - name: Install Python
-        shell: bash
-        run: |
-          uv venv -p ${{ inputs.python-version }}
-          uv pip install -U pip setuptools==75.8.0 wheel packaging psutil auditwheel
-          current_dir=$(pwd)
-          echo "$current_dir/.venv/bin" >> $GITHUB_PATH
-
-      - uses: mjun0812/setup-cuda@v1
+      - name: Build and upload wheels
+        uses: ./.github/actions/build-and-upload
         with:
-          version: ${{ inputs.cuda-version }}
-
-      - name: Build wheels
-        timeout-minutes: 2160
-        id: build_wheels
-        shell: bash
-        run: |
-          chmod +x build_linux.sh
-          ./build_linux.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.cuda-version }}
-          wheel_path=$(ls flash-attention/dist/*.whl | head -n 1)
-          echo "WHEEL_PATH=$wheel_path" >> $GITHUB_OUTPUT
-
-      - name: Install Test
-        shell: bash
-        run: |
-          pip uninstall -y flash-attn > /dev/null 2>&1
-          pip install --no-cache-dir ${{ steps.build_wheels.outputs.WHEEL_PATH }}
-          python -c "import flash_attn; print(flash_attn.__version__)"
-
-      - name: Upload Release Asset
-        if: ${{ inputs.is-upload }}
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          tag_name=${{ github.ref_name }}
-          wheel_path="${{ steps.build_wheels.outputs.WHEEL_PATH }}"
-
-          # Check if the file exists
-          if [ ! -f "$wheel_path" ]; then
-            echo "Error: Wheel file not found at $wheel_path"
-            exit 1
-          fi
-
-          # Upload the release asset using GitHub CLI
-          gh release upload "$tag_name" "$wheel_path" --clobber
-
-      - name: Apply auditwheel repair
-        continue-on-error: true
-        id: auditwheel_repair
-        run: |
-          auditwheel show ${{ steps.build_wheels.outputs.WHEEL_PATH }}
-          auditwheel repair \
-            --exclude libc10* --exclude libtorch* --exclude libcu* --exclude libnv* --exclude 'libtorch*' \
-            ${{ steps.build_wheels.outputs.WHEEL_PATH }} -w flash-attention/dist_manylinux
-          wheel_path_manylinux=$(ls flash-attention/dist_manylinux/*manylinux*.whl | head -n 1)
-          echo "WHEEL_PATH_MANYLINUX=$wheel_path_manylinux" >> $GITHUB_OUTPUT
-
-      - name: Test manylinux wheel
-        continue-on-error: true
-        run: |
-          pip uninstall -y flash-attn > /dev/null 2>&1
-          pip install --no-cache-dir ${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}
-          python -c "import flash_attn; print(flash_attn.__version__)"
-
-      - name: Upload manylinux wheel
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          tag_name=${{ github.ref_name }}
-          wheel_path_manylinux="${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}"
-          if [ ! -f "$wheel_path_manylinux" ]; then
-            echo "Error: Wheel file not found at $wheel_path_manylinux"
-            exit 1
-          fi
-          # Upload the release asset using GitHub CLI
-          gh release upload "$tag_name" "$wheel_path_manylinux" --clobber
-
-      - name: Clean up
-        shell: bash
-        if: always()
-        run: |
-          rm -rf /opt/hostedtoolcache/Python
+          flash-attn-version: ${{ inputs.flash-attn-version }}
+          python-version: ${{ inputs.python-version }}
+          torch-version: ${{ inputs.torch-version }}
+          cuda-version: ${{ inputs.cuda-version }}
+          is-upload: ${{ inputs.is-upload }}
+          cleanup: "true"

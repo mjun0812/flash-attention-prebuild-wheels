@@ -1,0 +1,127 @@
+name: "Build and Upload Flash Attention Wheels"
+description: "Build, test, and upload Flash Attention wheels with optional manylinux support"
+
+inputs:
+  flash-attn-version:
+    description: "Flash-Attention version"
+    required: true
+  python-version:
+    description: "Python version"
+    required: true
+  torch-version:
+    description: "PyTorch version"
+    required: true
+  cuda-version:
+    description: "CUDA version"
+    required: true
+  is-upload:
+    description: "Whether to upload the release asset"
+    required: false
+    default: "true"
+  cleanup:
+    description: "Whether to clean up Python installation"
+    required: false
+    default: "false"
+
+outputs:
+  wheel-path:
+    description: "Path to the built wheel"
+    value: ${{ steps.build_wheels.outputs.WHEEL_PATH }}
+  wheel-path-manylinux:
+    description: "Path to the manylinux wheel"
+    value: ${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+
+    - name: Install Python
+      shell: bash
+      run: |
+        uv venv -p ${{ inputs.python-version }}
+        uv pip install -U pip setuptools==75.8.0 wheel packaging psutil auditwheel
+        current_dir=$(pwd)
+        echo "$current_dir/.venv/bin" >> $GITHUB_PATH
+
+    - name: Setup CUDA
+      uses: mjun0812/setup-cuda@v1
+      with:
+        version: ${{ inputs.cuda-version }}
+
+    - name: Build wheels
+      id: build_wheels
+      shell: bash
+      run: |
+        chmod +x build_linux.sh
+        ./build_linux.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.cuda-version }}
+        wheel_path=$(ls flash-attention/dist/*.whl | head -n 1)
+        echo "WHEEL_PATH=$wheel_path" >> $GITHUB_OUTPUT
+
+    - name: Install Test
+      shell: bash
+      run: |
+        pip uninstall -y flash-attn > /dev/null 2>&1
+        pip install --no-cache-dir ${{ steps.build_wheels.outputs.WHEEL_PATH }}
+        python -c "import flash_attn; print(flash_attn.__version__)"
+
+    - name: Upload Release Asset
+      if: ${{ inputs.is-upload == 'true' }}
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        tag_name=${{ github.ref_name }}
+        wheel_path="${{ steps.build_wheels.outputs.WHEEL_PATH }}"
+        # Check if the file exists
+        if [ ! -f "$wheel_path" ]; then
+          echo "Error: Wheel file not found at $wheel_path"
+          exit 1
+        fi
+        # Upload the release asset using GitHub CLI
+        gh release upload "$tag_name" "$wheel_path" --clobber
+
+    - name: Apply auditwheel repair
+      continue-on-error: true
+      id: auditwheel_repair
+      shell: bash
+      run: |
+        auditwheel show ${{ steps.build_wheels.outputs.WHEEL_PATH }}
+        auditwheel repair \
+          --exclude libc10* --exclude libtorch* --exclude libcu* --exclude libnv* --exclude 'libtorch*' \
+          ${{ steps.build_wheels.outputs.WHEEL_PATH }} -w flash-attention/dist_manylinux
+        wheel_path_manylinux=$(ls flash-attention/dist_manylinux/*manylinux*.whl 2>/dev/null | head -n 1 || echo "")
+        echo "WHEEL_PATH_MANYLINUX=$wheel_path_manylinux" >> $GITHUB_OUTPUT
+
+    - name: Test manylinux wheel
+      continue-on-error: true
+      shell: bash
+      run: |
+        if [ -n "${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}" ] && [ -f "${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}" ]; then
+          pip uninstall -y flash-attn > /dev/null 2>&1
+          pip install --no-cache-dir ${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}
+          python -c "import flash_attn; print(flash_attn.__version__)"
+        fi
+
+    - name: Upload manylinux wheel
+      if: ${{ inputs.is-upload == 'true' }}
+      continue-on-error: true
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        tag_name=${{ github.ref_name }}
+        wheel_path_manylinux="${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}"
+        if [ -n "$wheel_path_manylinux" ] && [ -f "$wheel_path_manylinux" ]; then
+          # Upload the release asset using GitHub CLI
+          gh release upload "$tag_name" "$wheel_path_manylinux" --clobber
+        else
+          echo "Skipping manylinux wheel upload: file not found"
+        fi
+
+    - name: Clean up
+      if: ${{ inputs.cleanup == 'true' }}
+      shell: bash
+      run: |
+        rm -rf /opt/hostedtoolcache/Python
