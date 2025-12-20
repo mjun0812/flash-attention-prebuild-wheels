@@ -200,9 +200,6 @@ def main():
                 "linux_self_hosted": False,
                 # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
                 #
-                # "manylinux_self_hosted": False,
-                "manylinux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
-                #
                 "linux_arm64_self_hosted": False,
                 # "linux_arm64_self_hosted": LINUX_ARM64_SELF_HOSTED_MATRIX,
                 #
