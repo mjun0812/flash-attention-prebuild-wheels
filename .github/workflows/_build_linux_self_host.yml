@@ -60,38 +60,82 @@ jobs:
     timeout-minutes: 2160
 
     steps:
+      - name: Check environment
+        shell: bash
+        run: |
+          cat /etc/os-release || true
+          echo "-----------------------------"
+          cat /etc/lsb-release || true
+          echo "-----------------------------"
+          lscpu || true
+          echo "-----------------------------"
+          df -h || true
+          echo "-----------------------------"
+          free -h || true
+
       - name: Install tools
         shell: bash
         run: |
-          apt-get update && apt-get install -y --no-install-recommends \
-            curl \
-            ca-certificates \
-            sudo \
-            software-properties-common \
-            wget \
-            unzip \
-            zip \
-            git \
-            build-essential \
-            gcc \
-            g++ \
-            clang \
-            ninja-build \
-            keyboard-configuration \
-            time \
-            patchelf
+          # Auto-detect package manager and install dependencies
+          if command -v apt-get >/dev/null 2>&1; then
+            apt-get update && apt-get install -y --no-install-recommends \
+              curl \
+              ca-certificates \
+              sudo \
+              software-properties-common \
+              wget \
+              unzip \
+              zip \
+              git \
+              build-essential \
+              gcc \
+              g++ \
+              clang \
+              ninja-build \
+              keyboard-configuration \
+              time \
+              patchelf
+          elif command -v dnf >/dev/null 2>&1; then
+            dnf install -y \
+              curl \
+              ca-certificates \
+              sudo \
+              wget \
+              unzip \
+              zip \
+              git \
+              gcc \
+              gcc-c++ \
+              clang \
+              ninja-build \
+              time \
+              patchelf
+          else
+            echo "Error: No supported package manager found (apt-get or dnf)"
+            exit 1
+          fi
 
       - name: Install gh
         shell: bash
         run: |
-          sudo mkdir -p -m 755 /etc/apt/keyrings
-          out=$(mktemp)
-          wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg
-          cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
-          sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-          sudo apt update
-          sudo apt install gh -y
+          # Auto-detect package manager and install GitHub CLI
+          if command -v apt-get >/dev/null 2>&1; then
+            sudo mkdir -p -m 755 /etc/apt/keyrings
+            out=$(mktemp)
+            wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg
+            cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
+            sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update
+            sudo apt install gh -y
+          elif command -v dnf >/dev/null 2>&1; then
+            dnf install -y 'dnf-command(config-manager)'
+            dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+            dnf -y install gh --repo gh-cli
+          else
+            echo "Error: No supported package manager found (apt-get or dnf)"
+            exit 1
+          fi
 
       - uses: actions/checkout@v4
 
@@ -138,35 +182,66 @@ jobs:
       - name: Install tools
         shell: bash
         run: |
-          apt-get update && apt-get install -y --no-install-recommends \
-            curl \
-            ca-certificates \
-            sudo \
-            software-properties-common \
-            wget \
-            unzip \
-            zip \
-            git \
-            build-essential \
-            gcc \
-            g++ \
-            clang \
-            ninja-build \
-            keyboard-configuration \
-            time \
-            patchelf
+          # Auto-detect package manager and install dependencies
+          if command -v apt-get >/dev/null 2>&1; then
+            apt-get update && apt-get install -y --no-install-recommends \
+              curl \
+              ca-certificates \
+              sudo \
+              software-properties-common \
+              wget \
+              unzip \
+              zip \
+              git \
+              build-essential \
+              gcc \
+              g++ \
+              clang \
+              ninja-build \
+              keyboard-configuration \
+              time \
+              patchelf
+          elif command -v dnf >/dev/null 2>&1; then
+            dnf install -y \
+              curl \
+              ca-certificates \
+              sudo \
+              wget \
+              unzip \
+              zip \
+              git \
+              gcc \
+              gcc-c++ \
+              clang \
+              ninja-build \
+              time \
+              patchelf
+          else
+            echo "Error: No supported package manager found (apt-get or dnf)"
+            exit 1
+          fi
 
       - name: Install gh
         shell: bash
         run: |
-          sudo mkdir -p -m 755 /etc/apt/keyrings
-          out=$(mktemp)
-          wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg
-          cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
-          sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-          sudo apt update
-          sudo apt install gh -y
+          # Auto-detect package manager and install GitHub CLI
+          if command -v apt-get >/dev/null 2>&1; then
+            sudo mkdir -p -m 755 /etc/apt/keyrings
+            out=$(mktemp)
+            wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg
+            cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
+            sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update
+            sudo apt install gh -y
+          elif command -v dnf >/dev/null 2>&1; then
+            dnf install -y 'dnf-command(config-manager)'
+            dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+            dnf -y install gh --repo gh-cli
+          else
+            echo "Error: No supported package manager found (apt-get or dnf)"
+            exit 1
+          fi
 
       - uses: actions/checkout@v4
 
