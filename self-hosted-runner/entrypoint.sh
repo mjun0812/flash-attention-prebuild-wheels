@@ -1,17 +1,20 @@
 #!/bin/bash
 
-ARCH=$(uname -m)
-
-if [ "$ARCH" = "aarch64" ]; then
-    echo "Architecture is aarch64 (ARM64). Applying QEMU workarounds..."
-    mkdir -p /etc/docker
-    cat <<EOF > /etc/docker/daemon.json
-{
-  "iptables": false,
-  "ip6tables": false
-}
-EOF
-fi
+# ARCH=$(uname -m)
+# 
+# if [ "$ARCH" = "aarch64" ]; then
+#     echo "Architecture is aarch64 (ARM64). Applying QEMU workarounds..."
+#     mkdir -p /etc/docker
+# cat <<EOF > /etc/docker/daemon.json
+# {
+#   "iptables": false,
+#   "ip6tables": false,
+#   "storage-driver": "vfs",
+#   "exec-opts": ["native.cgroupdriver=cgroupfs"],
+#   "default-cgroupns-mode": "host"
+# }
+# EOF
+# fi
 
 # Start docker daemon
 service docker start
