@@ -52,9 +52,6 @@ RUN usermod -aG sudo ubuntu \
 # Allow sudo without password
 RUN echo '%sudo ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 WORKDIR /home/ubuntu
 USER ubuntu
 
@@ -66,6 +63,8 @@ USER root
 
 RUN ./bin/installdependencies.sh
 
-USER ubuntu
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 ENTRYPOINT ["/entrypoint.sh"]
 

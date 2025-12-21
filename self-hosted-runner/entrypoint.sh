@@ -1,11 +1,24 @@
 #!/bin/bash
 
+ARCH=$(uname -m)
+
+if [ "$ARCH" = "aarch64" ]; then
+    echo "Architecture is aarch64 (ARM64). Applying QEMU workarounds..."
+    mkdir -p /etc/docker
+    cat <<EOF > /etc/docker/daemon.json
+{
+  "iptables": false,
+  "ip6tables": false
+}
+EOF
+fi
+
 # Start docker daemon
-sudo service docker start
+service docker start
 
 if [ -n "$PERSONAL_ACCESS_TOKEN" ]; then
     echo "Using personal access token";
-    ./config.sh \
+    runuser -u ubuntu -- ./config.sh \
         --unattended \
         --url $REPOSITORY_URL \
         --pat "$PERSONAL_ACCESS_TOKEN" \
@@ -16,7 +29,7 @@ if [ -n "$PERSONAL_ACCESS_TOKEN" ]; then
         --replace;
 else
     echo "Using registry token";
-    ./config.sh \
+    runuser -u ubuntu -- ./config.sh \
         --unattended \
         --url $REPOSITORY_URL \
         --token "$REGISTRY_TOKEN" \
@@ -27,4 +40,4 @@ else
         --replace;
 fi
 
-exec "./run.sh"
+exec runuser -u ubuntu -- ./run.sh
