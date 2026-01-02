@@ -44,6 +44,9 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 ## Packages
 
 > [!NOTE]
+> Since v0.7.0, wheels are built with manylinux2_28 platform.
+
+> [!NOTE]
 > Since v0.5.0, wheels are built with a local version label indicating the CUDA and PyTorch versions.  
 > Example: `pip list` -> `flash_attn==2.8.3 -> flash_attn==2.8.3+cu130torch2.9`
 
@@ -75,6 +78,7 @@ If you use this repository in your research and find it helpful, please cite thi
 - [@KiralyCraft](https://github.com/KiralyCraft) : Provided with computing resource!
 - [@kun432](https://github.com/kun432) : Buy me a coffee!
 - [@wodeyuzhou](https://github.com/wodeyuzhou) : Sponsored me!
+- Gabr1e1 : Buy me a coffee!
 
 ## Star History and Download Statistics
 
@@ -112,7 +116,7 @@ If you use this repository in your research and find it helpful, please cite thi
 If you cannot find the version you are looking for, you can fork this repository and create a wheel on GitHub Actions.
 
 1. Fork this repository
-2. Edit Python script [`create_matrix.py`](https://github.com/mjun0812/flash-attention-prebuild-wheels/blob/main/create_matrix.py) to set the version you want to build.
+2. Edit Python script [`create_matrix.py`](https://github.com/mjun0812/flash-attention-prebuild-wheels/blob/main/create_matrix.py) to set the version you want to build. You can use GitHub hosted runners or self-hosted runners with below settings.
 3. Add tag `v*.*.*` to trigger the build workflow. `git tag v*.*.* && git push --tags`
 
 Please note that depending on the combination of versions, it may not be possible to build.
@@ -122,7 +126,15 @@ Please note that depending on the combination of versions, it may not be possibl
 In some version combinations, you cannot build wheels on GitHub-hosted runners due to job time limitations.
 To build the wheels for these versions, you can use self-hosted runners.
 
-#### Setup x86_64 Runner
+#### Getting One-Time Registry Token for GitHub Actions Runner
+
+```bash
+gh api \
+  -X POST \
+  /repos/[OWNER]/[REPOSITORY]/actions/runners/registration-token
+```
+
+#### Setup Linux Self-Hosted Runner
 
 Clone the repository and navigate to the self-hosted-runner directory.
 
@@ -131,13 +143,17 @@ git clone https://github.com/mjun0812/flash-attention-prebuild-wheels.git
 cd flash-attention-prebuild-wheels/self-hosted-runner
 ```
 
-Create the environment file from the template.
+Create environment files from the template. Create one file per architecture you want to build.
 
 ```bash
+# For x86_64
 cp env.template env
+
+# For ARM64
+cp env.template env.arm
 ```
 
-Edit the `env` file to set the environment variables.
+Edit the environment file(s) to set the required variables.
 
 ```bash
 # Registry Token for GitHub Personal Access Token
@@ -152,91 +168,59 @@ RUNNER_LABELS=Linux,self-hosted
 Edit the `compose.yml` file if you use a repository forked from this repository.
 
 ```yaml
-services:
-  runner:
-    privileged: true
-    restart: always
-    env_file:
-      - .env
-    environment:
-      REPOSITORY_URL: https://github.com/[OWNER]/[REPOSITORY]
-      RUNNER_NAME: self-hosted-runner
-      RUNNER_GROUP: default
+runner:
+  platform: linux/amd64
+  privileged: true
+  restart: always
+  env_file:
+    - .env
+  environment:
+    REPOSITORY_URL: https://github.com/[YOUR_USERNAME]/flash-attention-prebuild-wheels
+    RUNNER_NAME: self-hosted-runner
+    RUNNER_GROUP: default
+    TARGET_ARCH: x64
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args:
+      GH_RUNNER_VERSION: 2.329.0
       TARGET_ARCH: x64
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        GH_RUNNER_VERSION: 2.329.0
-        TARGET_ARCH: x64
+      PLATFORM: linux/amd64
+  volumes:
+    - fa-self:/var/lib/docker
+
+runner-arm:
+  platform: linux/arm64
+  privileged: true
+  restart: always
+  env_file:
+    - .env.arm
+  environment:
+    REPOSITORY_URL: https://github.com/[YOUR_USERNAME]/flash-attention-prebuild-wheels
+    RUNNER_NAME: self-hosted-runner-arm
+    RUNNER_GROUP: default
+    TARGET_ARCH: arm64
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args:
+      GH_RUNNER_VERSION: 2.329.0
+      TARGET_ARCH: arm64
+      PLATFORM: linux/arm64
+  volumes:
+    - fa-self-arm:/var/lib/docker
 ```
 
-Build and run the docker container.
+Build and run the docker container(s).
 
 ```bash
-# Build and run
+# x86_64 runner
 docker compose build runner
 docker compose up -d runner
-```
 
-#### (Optional) Setup ARM64 Runner
-
-If you also want to build wheels for ARM64 architecture, follow these additional steps.
-
-Install qemu-user-static for ARM64 support.
-
-```bash
-sudo apt install qemu-user-static
-```
-
-Create the environment file for ARM64 runner.
-
-```bash
-cp env.template env.arm
-```
-
-Edit the `env.arm` file with the same configuration as the `env` file.
-
-Add the ARM64 runner service to your `compose.yml` file.
-
-```yaml
-services:
-  runner:
-    # ... (existing x86_64 runner configuration)
-
-  runner-arm:
-    privileged: true
-    restart: always
-    env_file:
-      - .env.arm
-    environment:
-      REPOSITORY_URL: https://github.com/[OWNER]/[REPOSITORY]
-      RUNNER_NAME: self-hosted-runner-arm
-      RUNNER_GROUP: default
-      TARGET_ARCH: arm64
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        GH_RUNNER_VERSION: 2.329.0
-        TARGET_ARCH: arm64
-        PLATFORM: linux/arm64
-```
-
-Build and run the ARM64 runner container.
-
-```bash
-# Build and run both x86_64 and ARM64 runners
+# ARM64 runner (optional)
 docker compose build runner-arm
 docker compose up -d runner-arm
-```
-
-### Getting One-Time Registry Token for GitHub Actions Runner
-
-```bash
-gh api \
-  -X POST \
-  /repos/[OWNER]/[REPOSITORY]/actions/runners/registration-token
 ```
 
 ## Build Environments

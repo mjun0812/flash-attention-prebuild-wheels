@@ -1,5 +1,6 @@
 services:
   runner:
+    platform: linux/amd64
     privileged: true
     restart: always
     env_file:
@@ -19,27 +20,27 @@ services:
     volumes:
       - fa-self:/var/lib/docker
 
-  # runner-arm:
-  #   platform: linux/arm64
-  #   privileged: true
-  #   restart: always
-  #   env_file:
-  #     - .env.arm
-  #   environment:
-  #     REPOSITORY_URL: https://github.com/mjun0812/flash-attention-prebuild-wheels
-  #     RUNNER_NAME: self-hosted-runner-arm
-  #     RUNNER_GROUP: default
-  #     TARGET_ARCH: arm64
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #     args:
-  #       GH_RUNNER_VERSION: 2.329.0
-  #       TARGET_ARCH: arm64
-  #       PLATFORM: linux/arm64
-  #   volumes:
-  #     - fa-self-arm:/var/lib/docker
+  runner-arm:
+    platform: linux/arm64
+    privileged: true
+    restart: always
+    env_file:
+      - .env.arm
+    environment:
+      REPOSITORY_URL: https://github.com/mjun0812/flash-attention-prebuild-wheels
+      RUNNER_NAME: self-hosted-runner-arm
+      RUNNER_GROUP: default
+      TARGET_ARCH: arm64
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        GH_RUNNER_VERSION: 2.329.0
+        TARGET_ARCH: arm64
+        PLATFORM: linux/arm64
+    volumes:
+      - fa-self-arm:/var/lib/docker
 
 volumes:
   fa-self:
-  # fa-self-arm:
+  fa-self-arm:
