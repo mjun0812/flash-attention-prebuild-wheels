@@ -58,6 +58,7 @@ jobs:
 
       # Install Python using uv
       - name: Install uv
+        continue-on-error: true
         uses: astral-sh/setup-uv@v7
 
       - name: Install Python
