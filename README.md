@@ -45,6 +45,7 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 
 > [!NOTE]
 > Since v0.7.0, wheels are built with manylinux2_28 platform.
+> These wheels compatible with old glibc versions (<=2.17).
 
 > [!NOTE]
 > Since v0.5.0, wheels are built with a local version label indicating the CUDA and PyTorch versions.  
@@ -227,10 +228,10 @@ docker compose up -d runner-arm
 
 This repository builds wheels across multiple platforms and environments:
 
-| Platform           | Runner Type                    | Container Image                            |
-| ------------------ | ------------------------------ | ------------------------------------------ |
-| **Linux x86_64**   | GitHub-hosted (`ubuntu-22.04`) | -                                          |
-| **Linux x86_64**   | Self-hosted                    | `ubuntu:22.04` or `manylinux_2_28_x86_64`  |
-| **Linux ARM64**    | Self-hosted (`linux/arm64`)    | `ubuntu:22.04` or `manylinux_2_28_aarch64` |
-| **Windows x86_64** | GitHub-hosted (`windows-2022`) | -                                          |
-| **Windows x86_64** | AWS CodeBuild                  | -                                          |
+| Platform           | Runner Type                        | Container Image                           |
+| ------------------ | ---------------------------------- | ----------------------------------------- |
+| **Linux x86_64**   | GitHub-hosted (`ubuntu-22.04`)     | -                                         |
+| **Linux x86_64**   | Self-hosted                        | `ubuntu:22.04` or `manylinux_2_28_x86_64` |
+| **Linux ARM64**    | GitHub-hosted (`ubuntu-22.04-arm`) | -                                         |
+| **Windows x86_64** | GitHub-hosted (`windows-2022`)     | -                                         |
+| **Windows x86_64** | AWS CodeBuild                      | -                                         |

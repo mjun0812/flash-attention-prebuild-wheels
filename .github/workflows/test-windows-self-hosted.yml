@@ -2,12 +2,14 @@
 # Test build wheels with self-hosted runner on Windows x86_64
 #
 # Prerequisites (must be pre-installed on the runner):
+#   - pwsh
 #   - Git
 #   - Chocolatey
 #   - Visual Studio BuildTools 2022 with:
 #     - Microsoft.VisualStudio.Component.VC.Tools.x86.x64
 #     - Microsoft.VisualStudio.Component.VC.CMake.Project
 #     - Microsoft.VisualStudio.Component.Windows11SDK.22621
+#   - vswhere
 #   - CMake
 #   - Ninja
 #   - Make (optional)
@@ -43,7 +45,7 @@ jobs:
   build_windows_wheels_self_hosted:
     name: Build wheels and Test (Windows x86_64, self-hosted runner)
     runs-on: ["self-hosted", "windows", "x64"]
-    timeout-minutes: 360
+    timeout-minutes: 2160
     env:
       MAX_JOBS: 2
       NVCC_THREADS: 2
@@ -81,6 +83,7 @@ jobs:
 
       - name: Build wheels
         shell: pwsh
+        timeout-minutes: 2160
         run: |
           .\build_windows.ps1 -FlashAttnVersion "${{ inputs.flash-attn-version }}" -PythonVersion "${{ inputs.python-version }}" -TorchVersion "${{ inputs.torch-version }}" -CudaVersion "${{ inputs.cuda-version }}"
           $wheelName = Get-ChildItem -Path "flash-attention\dist\*.whl" | Select-Object -First 1 | ForEach-Object { $_.Name }
@@ -138,16 +141,37 @@ jobs:
             Write-Host "[4/6] uv cache not found, skipping"
           }
 
-          # 5. Remove CUDA installation
-          $cudaBaseDir = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA"
-          if (Test-Path $cudaBaseDir) {
-            Write-Host "[5/6] Removing CUDA installations: $cudaBaseDir"
-            Get-ChildItem -Path $cudaBaseDir -Directory -ErrorAction SilentlyContinue | ForEach-Object {
-              Write-Host "  Removing: $($_.FullName)"
-              Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+          # 5. Uninstall CUDA using proper Windows uninstaller
+          Write-Host "[5/6] Uninstalling CUDA packages..."
+          $cudaPackages = Get-Package -Name "*CUDA*" -ErrorAction SilentlyContinue
+          if ($cudaPackages) {
+            foreach ($package in $cudaPackages) {
+              Write-Host "  Uninstalling: $($package.Name)"
+              try {
+                $package | Uninstall-Package -Force -ErrorAction SilentlyContinue
+              } catch {
+                Write-Host "    Warning: Could not uninstall via Package Manager, trying alternative method..."
+              }
             }
           } else {
-            Write-Host "[5/6] CUDA directory not found, skipping"
+            Write-Host "  No CUDA packages found in Package Manager"
+          }
+
+          # Also try NVIDIA uninstaller if exists
+          $cudaBaseDir = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA"
+          if (Test-Path $cudaBaseDir) {
+            Get-ChildItem -Path $cudaBaseDir -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+              $uninstaller = Join-Path $_.FullName "Uninstall.exe"
+              if (Test-Path $uninstaller) {
+                Write-Host "  Running CUDA uninstaller: $uninstaller"
+                Start-Process -FilePath $uninstaller -ArgumentList "/S" -Wait -ErrorAction SilentlyContinue
+              }
+            }
+            # Remove remaining directory if exists
+            if (Test-Path $cudaBaseDir) {
+              Write-Host "  Removing remaining CUDA directory: $cudaBaseDir"
+              Remove-Item -Path $cudaBaseDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
           }
 
           # 6. Remove temp files
