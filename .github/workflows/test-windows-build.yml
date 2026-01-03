@@ -59,13 +59,15 @@ jobs:
           NVCC_THREADS: 2
         run: |
           .\build_windows.ps1 -FlashAttnVersion "${{ matrix.flash-attn-version }}" -PythonVersion "${{ matrix.python-version }}" -TorchVersion "${{ matrix.torch-version }}" -CudaVersion "${{ matrix.cuda-version }}"
+          # Script changes to flash-attention directory, wheel is in dist/
           ls
-          dir flash-attention\dist
-          $wheelName = Get-ChildItem -Path "flash-attention\dist\*.whl" | Select-Object -First 1 | ForEach-Object { $_.Name }
+          dir dist
+          $wheelName = Get-ChildItem -Path "dist\*.whl" | Select-Object -First 1 | ForEach-Object { $_.Name }
           echo "wheel_name=$wheelName" >> $env:GITHUB_ENV
 
       - name: Install Test
         shell: pwsh
+        working-directory: flash-attention
         run: |
-          pip install flash-attention/dist/$env:wheel_name
+          pip install dist/$env:wheel_name
           python -c "import flash_attn; print(flash_attn.__version__)"

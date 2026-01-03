@@ -84,21 +84,24 @@ jobs:
         shell: pwsh
         run: |
           .\build_windows.ps1 -FlashAttnVersion "${{ inputs.flash-attn-version }}" -PythonVersion "${{ inputs.python-version }}" -TorchVersion "${{ inputs.torch-version }}" -CudaVersion "${{ inputs.cuda-version }}"
-          $wheelName = Get-ChildItem -Path "flash-attention\dist\*.whl" | Select-Object -First 1 | ForEach-Object { $_.Name }
+          # Script changes to flash-attention directory, wheel is in dist/
+          $wheelName = Get-ChildItem -Path "dist\*.whl" | Select-Object -First 1 | ForEach-Object { $_.Name }
           echo "wheel_name=$wheelName" >> $env:GITHUB_ENV
 
       - name: Install Test
         shell: pwsh
+        working-directory: flash-attention
         run: |
-          pip install --no-cache-dir flash-attention/dist/$env:wheel_name
+          pip install --no-cache-dir dist/$env:wheel_name
           python -c "import flash_attn; print(flash_attn.__version__)"
 
       - name: Upload Release Asset
         if: ${{ inputs.is-upload }}
         shell: pwsh
+        working-directory: flash-attention
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag_name = "${env:GITHUB_REF}".Replace("refs/tags/", "")
-          $wheel_path = "flash-attention/dist/$env:wheel_name"
+          $wheel_path = "dist/$env:wheel_name"
           gh release upload "$tag_name" "$wheel_path" --clobber
