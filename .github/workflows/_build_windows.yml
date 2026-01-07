@@ -102,6 +102,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $tag_name = "${env:GITHUB_REF}".Replace("refs/tags/", "")
+          $tag_name = "${{ github.ref_name }}"
           $wheel_path = "dist/$env:wheel_name"
           gh release upload "$tag_name" "$wheel_path" --clobber
