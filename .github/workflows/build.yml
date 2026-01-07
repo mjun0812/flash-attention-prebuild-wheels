@@ -126,6 +126,8 @@ jobs:
   # #########################################################
   # Windows
   # #########################################################
+
+  # ################ GitHub-hosted runner ################
   build_wheels_windows:
     name: Build Windows
     needs: [create_releases, create_matrix]
@@ -166,6 +168,30 @@ jobs:
       cuda-version: ${{ matrix.cuda-version }}
     secrets: inherit
 
+  # ################ Self-hosted runner ################
+  build_wheels_windows_self_hosted:
+    name: Build Windows (self-hosted)
+    needs: [create_releases, create_matrix]
+    if: ${{ fromjson(needs.create_matrix.outputs.matrix).windows_self_hosted }}
+    strategy:
+      fail-fast: false
+      matrix:
+        flash-attn-version: ${{ fromjson(needs.create_matrix.outputs.matrix).windows_self_hosted.flash-attn-version }}
+        python-version: ${{ fromjson(needs.create_matrix.outputs.matrix).windows_self_hosted.python-version }}
+        torch-version: ${{ fromjson(needs.create_matrix.outputs.matrix).windows_self_hosted.torch-version }}
+        cuda-version: ${{ fromjson(needs.create_matrix.outputs.matrix).windows_self_hosted.cuda-version }}
+        exclude: ${{ fromjson(needs.create_matrix.outputs.matrix).exclude }}
+    uses: ./.github/workflows/_build_windows_self_hosted.yml
+    with:
+      flash-attn-version: ${{ matrix.flash-attn-version }}
+      python-version: ${{ matrix.python-version }}
+      torch-version: ${{ matrix.torch-version }}
+      cuda-version: ${{ matrix.cuda-version }}
+    secrets: inherit
+
+  # #########################################################
+  # Post-processing: update release notes and docs
+  # #########################################################
   update_release_notes:
     name: Update Release Notes
     needs:
@@ -175,6 +201,7 @@ jobs:
       - build_wheels_linux_arm64_self_hosted
       - build_wheels_windows
       - build_wheels_windows_code_build
+      - build_wheels_windows_self_hosted
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -204,6 +231,7 @@ jobs:
       - build_wheels_linux_arm64_self_hosted
       - build_wheels_windows
       - build_wheels_windows_code_build
+      - build_wheels_windows_self_hosted
     permissions:
       contents: write
     if: always()

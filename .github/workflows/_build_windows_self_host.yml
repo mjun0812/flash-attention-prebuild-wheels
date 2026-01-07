@@ -1,0 +1,209 @@
+# #########################################################
+# Build wheels with GitHub hosted runner on Windows x86_64
+# #########################################################
+# Prerequisites (must be pre-installed on the runner):
+#   - pwsh
+#   - Git
+#   - Chocolatey
+#   - Visual Studio BuildTools 2022 with:
+#     - Microsoft.VisualStudio.Component.VC.Tools.x86.x64
+#     - Microsoft.VisualStudio.Component.VC.CMake.Project
+#     - Microsoft.VisualStudio.Component.Windows11SDK.22621
+#   - vswhere
+#   - CMake
+#   - Ninja
+#   - Make (optional)
+# #########################################################
+
+name: "[Windows x86_64, self-hosted] Build wheels and upload to GitHub Releases"
+
+on:
+  workflow_call:
+    inputs:
+      flash-attn-version:
+        description: "Flash-Attention version"
+        required: true
+        type: string
+      python-version:
+        description: "Python version"
+        required: true
+        type: string
+      torch-version:
+        description: "PyTorch version"
+        required: true
+        type: string
+      cuda-version:
+        description: "CUDA version"
+        required: true
+        type: string
+      runner:
+        description: "Runner type"
+        required: false
+        type: string
+        default: '["self-hosted", "windows", "x64"]'
+      is-upload:
+        description: "Whether to upload the release asset"
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build_windows_wheels_self_hosted:
+    name: Build wheels and Upload (Windows x86_64, self-hosted runner)
+    runs-on: ${{ fromjson(inputs.runner) }}
+    timeout-minutes: 2160
+    env:
+      MAX_JOBS: 2
+      NVCC_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable Git long paths
+        shell: pwsh
+        run: git config --system core.longpaths true
+
+      # Install Python using uv because setup-python needs newer version of glibc
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install Python
+        shell: pwsh
+        run: |
+          uv venv -p ${{ inputs.python-version }}
+          uv pip install -U pip setuptools==75.8.0 wheel packaging psutil numpy ninja
+          $current_dir = (Get-Location).Path
+          echo "$current_dir\.venv\Scripts" >> $env:GITHUB_PATH
+
+      - uses: mjun0812/setup-cuda@v1
+        with:
+          version: ${{ inputs.cuda-version }}
+
+      # Visual Studio BuildTools is pre-installed on the runner
+      - name: Setup MSVC Developer Command Prompt
+        uses: TheMrMilchmann/setup-msvc-dev@v3
+        with:
+          arch: x64
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build wheels
+        shell: pwsh
+        timeout-minutes: 2160
+        run: |
+          .\build_windows.ps1 -FlashAttnVersion "${{ inputs.flash-attn-version }}" -PythonVersion "${{ inputs.python-version }}" -TorchVersion "${{ inputs.torch-version }}" -CudaVersion "${{ inputs.cuda-version }}"
+          # Script changes to flash-attention directory, wheel is in dist/
+          $wheelName = Get-ChildItem -Path "dist\*.whl" | Select-Object -First 1 | ForEach-Object { $_.Name }
+          echo "wheel_name=$wheelName" >> $env:GITHUB_ENV
+
+      - name: Install Test
+        shell: pwsh
+        working-directory: flash-attention
+        run: |
+          pip install --no-cache-dir dist/$env:wheel_name
+          python -c "import flash_attn; print(flash_attn.__version__)"
+
+      - name: Upload Release Asset
+        if: ${{ inputs.is-upload }}
+        shell: pwsh
+        working-directory: flash-attention
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag_name = "${env:GITHUB_REF}".Replace("refs/tags/", "")
+          $wheel_path = "dist/$env:wheel_name"
+          gh release upload "$tag_name" "$wheel_path" --clobber
+
+      # Cleanup step - always runs even if previous steps fail
+      # Only cleans up Python and CUDA installations (VS BuildTools is pre-installed)
+      - name: Cleanup (always run)
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host "=========================================="
+          Write-Host "Starting cleanup for self-hosted runner..."
+          Write-Host "=========================================="
+
+          # 1. Remove flash-attention directory (source and build artifacts)
+          $flashAttnDir = Join-Path (Get-Location) "flash-attention"
+          if (Test-Path $flashAttnDir) {
+            Write-Host "[1/6] Removing flash-attention directory: $flashAttnDir"
+            Remove-Item -Path $flashAttnDir -Recurse -Force -ErrorAction SilentlyContinue
+          } else {
+            Write-Host "[1/6] flash-attention directory not found, skipping"
+          }
+
+          # 2. Remove Python virtual environment (.venv)
+          $venvDir = Join-Path (Get-Location) ".venv"
+          if (Test-Path $venvDir) {
+            Write-Host "[2/6] Removing Python virtual environment: $venvDir"
+            Remove-Item -Path $venvDir -Recurse -Force -ErrorAction SilentlyContinue
+          } else {
+            Write-Host "[2/6] .venv directory not found, skipping"
+          }
+
+          # 3. Remove pip cache
+          $pipCacheDir = Join-Path $env:LOCALAPPDATA "pip\cache"
+          if (Test-Path $pipCacheDir) {
+            Write-Host "[3/6] Removing pip cache: $pipCacheDir"
+            Remove-Item -Path $pipCacheDir -Recurse -Force -ErrorAction SilentlyContinue
+          } else {
+            Write-Host "[3/6] pip cache not found, skipping"
+          }
+
+          # 4. Remove uv cache
+          $uvCacheDir = Join-Path $env:LOCALAPPDATA "uv"
+          if (Test-Path $uvCacheDir) {
+            Write-Host "[4/6] Removing uv cache: $uvCacheDir"
+            Remove-Item -Path $uvCacheDir -Recurse -Force -ErrorAction SilentlyContinue
+          } else {
+            Write-Host "[4/6] uv cache not found, skipping"
+          }
+
+          # 5. Uninstall CUDA using proper Windows uninstaller
+          Write-Host "[5/6] Uninstalling CUDA packages..."
+          $cudaPackages = Get-Package -Name "*CUDA*" -ErrorAction SilentlyContinue
+          if ($cudaPackages) {
+            foreach ($package in $cudaPackages) {
+              Write-Host "  Uninstalling: $($package.Name)"
+              try {
+                $package | Uninstall-Package -Force -ErrorAction SilentlyContinue
+              } catch {
+                Write-Host "    Warning: Could not uninstall via Package Manager, trying alternative method..."
+              }
+            }
+          } else {
+            Write-Host "  No CUDA packages found in Package Manager"
+          }
+
+          # Also try NVIDIA uninstaller if exists
+          $cudaBaseDir = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA"
+          if (Test-Path $cudaBaseDir) {
+            Get-ChildItem -Path $cudaBaseDir -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+              $uninstaller = Join-Path $_.FullName "Uninstall.exe"
+              if (Test-Path $uninstaller) {
+                Write-Host "  Running CUDA uninstaller: $uninstaller"
+                Start-Process -FilePath $uninstaller -ArgumentList "/S" -Wait -ErrorAction SilentlyContinue
+              }
+            }
+            # Remove remaining directory if exists
+            if (Test-Path $cudaBaseDir) {
+              Write-Host "  Removing remaining CUDA directory: $cudaBaseDir"
+              Remove-Item -Path $cudaBaseDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+          # 6. Remove temp files
+          Write-Host "[6/6] Removing temporary files"
+          $tempPatterns = @("pip-*", "torch*", "cuda*", "flash*", "uv-*")
+          foreach ($pattern in $tempPatterns) {
+            $tempPath = Join-Path $env:TEMP $pattern
+            Get-ChildItem -Path $tempPath -ErrorAction SilentlyContinue | ForEach-Object {
+              Write-Host "  Removing temp: $($_.FullName)"
+              Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+          Write-Host "=========================================="
+          Write-Host "Cleanup completed."
+          Write-Host "=========================================="
