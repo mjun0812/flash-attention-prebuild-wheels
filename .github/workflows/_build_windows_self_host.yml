@@ -4,6 +4,7 @@
 # Prerequisites (must be pre-installed on the runner):
 #   - pwsh
 #   - Git
+#   - GitHub CLI (gh)
 #   - Chocolatey
 #   - Visual Studio BuildTools 2022 with:
 #     - Microsoft.VisualStudio.Component.VC.Tools.x86.x64
