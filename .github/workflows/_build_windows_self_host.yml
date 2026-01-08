@@ -107,12 +107,11 @@ jobs:
       - name: Upload Release Asset
         if: ${{ inputs.is-upload }}
         shell: pwsh
-        working-directory: flash-attention
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag_name = "${{ github.ref_name }}"
-          $wheel_path = "dist/$env:wheel_name"
+          $wheel_path = "flash-attention/dist/$env:wheel_name"
           gh release upload "$tag_name" "$wheel_path" --clobber
 
       # Cleanup step - always runs even if previous steps fail
