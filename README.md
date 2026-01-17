@@ -28,7 +28,7 @@ flash_attn-[flash_attn Version]+cu[CUDA Version]torch[PyTorch Version]-cp[Python
 flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 ```
 
-2. Find the corresponding version of a wheel from the **[Search Page](https://mjunya.com/flash-attention-prebuild-wheels/)**, [Packages](./docs/packages.md) page, or [releases](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases) page.
+2. Find the corresponding version of a wheel from the **[Search Page](https://mjunya.com/flash-attention-prebuild-wheels/)**, [Packages](./doc/packages.md) page, or [releases](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases) page.
 
 3. Direct Install or Download and Local Install
 
@@ -51,11 +51,11 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 > Since v0.5.0, wheels are built with a local version label indicating the CUDA and PyTorch versions.  
 > Example: `pip list` -> `flash_attn==2.8.3 -> flash_attn==2.8.3+cu130torch2.9`
 
-See [./docs/packages.md](./docs/packages.md) for the full list of available packages.
+See [./doc/packages.md](./doc/packages.md) for the full list of available packages.
 
 ## History
 
-History of this repository is available [here](./docs/release_history.md).
+History of this repository is available [here](./doc/release_history.md).
 
 ## Citation
 
@@ -91,7 +91,7 @@ If you use this repository in your research and find it helpful, please cite thi
   </picture>
 </a>
 
-<img src="./docs/data/download_graph.png" height="400">
+<img src="./doc/data/download_graph.png" height="400">
 
 ## Original Repository
 

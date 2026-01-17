@@ -1,6 +1,6 @@
-"""Create and update docs/packages.md from assets.json.
+"""Create and update doc/packages.md from assets.json.
 
-This script generates a comprehensive package documentation page (docs/packages.md) from
+This script generates a comprehensive package documentation page (doc/packages.md) from
 GitHub release assets. It combines information from both assets.json and any existing
 packages.md file, creating organized tables grouped by OS and Flash-Attention version.
 
@@ -17,11 +17,11 @@ Usage:
 Arguments:
     --assets: Path to assets.json file (default: assets.json)
               Can be obtained via `gh release view --json assets`
-    --output: Output file path (default: docs/packages.md)
+    --output: Output file path (default: doc/packages.md)
 
 Example:
     # Basic usage
-    python create_packages.py --assets assets.json --output docs/packages.md
+    python create_packages.py --assets assets.json --output doc/packages.md
 
     # Using defaults
     python create_packages.py
@@ -56,7 +56,7 @@ ADD_NOTE = """> [!NOTE]
 
 
 def extract_packages_from_packages_md(packages_md_path: Path) -> list[dict]:
-    """Extract package information from existing docs/packages.md."""
+    """Extract package information from existing doc/packages.md."""
     if not packages_md_path.exists():
         return []
 
@@ -442,7 +442,7 @@ def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Create and update docs/packages.md from assets.json"
+        description="Create and update doc/packages.md from assets.json"
     )
     parser.add_argument(
         "--assets",
@@ -453,8 +453,8 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=str,
-        default="docs/packages.md",
-        help="Output file path (default: docs/packages.md)",
+        default="doc/packages.md",
+        help="Output file path (default: doc/packages.md)",
     )
     args = parser.parse_args()
 
@@ -466,7 +466,7 @@ def main() -> None:
     if assets_path.exists():
         assets_packages = extract_packages_from_assets_json(assets_path)
 
-    # Extract packages from existing docs/packages.md
+    # Extract packages from existing doc/packages.md
     packages_md_packages = extract_packages_from_packages_md(output_path)
 
     # Combine both lists

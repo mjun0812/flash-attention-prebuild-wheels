@@ -165,8 +165,8 @@ def main():
     """Main function to update download statistics and generate graph."""
     owner = "mjun0812"
     repo = "flash-attention-prebuild-wheels"
-    history_file = Path("docs/data/download_history.json")
-    graph_output = Path("docs/data/download_graph.png")
+    history_file = Path("doc/data/download_history.json")
+    graph_output = Path("doc/data/download_graph.png")
 
     # Fetch current stats
     print("Fetching download statistics from GitHub API...")

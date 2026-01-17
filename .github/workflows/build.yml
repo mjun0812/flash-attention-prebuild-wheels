@@ -258,8 +258,8 @@ jobs:
             --assets /tmp/assets.json \
             --tag "${{ github.ref_name }}" \
             --repo "${{ github.repository }}" \
-            --output docs/release_history.md
-          python create_packages.py --assets /tmp/assets.json --output docs/packages.md
+            --output doc/release_history.md
+          python create_packages.py --assets /tmp/assets.json --output doc/packages.md
 
       - name: Commit and push docs updates
         run: |
