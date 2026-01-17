@@ -97,7 +97,7 @@ jobs:
       python-version: ${{ matrix.python-version }}
       torch-version: ${{ matrix.torch-version }}
       cuda-version: ${{ matrix.cuda-version }}
-      runner: '["self-hosted", "x64"]'
+      runner: '["self-hosted", "linux", "x64"]'
       container-image: "quay.io/pypa/manylinux_2_28_x86_64"
     secrets: inherit
 
