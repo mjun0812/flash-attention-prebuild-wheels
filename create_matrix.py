@@ -4,8 +4,12 @@ EXCLUDE = [
     # torch < 2.2 does not support Python 3.12
     {"python-version": "3.12", "torch-version": "2.0.1"},
     {"python-version": "3.12", "torch-version": "2.1.2"},
-    # TODO: Temporary exclusion - already built in v0.7.6
+    # TODO: Temporary exclusion - already built
     {"python-version": "3.12", "torch-version": "2.9.1", "cuda-version": "12.8"},
+    {"python-version": "3.10", "torch-version": "2.7.1", "cuda-version": "12.8"},
+    {"python-version": "3.13", "torch-version": "2.7.1", "cuda-version": "12.8"},
+    {"python-version": "3.10", "torch-version": "2.8.0", "cuda-version": "12.8"},
+    {"python-version": "3.11", "torch-version": "2.5.1", "cuda-version": "12.8"},
     # torch 2.0.1 does not support CUDA 12.x
     {"torch-version": "2.0.1", "cuda-version": "12.1"},
     {"torch-version": "2.0.1", "cuda-version": "12.4"},
@@ -55,7 +59,7 @@ LINUX_MATRIX = {
         "2.7.1",
         "2.8.0",
         "2.9.1",
-        "2.10.0",
+        # "2.10.0",
     ],
     "cuda-version": [
         "12.4",
@@ -84,7 +88,7 @@ LINUX_ARM64_MATRIX = {
         "2.7.1",
         # "2.8.0",
         "2.9.1",
-        "2.10.0",
+        # "2.10.0",
     ],
     "cuda-version": [
         "12.4",
@@ -106,22 +110,23 @@ LINUX_SELF_HOSTED_MATRIX = {
         "3.11",
         "3.12",
         "3.13",
-        # "3.14",
+        "3.14",
     ],
     "torch-version": [
-        "2.5.1",
-        "2.6.0",
-        "2.7.1",
+        # "2.5.1",
+        # "2.6.0",
+        # "2.7.1",
         "2.8.0",
-        # "2.9.1",
-        "2.10.0",
+        "2.9.1",
+        # "2.10.0",
     ],
     "cuda-version": [
-        "12.4",
-        "12.6",
-        "12.8",
+        # "12.4",
+        # "12.6",
+        # "12.8",
         "12.9",
-        "13.0",
+        # "13.0",
+        "13.1",
     ],
 }
 
@@ -144,7 +149,7 @@ LINUX_ARM64_SELF_HOSTED_MATRIX = {
         # "2.7.1",
         # "2.8.0",
         "2.9.1",
-        "2.10.0",
+        # "2.10.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -173,7 +178,7 @@ WINDOWS_MATRIX = {
         # "2.7.1",
         # "2.8.0",
         "2.9.1",
-        "2.10.0",
+        # "2.10.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -198,7 +203,7 @@ WINDOWS_CODEBUILD_MATRIX = {
     ],
     "torch-version": [
         "2.9.1",
-        "2.10.0",
+        # "2.10.0",
     ],
     "cuda-version": [
         "12.8",
@@ -224,7 +229,7 @@ WINDOWS_SELF_HOSTED_MATRIX = {
         "2.7.1",
         "2.8.0",
         "2.9.1",
-        "2.10.0",
+        # "2.10.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -246,8 +251,8 @@ def main():
                 "linux_arm64": False,
                 # "linux_arm64": LINUX_ARM64_MATRIX,
                 #
-                "linux_self_hosted": False,
-                # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
+                # "linux_self_hosted": False,
+                "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
                 #
                 "linux_arm64_self_hosted": False,
                 # "linux_arm64_self_hosted": LINUX_ARM64_SELF_HOSTED_MATRIX,
