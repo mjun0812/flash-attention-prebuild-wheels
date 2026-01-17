@@ -28,7 +28,7 @@ flash_attn-[flash_attn Version]+cu[CUDA Version]torch[PyTorch Version]-cp[Python
 flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 ```
 
-2. Find the corresponding version of a wheel from the [Packages](./docs/packages.md) page and [releases](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases) page.
+2. Find the corresponding version of a wheel from the **[Search Page](https://mjunya.com/flash-attention-prebuild-wheels/)**, [Packages](./docs/packages.md) page, or [releases](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases) page.
 
 3. Direct Install or Download and Local Install
 

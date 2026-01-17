@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flash-Attention Prebuild Wheels</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --success-color: #22c55e;
+            --error-color: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            color: var(--text-color);
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        header a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        header a:hover {
+            text-decoration: underline;
+        }
+
+        .repo-link {
+            margin-top: 8px;
+        }
+
+        .repo-link a {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.875rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 140px;
+            flex: 1;
+        }
+
+        .filter-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            background: var(--card-bg);
+            color: var(--text-color);
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .filter-group select:hover {
+            border-color: var(--primary-color);
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--border-color);
+            color: var(--text-color);
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        .btn-icon {
+            padding: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .results-count {
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        thead {
+            background: var(--bg-color);
+        }
+
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 2px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th.sortable:hover {
+            color: var(--primary-color);
+        }
+
+        th.sortable::after {
+            content: ' ↕';
+            opacity: 0.3;
+        }
+
+        th.sortable.asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+
+        th.sortable.desc::after {
+            content: ' ↓';
+            opacity: 1;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tbody tr {
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+
+        tbody tr:hover {
+            background: var(--bg-color);
+        }
+
+        tbody tr.selected {
+            background: rgba(37, 99, 235, 0.08);
+        }
+
+        .download-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .download-link:hover {
+            text-decoration: underline;
+        }
+
+        .command-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-muted);
+        }
+
+        .command-box {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+        }
+
+        .command-input {
+            flex: 1;
+            padding: 12px 16px;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 0.875rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .command-buttons {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .copy-btn {
+            position: relative;
+        }
+
+        .copy-btn.copied::after {
+            content: 'Copied!';
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--text-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            animation: fadeOut 1.5s forwards;
+        }
+
+        @keyframes fadeOut {
+            0%, 70% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--error-color);
+        }
+
+        .error h3 {
+            margin-bottom: 8px;
+        }
+
+        .error p {
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            background: var(--bg-color);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .cache-info {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: right;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .filters {
+                flex-direction: column;
+            }
+
+            .filter-group {
+                width: 100%;
+            }
+
+            .command-box {
+                flex-direction: column;
+            }
+
+            .command-buttons {
+                justify-content: stretch;
+            }
+
+            .command-buttons .btn {
+                flex: 1;
+            }
+
+            th, td {
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Flash-Attention Prebuild Wheels</h1>
+            <p>Search and download prebuilt wheels from <a href="https://github.com/mjun0812/flash-attention-prebuild-wheels/releases" target="_blank">GitHub Releases</a></p>
+            <p class="repo-link">
+                <a href="https://github.com/mjun0812/flash-attention-prebuild-wheels" target="_blank">
+                    <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor" style="vertical-align: text-bottom; margin-right: 4px;">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    mjun0812/flash-attention-prebuild-wheels
+                </a>
+            </p>
+        </header>
+
+        <div class="card">
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="platform-filter">Platform</label>
+                    <select id="platform-filter">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="flash-filter">Flash-Attention</label>
+                    <select id="flash-filter">
+                        <option value="">All Versions</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="python-filter">Python</label>
+                    <select id="python-filter">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="torch-filter">PyTorch</label>
+                    <select id="torch-filter">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="cuda-filter">CUDA</label>
+                    <select id="cuda-filter">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <button class="btn btn-secondary" id="reset-btn">Reset Filters</button>
+            </div>
+        </div>
+
+        <div class="card" id="command-section" style="display: none;">
+            <h3 class="command-title">Install Command</h3>
+            <div class="command-box">
+                <div class="command-input" id="command-display">pip install &lt;URL&gt;</div>
+                <div class="command-buttons">
+                    <button class="btn btn-primary copy-btn" id="copy-command-btn" title="Copy pip install command">
+                        Copy Command
+                    </button>
+                    <button class="btn btn-secondary copy-btn" id="copy-url-btn" title="Copy URL only">
+                        Copy URL
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="results-card">
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Loading wheels from GitHub Releases...</p>
+            </div>
+
+            <div id="error" class="error" style="display: none;">
+                <h3>Failed to load wheels</h3>
+                <p id="error-message"></p>
+                <button class="btn btn-primary" id="retry-btn">Retry</button>
+            </div>
+
+            <div id="results" style="display: none;">
+                <div class="results-header">
+                    <span class="results-count"><span id="count">0</span> wheel(s) found</span>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="platform">Platform</th>
+                                <th class="sortable" data-sort="flash">Flash-Attn</th>
+                                <th class="sortable" data-sort="python">Python</th>
+                                <th class="sortable" data-sort="torch">PyTorch</th>
+                                <th class="sortable" data-sort="cuda">CUDA</th>
+                                <th>Release</th>
+                                <th>Download</th>
+                                <th>Copy</th>
+                            </tr>
+                        </thead>
+                        <tbody id="wheels-table">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    No wheels match your filters. Try adjusting your selection.
+                </div>
+            </div>
+        </div>
+
+        <div class="cache-info" id="cache-info"></div>
+    </div>
+
+    <script>
+        // Constants
+        const REPO_OWNER = 'mjun0812';
+        const REPO_NAME = 'flash-attention-prebuild-wheels';
+        const API_BASE = 'https://api.github.com';
+        const CACHE_KEY = 'flash-attn-wheels-cache';
+        const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+
+        // Wheel filename pattern (ported from common.py)
+        const WHEEL_PATTERN = /flash_attn-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)\+cu(\d+)torch(\d+\.\d+)-cp(\d+)-cp\d+-(.+?)\.whl/;
+
+        // State
+        let allWheels = [];
+        let filteredWheels = [];
+        let selectedWheel = null;
+        let sortColumn = 'flash';
+        let sortDirection = 'desc';
+
+        // DOM Elements
+        const elements = {
+            flashFilter: document.getElementById('flash-filter'),
+            pythonFilter: document.getElementById('python-filter'),
+            torchFilter: document.getElementById('torch-filter'),
+            cudaFilter: document.getElementById('cuda-filter'),
+            platformFilter: document.getElementById('platform-filter'),
+            resetBtn: document.getElementById('reset-btn'),
+            loading: document.getElementById('loading'),
+            error: document.getElementById('error'),
+            errorMessage: document.getElementById('error-message'),
+            retryBtn: document.getElementById('retry-btn'),
+            results: document.getElementById('results'),
+            count: document.getElementById('count'),
+            wheelsTable: document.getElementById('wheels-table'),
+            emptyState: document.getElementById('empty-state'),
+            commandSection: document.getElementById('command-section'),
+            commandDisplay: document.getElementById('command-display'),
+            copyCommandBtn: document.getElementById('copy-command-btn'),
+            copyUrlBtn: document.getElementById('copy-url-btn'),
+            cacheInfo: document.getElementById('cache-info')
+        };
+
+        // Parse wheel filename (ported from common.py)
+        function parseWheelFilename(filename) {
+            const match = filename.match(WHEEL_PATTERN);
+            if (!match) return null;
+
+            const [, flashVersion, cudaRaw, torchVersion, pythonRaw, platform] = match;
+
+            // Convert CUDA version: 130 -> 13.0
+            const cudaVersion = `${cudaRaw.slice(0, -1)}.${cudaRaw.slice(-1)}`;
+
+            // Convert Python version: 310 -> 3.10
+            const pythonVersion = `${pythonRaw[0]}.${pythonRaw.slice(1)}`;
+
+            return {
+                flashVersion,
+                cudaVersion,
+                torchVersion,
+                pythonVersion,
+                platform: normalizePlatformName(platform)
+            };
+        }
+
+        // Normalize platform name (ported from common.py)
+        function normalizePlatformName(raw) {
+            // Handle manylinux format with multiple tags
+            if (raw.includes('.') && raw.startsWith('manylinux')) {
+                raw = raw.split('.')[0];
+            }
+
+            // Handle manylinux format
+            if (raw.startsWith('manylinux')) {
+                const parts = raw.split('_');
+                if (parts.length >= 4) {
+                    const version = `${parts[1]}_${parts[2]}`;
+                    let arch = parts.slice(3).join('_');
+                    if (arch === 'aarch64') arch = 'arm64';
+                    return `Linux ${arch}`;
+                }
+            }
+
+            // Standard normalization
+            let name = raw.charAt(0).toUpperCase() + raw.slice(1);
+            name = name.replace('_', ' ');
+            name = name.replace('Win', 'Windows');
+            name = name.replace('amd64', 'x86_64');
+            name = name.replace('aarch64', 'arm64');
+
+            return name;
+        }
+
+        // Parse version for sorting
+        function parseVersion(versionStr) {
+            const nums = versionStr.match(/\d+/g) || [];
+            return nums.map(n => parseInt(n, 10));
+        }
+
+        // Compare versions
+        function compareVersions(a, b) {
+            const va = parseVersion(a);
+            const vb = parseVersion(b);
+            const maxLen = Math.max(va.length, vb.length);
+
+            for (let i = 0; i < maxLen; i++) {
+                const na = va[i] || 0;
+                const nb = vb[i] || 0;
+                if (na !== nb) return na - nb;
+            }
+            return 0;
+        }
+
+        // Fetch releases from GitHub API with pagination
+        async function fetchReleases() {
+            const releases = [];
+            let page = 1;
+            const perPage = 100;
+
+            while (true) {
+                const response = await fetch(
+                    `${API_BASE}/repos/${REPO_OWNER}/${REPO_NAME}/releases?page=${page}&per_page=${perPage}`
+                );
+
+                if (!response.ok) {
+                    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                if (data.length === 0) break;
+
+                releases.push(...data);
+                if (data.length < perPage) break;
+                page++;
+            }
+
+            return releases;
+        }
+
+        // Extract wheels from releases
+        function extractWheels(releases) {
+            const wheels = [];
+
+            for (const release of releases) {
+                for (const asset of release.assets || []) {
+                    if (!asset.name.endsWith('.whl')) continue;
+
+                    const parsed = parseWheelFilename(asset.name);
+                    if (!parsed) continue;
+
+                    wheels.push({
+                        ...parsed,
+                        filename: asset.name,
+                        url: asset.browser_download_url,
+                        tag: release.tag_name,
+                        releaseUrl: release.html_url
+                    });
+                }
+            }
+
+            return wheels;
+        }
+
+        // Remove duplicate wheels (keep latest by tag)
+        function deduplicateWheels(wheels) {
+            const seen = new Map();
+
+            for (const wheel of wheels) {
+                const key = `${wheel.flashVersion}-${wheel.pythonVersion}-${wheel.torchVersion}-${wheel.cudaVersion}-${wheel.platform}`;
+                if (!seen.has(key)) {
+                    seen.set(key, wheel);
+                }
+            }
+
+            return Array.from(seen.values());
+        }
+
+        // Load data with caching
+        async function loadData(forceRefresh = false) {
+            // Check cache
+            if (!forceRefresh) {
+                const cached = localStorage.getItem(CACHE_KEY);
+                if (cached) {
+                    try {
+                        const { data, timestamp } = JSON.parse(cached);
+                        if (Date.now() - timestamp < CACHE_DURATION) {
+                            updateCacheInfo(timestamp);
+                            return data;
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse cache:', e);
+                    }
+                }
+            }
+
+            // Fetch fresh data
+            const releases = await fetchReleases();
+            const wheels = extractWheels(releases);
+            const deduplicated = deduplicateWheels(wheels);
+
+            // Save to cache
+            const cacheData = {
+                data: deduplicated,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+            updateCacheInfo(cacheData.timestamp);
+
+            return deduplicated;
+        }
+
+        // Update cache info display
+        function updateCacheInfo(timestamp) {
+            const date = new Date(timestamp);
+            elements.cacheInfo.textContent = `Data cached at ${date.toLocaleString()}`;
+        }
+
+        // Populate filter dropdowns
+        function populateFilters(wheels) {
+            const sets = {
+                flash: new Set(),
+                python: new Set(),
+                torch: new Set(),
+                cuda: new Set(),
+                platform: new Set()
+            };
+
+            for (const wheel of wheels) {
+                sets.flash.add(wheel.flashVersion);
+                sets.python.add(wheel.pythonVersion);
+                sets.torch.add(wheel.torchVersion);
+                sets.cuda.add(wheel.cudaVersion);
+                sets.platform.add(wheel.platform);
+            }
+
+            // Sort and populate each filter
+            const sortedFlash = Array.from(sets.flash).sort(compareVersions).reverse();
+            const sortedPython = Array.from(sets.python).sort(compareVersions).reverse();
+            const sortedTorch = Array.from(sets.torch).sort(compareVersions).reverse();
+            const sortedCuda = Array.from(sets.cuda).sort(compareVersions).reverse();
+            const sortedPlatform = Array.from(sets.platform).sort();
+
+            populateSelect(elements.flashFilter, sortedFlash, 'All Versions');
+            populateSelect(elements.pythonFilter, sortedPython, 'All');
+            populateSelect(elements.torchFilter, sortedTorch, 'All');
+            populateSelect(elements.cudaFilter, sortedCuda, 'All');
+            populateSelect(elements.platformFilter, sortedPlatform, 'All');
+        }
+
+        // Populate a select element
+        function populateSelect(select, values, allLabel) {
+            const currentValue = select.value;
+            select.innerHTML = `<option value="">${allLabel}</option>`;
+
+            for (const value of values) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            }
+
+            // Restore previous selection if still valid
+            if (currentValue && values.includes(currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        // Apply filters to wheels
+        function applyFilters() {
+            const filters = {
+                flash: elements.flashFilter.value,
+                python: elements.pythonFilter.value,
+                torch: elements.torchFilter.value,
+                cuda: elements.cudaFilter.value,
+                platform: elements.platformFilter.value
+            };
+
+            filteredWheels = allWheels.filter(wheel => {
+                if (filters.flash && wheel.flashVersion !== filters.flash) return false;
+                if (filters.python && wheel.pythonVersion !== filters.python) return false;
+                if (filters.torch && wheel.torchVersion !== filters.torch) return false;
+                if (filters.cuda && wheel.cudaVersion !== filters.cuda) return false;
+                if (filters.platform && wheel.platform !== filters.platform) return false;
+                return true;
+            });
+
+            sortWheels();
+            renderTable();
+            updateUrlParams();
+
+            // Auto-select if only one result
+            if (filteredWheels.length === 1) {
+                selectWheel(0);
+            }
+        }
+
+        // Sort wheels
+        function sortWheels() {
+            const sortKey = {
+                flash: 'flashVersion',
+                python: 'pythonVersion',
+                torch: 'torchVersion',
+                cuda: 'cudaVersion',
+                platform: 'platform'
+            }[sortColumn];
+
+            filteredWheels.sort((a, b) => {
+                let cmp;
+                if (sortColumn === 'platform') {
+                    cmp = a[sortKey].localeCompare(b[sortKey]);
+                } else {
+                    cmp = compareVersions(a[sortKey], b[sortKey]);
+                }
+                return sortDirection === 'asc' ? cmp : -cmp;
+            });
+        }
+
+        // Render the table
+        function renderTable() {
+            elements.count.textContent = filteredWheels.length;
+
+            if (filteredWheels.length === 0) {
+                elements.wheelsTable.innerHTML = '';
+                elements.emptyState.style.display = 'block';
+                elements.commandSection.style.display = 'none';
+                return;
+            }
+
+            elements.emptyState.style.display = 'none';
+
+            const html = filteredWheels.map((wheel, index) => `
+                <tr data-index="${index}" class="${selectedWheel === index ? 'selected' : ''}">
+                    <td>${wheel.platform}</td>
+                    <td>${wheel.flashVersion}</td>
+                    <td>${wheel.pythonVersion}</td>
+                    <td>${wheel.torchVersion}</td>
+                    <td>${wheel.cudaVersion}</td>
+                    <td><span class="tag">${wheel.tag}</span></td>
+                    <td>
+                        <a href="${wheel.url}" class="download-link" onclick="event.stopPropagation()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                        </a>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-icon copy-url-inline" data-url="${wheel.url}" onclick="event.stopPropagation()" title="Copy URL">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            elements.wheelsTable.innerHTML = html;
+
+            // Add click listeners to rows
+            for (const row of elements.wheelsTable.querySelectorAll('tr')) {
+                row.addEventListener('click', () => {
+                    const index = parseInt(row.dataset.index, 10);
+                    selectWheel(index);
+                });
+            }
+
+            // Add click listeners to copy buttons
+            for (const btn of elements.wheelsTable.querySelectorAll('.copy-url-inline')) {
+                btn.addEventListener('click', async (e) => {
+                    const url = decodeURIComponent(btn.dataset.url);
+                    await copyToClipboard(url, btn);
+                });
+            }
+
+            // Update sort header indicators
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.classList.remove('asc', 'desc');
+                if (th.dataset.sort === sortColumn) {
+                    th.classList.add(sortDirection);
+                }
+            });
+        }
+
+        // Select a wheel and show install command
+        function selectWheel(index) {
+            selectedWheel = index;
+            const wheel = filteredWheels[index];
+
+            // Update selected row style
+            elements.wheelsTable.querySelectorAll('tr').forEach((row, i) => {
+                row.classList.toggle('selected', i === index);
+            });
+
+            // Show command section
+            elements.commandSection.style.display = 'block';
+            elements.commandDisplay.textContent = `pip install ${decodeURIComponent(wheel.url)}`;
+        }
+
+        // Copy text to clipboard
+        async function copyToClipboard(text, button) {
+            try {
+                await navigator.clipboard.writeText(text);
+                button.classList.add('copied');
+                setTimeout(() => button.classList.remove('copied'), 1500);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+            }
+        }
+
+        // Update URL parameters
+        function updateUrlParams() {
+            const params = new URLSearchParams();
+
+            if (elements.flashFilter.value) params.set('flash', elements.flashFilter.value);
+            if (elements.pythonFilter.value) params.set('python', elements.pythonFilter.value);
+            if (elements.torchFilter.value) params.set('torch', elements.torchFilter.value);
+            if (elements.cudaFilter.value) params.set('cuda', elements.cudaFilter.value);
+            if (elements.platformFilter.value) params.set('platform', elements.platformFilter.value);
+
+            const newUrl = params.toString()
+                ? `${window.location.pathname}?${params.toString()}`
+                : window.location.pathname;
+
+            window.history.replaceState({}, '', newUrl);
+        }
+
+        // Load filters from URL parameters
+        function loadFiltersFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+
+            elements.flashFilter.value = params.get('flash') || '';
+            elements.pythonFilter.value = params.get('python') || '';
+            elements.torchFilter.value = params.get('torch') || '';
+            elements.cudaFilter.value = params.get('cuda') || '';
+            elements.platformFilter.value = params.get('platform') || '';
+        }
+
+        // Reset all filters
+        function resetFilters() {
+            elements.flashFilter.value = '';
+            elements.pythonFilter.value = '';
+            elements.torchFilter.value = '';
+            elements.cudaFilter.value = '';
+            elements.platformFilter.value = '';
+            applyFilters();
+        }
+
+        // Show error state
+        function showError(message) {
+            elements.loading.style.display = 'none';
+            elements.results.style.display = 'none';
+            elements.error.style.display = 'block';
+            elements.errorMessage.textContent = message;
+        }
+
+        // Show results state
+        function showResults() {
+            elements.loading.style.display = 'none';
+            elements.error.style.display = 'none';
+            elements.results.style.display = 'block';
+        }
+
+        // Initialize the application
+        async function init() {
+            try {
+                // Load data
+                allWheels = await loadData();
+
+                // Populate filters
+                populateFilters(allWheels);
+
+                // Load filters from URL
+                loadFiltersFromUrl();
+
+                // Apply filters and render
+                applyFilters();
+
+                // Show results
+                showResults();
+
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                showError(error.message);
+            }
+        }
+
+        // Event listeners
+        elements.flashFilter.addEventListener('change', applyFilters);
+        elements.pythonFilter.addEventListener('change', applyFilters);
+        elements.torchFilter.addEventListener('change', applyFilters);
+        elements.cudaFilter.addEventListener('change', applyFilters);
+        elements.platformFilter.addEventListener('change', applyFilters);
+        elements.resetBtn.addEventListener('click', resetFilters);
+        elements.retryBtn.addEventListener('click', () => {
+            elements.loading.style.display = 'flex';
+            elements.error.style.display = 'none';
+            init();
+        });
+
+        // Sort column click handlers
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                const column = th.dataset.sort;
+                if (sortColumn === column) {
+                    sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    sortColumn = column;
+                    sortDirection = 'desc';
+                }
+                sortWheels();
+                renderTable();
+            });
+        });
+
+        // Copy button handlers
+        elements.copyCommandBtn.addEventListener('click', () => {
+            if (selectedWheel !== null) {
+                const wheel = filteredWheels[selectedWheel];
+                copyToClipboard(`pip install ${decodeURIComponent(wheel.url)}`, elements.copyCommandBtn);
+            }
+        });
+
+        elements.copyUrlBtn.addEventListener('click', () => {
+            if (selectedWheel !== null) {
+                const wheel = filteredWheels[selectedWheel];
+                copyToClipboard(decodeURIComponent(wheel.url), elements.copyUrlBtn);
+            }
+        });
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>
