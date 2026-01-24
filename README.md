@@ -7,9 +7,6 @@ This repository provides wheels for the pre-built [flash-attention](https://gith
 Since building flash-attention takes a **very long time** and is resource-intensive,
 I also build and provide combinations of CUDA and PyTorch that are not officially distributed.
 
-The building Github Actions Workflow can be found [here](./.github/workflows/build.yml).  
-The built packages are available on the [release page](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases).
-
 **This repository uses a self-hosted runner and AWS CodeBuild for building the wheels. If you find this project helpful, please consider sponsoring to help maintain the infrastructure!**
 
 [![github-sponsor](https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#white)](https://github.com/sponsors/mjun0812)
@@ -28,7 +25,7 @@ flash_attn-[flash_attn Version]+cu[CUDA Version]torch[PyTorch Version]-cp[Python
 flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 ```
 
-2. Find the corresponding version of a wheel from the **[Search Page](https://mjunya.com/flash-attention-prebuild-wheels/)**, [Packages](./doc/packages.md) page, or [releases](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases) page.
+2. Find the corresponding version of a wheel from the **[Useful Search Page](https://mjunya.com/flash-attention-prebuild-wheels/)**, [Packages](./doc/packages.md) page, or [releases](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases) page.
 
 3. Direct Install or Download and Local Install
 
@@ -45,11 +42,11 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 
 > [!NOTE]
 > Since v0.7.0, wheels are built with manylinux2_28 platform.
-> These wheels are compatible with old glibc versions (<=2.17).
+> These wheels for Linux x86_64 and ManyLinux are compatible with old glibc versions (<=2.17).
 
 > [!NOTE]
 > Since v0.5.0, wheels are built with a local version label indicating the CUDA and PyTorch versions.  
-> Example: `pip list` -> `flash_attn==2.8.3 -> flash_attn==2.8.3+cu130torch2.9`
+> Example: `pip list` -> `flash_attn==2.8.3 (old) -> flash_attn==2.8.3+cu130torch2.9 (>= built since v0.5.0)`
 
 See [./doc/packages.md](./doc/packages.md) for the full list of available packages.
 
@@ -118,8 +115,9 @@ If you use this repository in your research and find it helpful, please cite thi
 If you cannot find the version you are looking for, you can fork this repository and create a wheel on GitHub Actions.
 
 1. Fork this repository
-2. Edit Python script [`create_matrix.py`](https://github.com/mjun0812/flash-attention-prebuild-wheels/blob/main/create_matrix.py) to set the version you want to build. You can use GitHub hosted runners or self-hosted runners with below settings.
-3. Add tag `v*.*.*` to trigger the build workflow. `git tag v*.*.* && git push --tags`
+2. (Optional) Set up your self-hosted runner.
+3. Edit Python script [`create_matrix.py`](https://github.com/mjun0812/flash-attention-prebuild-wheels/blob/main/create_matrix.py) to set the version you want to build. You can use GitHub hosted runners or self-hosted runners.
+4. Add tag `v*.*.*` to trigger the build workflow. `git tag v*.*.* && git push --tags`
 
 Please note that depending on the combination of versions, it may not be possible to build.
 
@@ -235,4 +233,5 @@ This repository builds wheels across multiple platforms and environments:
 | **Linux x86_64**   | Self-hosted                        | `ubuntu:22.04` or `manylinux_2_28_x86_64` |
 | **Linux ARM64**    | GitHub-hosted (`ubuntu-22.04-arm`) | -                                         |
 | **Windows x86_64** | GitHub-hosted (`windows-2022`)     | -                                         |
+| **Windows x86_64** | Self-hosted (`windows11`)          | -                                         |
 | **Windows x86_64** | AWS CodeBuild                      | -                                         |
