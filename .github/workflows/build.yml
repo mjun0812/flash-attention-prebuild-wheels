@@ -253,6 +253,7 @@ jobs:
 
       - name: Update docs
         run: |
+          git pull
           gh release view "${{ github.ref_name }}" --json assets > /tmp/assets.json
           python create_release_history.py \
             --assets /tmp/assets.json \
