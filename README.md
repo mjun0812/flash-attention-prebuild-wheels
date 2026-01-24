@@ -45,7 +45,7 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 
 > [!NOTE]
 > Since v0.7.0, wheels are built with manylinux2_28 platform.
-> These wheels compatible with old glibc versions (<=2.17).
+> These wheels are compatible with old glibc versions (<=2.17).
 
 > [!NOTE]
 > Since v0.5.0, wheels are built with a local version label indicating the CUDA and PyTorch versions.  
@@ -55,7 +55,7 @@ See [./doc/packages.md](./doc/packages.md) for the full list of available packag
 
 ## History
 
-History of this repository is available [here](./doc/release_history.md).
+The history of this repository is available [here](./doc/release_history.md).
 
 ## Citation
 
@@ -77,9 +77,10 @@ If you use this repository in your research and find it helpful, please cite thi
 - [@xhiroga](https://github.com/xhiroga) : Sponsored me!
 - cjustus613 : Buy me a coffee!
 - [@KiralyCraft](https://github.com/KiralyCraft) : Provided with computing resource!
-- [@kun432](https://github.com/kun432) : Buy me a coffee!
+- [@kun432](https://github.com/kun432) : 2x Buy me a coffee!
 - [@wodeyuzhou](https://github.com/wodeyuzhou) : Sponsored me!
 - Gabr1e1 : Buy me a coffee!
+- wp : Buy me a coffee!
 
 ## Star History and Download Statistics
 
