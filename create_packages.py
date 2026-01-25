@@ -303,13 +303,9 @@ def merge_duplicate_rows(df: pd.DataFrame) -> pd.DataFrame:
                 seen.add(pkg)
                 unique_packages.append(pkg)
 
-        # Take the first row as base
-        result = group.iloc[0].copy()
-
-        # Combine packages into a list
-        result["package"] = unique_packages if unique_packages else [None]
-
-        return result
+        # Return as a Series with object dtype to avoid pandas 3.0 StringDtype issues
+        packages = unique_packages if unique_packages else [None]
+        return pd.Series({"package": packages}, dtype=object)
 
     # Group and combine
     merged_df = df.groupby(group_cols, as_index=False).apply(
