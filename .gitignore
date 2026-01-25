@@ -2,3 +2,5 @@
 .env*
 __pycache__/
 .ruff_cache/
+assets.json
+.claude/plans
