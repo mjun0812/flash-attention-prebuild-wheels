@@ -104,12 +104,22 @@ jobs:
               unzip \
               zip \
               git \
-              gcc \
-              gcc-c++ \
+              gcc-toolset-13-gcc \
+              gcc-toolset-13-gcc-c++ \
               clang \
               ninja-build \
               time \
               patchelf
+            # Activate gcc-toolset-13 for CUDA compatibility
+            if [ -f /opt/rh/gcc-toolset-13/enable ]; then
+              # Export PATH and other env vars to GITHUB_ENV for subsequent steps
+              source /opt/rh/gcc-toolset-13/enable
+              echo "PATH=$PATH" >> $GITHUB_ENV
+              echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" >> $GITHUB_ENV
+              echo "CC=$(which gcc)" >> $GITHUB_ENV
+              echo "CXX=$(which g++)" >> $GITHUB_ENV
+              echo "GCC version: $(gcc --version | head -1)"
+            fi
           else
             echo "Error: No supported package manager found (apt-get or dnf)"
             exit 1
@@ -210,12 +220,22 @@ jobs:
               unzip \
               zip \
               git \
-              gcc \
-              gcc-c++ \
+              gcc-toolset-13-gcc \
+              gcc-toolset-13-gcc-c++ \
               clang \
               ninja-build \
               time \
               patchelf
+            # Activate gcc-toolset-13 for CUDA compatibility
+            if [ -f /opt/rh/gcc-toolset-13/enable ]; then
+              # Export PATH and other env vars to GITHUB_ENV for subsequent steps
+              source /opt/rh/gcc-toolset-13/enable
+              echo "PATH=$PATH" >> $GITHUB_ENV
+              echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" >> $GITHUB_ENV
+              echo "CC=$(which gcc)" >> $GITHUB_ENV
+              echo "CXX=$(which g++)" >> $GITHUB_ENV
+              echo "GCC version: $(gcc --version | head -1)"
+            fi
           else
             echo "Error: No supported package manager found (apt-get or dnf)"
             exit 1
