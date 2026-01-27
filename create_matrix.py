@@ -266,8 +266,8 @@ def main():
                 "windows": False,
                 # "windows": WINDOWS_MATRIX,
                 #
-                # "windows_self_hosted": False,
-                "windows_self_hosted": WINDOWS_SELF_HOSTED_MATRIX,
+                "windows_self_hosted": False,
+                # "windows_self_hosted": WINDOWS_SELF_HOSTED_MATRIX,
                 #
                 "windows_code_build": False,
                 # "windows_code_build": WINDOWS_CODEBUILD_MATRIX,
