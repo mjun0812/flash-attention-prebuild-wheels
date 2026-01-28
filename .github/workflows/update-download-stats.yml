@@ -30,11 +30,17 @@ jobs:
         run: |
           python update_download_stats.py
 
+      - name: Update README coverage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python update_readme_coverage.py
+
       - name: Commit and push changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add doc/data/download_history.json doc/data/download_graph.png
+          git add doc/data/download_history.json doc/data/download_graph.png README.md
           git diff --staged --quiet || git commit -m "chore: update download statistics
 
           Update download statistics and graph for $(date -u +%Y-%m-%d)"

@@ -262,6 +262,10 @@ jobs:
             --output doc/release_history.md
           python create_packages.py --assets /tmp/assets.json --output doc/packages.md
 
+      - name: Update README coverage
+        run: |
+          python update_readme_coverage.py
+
       - name: Commit and push docs updates
         run: |
           git config --global user.name "github-actions[bot]"
