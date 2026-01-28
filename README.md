@@ -38,22 +38,22 @@ wget https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/downlo
 pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 ```
 
+## Packages
+
 <!-- COVERAGE_START -->
-## Package Coverage
+### Coverage
 
 ![Linux x86_64](https://img.shields.io/badge/Linux_x86_64-83.0%25-yellow?style=for-the-badge)
 ![Linux ARM64](https://img.shields.io/badge/Linux_ARM64-70.0%25-yellow?style=for-the-badge)
 ![Windows](https://img.shields.io/badge/Windows-60.0%25-red?style=for-the-badge)
 
-| Platform | Existing | Missing | Excluded | Coverage |
-|----------|----------|---------|----------|----------|
-| Linux x86_64 | 142 | 29 | 189 | 83.0% |
-| Linux ARM64 | 21 | 9 | 0 | 70.0% |
-| Windows | 18 | 12 | 0 | 60.0% |
-| **Total** | **181** | **50** | **189** | **78.4%** |
+| Platform | Existing | Missing | Coverage |
+|----------|----------|---------|----------|
+| Linux x86_64 | 142 | 29 | 83.0% |
+| Linux ARM64 | 21 | 9 | 70.0% |
+| Windows | 18 | 12 | 60.0% |
+| **Total** | **181** | **50** | **78.4%** |
 <!-- COVERAGE_END -->
-
-## Packages
 
 > [!NOTE]
 > Since v0.7.0, wheels are built with manylinux2_28 platform.

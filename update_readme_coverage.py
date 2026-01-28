@@ -80,7 +80,7 @@ def make_badge_url(label: str, coverage_pct: float) -> str:
 
 def generate_coverage_markdown(stats_by_platform: dict[str, dict]) -> str:
     """Generate the coverage markdown block."""
-    lines = [COVERAGE_START, "## Package Coverage", ""]
+    lines = [COVERAGE_START, "### Coverage", ""]
 
     # Badges
     for platform_key, display_name in PLATFORMS.items():
@@ -94,12 +94,11 @@ def generate_coverage_markdown(stats_by_platform: dict[str, dict]) -> str:
     lines.append("")
 
     # Table
-    lines.append("| Platform | Existing | Missing | Excluded | Coverage |")
-    lines.append("|----------|----------|---------|----------|----------|")
+    lines.append("| Platform | Existing | Missing | Coverage |")
+    lines.append("|----------|----------|---------|----------|")
 
     total_existing = 0
     total_missing = 0
-    total_excluded = 0
 
     for platform_key, display_name in PLATFORMS.items():
         s = stats_by_platform.get(platform_key)
@@ -108,18 +107,17 @@ def generate_coverage_markdown(stats_by_platform: dict[str, dict]) -> str:
         total = s["existing"] + s["missing"]
         pct = f"{s['existing'] / total * 100:.1f}%" if total > 0 else "N/A"
         lines.append(
-            f"| {display_name} | {s['existing']} | {s['missing']} | {s['excluded']} | {pct} |"
+            f"| {display_name} | {s['existing']} | {s['missing']} | {pct} |"
         )
         total_existing += s["existing"]
         total_missing += s["missing"]
-        total_excluded += s["excluded"]
 
     grand_total = total_existing + total_missing
     grand_pct = (
         f"{total_existing / grand_total * 100:.1f}%" if grand_total > 0 else "N/A"
     )
     lines.append(
-        f"| **Total** | **{total_existing}** | **{total_missing}** | **{total_excluded}** | **{grand_pct}** |"
+        f"| **Total** | **{total_existing}** | **{total_missing}** | **{grand_pct}** |"
     )
     lines.append(COVERAGE_END)
 
