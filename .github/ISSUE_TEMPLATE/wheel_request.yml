@@ -1,0 +1,49 @@
+name: Wheel Build Request
+description: Request a pre-built wheel for a specific version combination
+labels: ["wheel-request"]
+body:
+  - type: input
+    id: flash-attention-version
+    attributes:
+      label: Flash Attention Version
+      placeholder: "2.8.3"
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      placeholder: "3.12"
+    validations:
+      required: true
+  - type: input
+    id: pytorch-version
+    attributes:
+      label: PyTorch Version
+      placeholder: "2.10.0"
+    validations:
+      required: true
+  - type: input
+    id: cuda-version
+    attributes:
+      label: CUDA Version
+      placeholder: "12.8"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Linux x86_64
+        - Linux ARM64
+        - Windows
+    validations:
+      required: true
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional Information
+      description: Any additional context or details about your request.
+    validations:
+      required: false
