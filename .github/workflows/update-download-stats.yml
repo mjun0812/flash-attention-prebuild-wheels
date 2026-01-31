@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests matplotlib
+          pip install requests matplotlib rich
 
       - name: Update download statistics
         run: |
