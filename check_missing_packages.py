@@ -31,30 +31,15 @@ from create_matrix import EXCLUDE
 
 # Comprehensive matrix combining all platform-specific matrices
 def get_comprehensive_matrix(platform: str) -> dict:
-    """Get comprehensive matrix for a platform by merging all related matrices."""
+    """Get comprehensive matrix for a platform."""
     if platform == "linux":
-        return merge_matrices([LINUX_MATRIX])
+        return LINUX_MATRIX
     elif platform == "linux_arm64":
-        return merge_matrices([LINUX_ARM64_MATRIX])
+        return LINUX_ARM64_MATRIX
     elif platform == "windows":
-        return merge_matrices([WINDOWS_MATRIX])
+        return WINDOWS_MATRIX
     else:
         return {}
-
-
-def merge_matrices(matrices: list[dict]) -> dict:
-    """Merge multiple matrices by combining their version lists."""
-    merged = {
-        "flash-attn-version": set(),
-        "python-version": set(),
-        "torch-version": set(),
-        "cuda-version": set(),
-    }
-    for matrix in matrices:
-        for key in merged:
-            merged[key].update(matrix.get(key, []))
-    # Convert sets to sorted lists
-    return {key: sorted(vals, key=parse_version_tuple) for key, vals in merged.items()}
 
 
 def parse_version_tuple(version: str) -> tuple:
