@@ -25,30 +25,19 @@ from rich.table import Table
 from rich.text import Text
 
 from common import parse_wheel_filename
-from create_matrix import (
-    EXCLUDE,
-    LINUX_ARM64_MATRIX,
-    LINUX_ARM64_SELF_HOSTED_MATRIX,
-    LINUX_MATRIX,
-    LINUX_SELF_HOSTED_MATRIX,
-    WINDOWS_CODEBUILD_MATRIX,
-    WINDOWS_MATRIX,
-    WINDOWS_SELF_HOSTED_MATRIX,
-)
+from coverage_matrix import LINUX_ARM64_MATRIX, LINUX_MATRIX, WINDOWS_MATRIX
+from create_matrix import EXCLUDE
 
 
 # Comprehensive matrix combining all platform-specific matrices
 def get_comprehensive_matrix(platform: str) -> dict:
     """Get comprehensive matrix for a platform by merging all related matrices."""
     if platform == "linux":
-        # Merge LINUX_MATRIX and LINUX_SELF_HOSTED_MATRIX
-        return merge_matrices([LINUX_MATRIX, LINUX_SELF_HOSTED_MATRIX])
+        return merge_matrices([LINUX_MATRIX])
     elif platform == "linux_arm64":
-        return merge_matrices([LINUX_ARM64_MATRIX, LINUX_ARM64_SELF_HOSTED_MATRIX])
+        return merge_matrices([LINUX_ARM64_MATRIX])
     elif platform == "windows":
-        return merge_matrices(
-            [WINDOWS_MATRIX, WINDOWS_SELF_HOSTED_MATRIX, WINDOWS_CODEBUILD_MATRIX]
-        )
+        return merge_matrices([WINDOWS_MATRIX])
     else:
         return {}
 
