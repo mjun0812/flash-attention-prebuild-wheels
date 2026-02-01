@@ -44,16 +44,16 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 <!-- COVERAGE_START -->
 ### Coverage
 
-![Linux x86_64](https://img.shields.io/badge/Linux_x86_64-83.0%25-yellow?style=for-the-badge)
-![Linux ARM64](https://img.shields.io/badge/Linux_ARM64-70.0%25-yellow?style=for-the-badge)
-![Windows](https://img.shields.io/badge/Windows-60.0%25-red?style=for-the-badge)
+![Linux x86_64](https://img.shields.io/badge/Linux_x86_64-98.2%25-green?style=for-the-badge)
+![Linux ARM64](https://img.shields.io/badge/Linux_ARM64-100.0%25-green?style=for-the-badge)
+![Windows](https://img.shields.io/badge/Windows-80.0%25-yellow?style=for-the-badge)
 
 | Platform | Existing | Missing | Coverage |
 |----------|----------|---------|----------|
-| Linux x86_64 | 142 | 29 | 83.0% |
-| Linux ARM64 | 21 | 9 | 70.0% |
-| Windows | 18 | 12 | 60.0% |
-| **Total** | **181** | **50** | **78.4%** |
+| Linux x86_64 | 168 | 3 | 98.2% |
+| Linux ARM64 | 30 | 0 | 100.0% |
+| Windows | 24 | 6 | 80.0% |
+| **Total** | **222** | **9** | **96.1%** |
 <!-- COVERAGE_END -->
 
 > [!NOTE]
