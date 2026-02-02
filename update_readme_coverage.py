@@ -29,8 +29,10 @@ PLATFORMS = {
     "windows": "Windows",
 }
 
-COVERAGE_START = "<!-- COVERAGE_START -->"
-COVERAGE_END = "<!-- COVERAGE_END -->"
+COVERAGE_BADGE_START = "<!-- COVERAGE_BADGE_START -->"
+COVERAGE_BADGE_END = "<!-- COVERAGE_BADGE_END -->"
+COVERAGE_TABLE_START = "<!-- COVERAGE_TABLE_START -->"
+COVERAGE_TABLE_END = "<!-- COVERAGE_TABLE_END -->"
 
 
 def calc_platform_stats(
@@ -78,11 +80,10 @@ def make_badge_url(label: str, coverage_pct: float) -> str:
     return f"https://img.shields.io/badge/{encoded_label}-{encoded_value}-{color}?style=for-the-badge"
 
 
-def generate_coverage_markdown(stats_by_platform: dict[str, dict]) -> str:
-    """Generate the coverage markdown block."""
-    lines = [COVERAGE_START, "### Coverage", ""]
+def generate_coverage_badges(stats_by_platform: dict[str, dict]) -> str:
+    """Generate the coverage badges markdown block."""
+    lines = [COVERAGE_BADGE_START]
 
-    # Badges
     for platform_key, display_name in PLATFORMS.items():
         s = stats_by_platform.get(platform_key)
         if not s:
@@ -91,9 +92,15 @@ def generate_coverage_markdown(stats_by_platform: dict[str, dict]) -> str:
         pct = s["existing"] / total * 100 if total > 0 else 0
         url = make_badge_url(display_name, pct)
         lines.append(f"![{display_name}]({url})")
-    lines.append("")
 
-    # Table
+    lines.append(COVERAGE_BADGE_END)
+    return "\n".join(lines)
+
+
+def generate_coverage_table(stats_by_platform: dict[str, dict]) -> str:
+    """Generate the coverage table markdown block."""
+    lines = [COVERAGE_TABLE_START, "### Coverage", ""]
+
     lines.append("| Platform | Existing | Missing | Coverage |")
     lines.append("|----------|----------|---------|----------|")
 
@@ -119,25 +126,38 @@ def generate_coverage_markdown(stats_by_platform: dict[str, dict]) -> str:
     lines.append(
         f"| **Total** | **{total_existing}** | **{total_missing}** | **{grand_pct}** |"
     )
-    lines.append(COVERAGE_END)
+    lines.append(COVERAGE_TABLE_END)
 
     return "\n".join(lines)
 
 
-def update_readme(readme_path: Path, coverage_block: str) -> None:
+def update_readme(
+    readme_path: Path, badge_block: str, table_block: str
+) -> None:
     """Replace content between COVERAGE markers in README."""
     content = readme_path.read_text(encoding="utf-8")
 
-    start_idx = content.find(COVERAGE_START)
-    end_idx = content.find(COVERAGE_END)
+    # Update badges
+    badge_start_idx = content.find(COVERAGE_BADGE_START)
+    badge_end_idx = content.find(COVERAGE_BADGE_END)
 
-    if start_idx == -1 or end_idx == -1:
-        print(f"Markers not found in {readme_path}. Skipping update.")
-        return
+    if badge_start_idx == -1 or badge_end_idx == -1:
+        print(f"Badge markers not found in {readme_path}. Skipping badge update.")
+    else:
+        badge_end_idx += len(COVERAGE_BADGE_END)
+        content = content[:badge_start_idx] + badge_block + content[badge_end_idx:]
 
-    end_idx += len(COVERAGE_END)
-    new_content = content[:start_idx] + coverage_block + content[end_idx:]
-    readme_path.write_text(new_content, encoding="utf-8")
+    # Update table
+    table_start_idx = content.find(COVERAGE_TABLE_START)
+    table_end_idx = content.find(COVERAGE_TABLE_END)
+
+    if table_start_idx == -1 or table_end_idx == -1:
+        print(f"Table markers not found in {readme_path}. Skipping table update.")
+    else:
+        table_end_idx += len(COVERAGE_TABLE_END)
+        content = content[:table_start_idx] + table_block + content[table_end_idx:]
+
+    readme_path.write_text(content, encoding="utf-8")
     print(f"Updated {readme_path}")
 
 
@@ -167,8 +187,9 @@ def main() -> None:
             platform_key, existing_packages
         )
 
-    coverage_block = generate_coverage_markdown(stats_by_platform)
-    update_readme(Path(args.readme), coverage_block)
+    badge_block = generate_coverage_badges(stats_by_platform)
+    table_block = generate_coverage_table(stats_by_platform)
+    update_readme(Path(args.readme), badge_block, table_block)
 
 
 if __name__ == "__main__":
