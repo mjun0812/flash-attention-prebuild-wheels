@@ -28,13 +28,13 @@ jobs:
 
       - name: Update download statistics
         run: |
-          python update_download_stats.py
+          python -m scripts.maintenance.update_download_stats
 
       - name: Update README coverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python update_readme_coverage.py
+          python -m scripts.maintenance.update_readme_coverage
 
       - name: Commit and push changes
         run: |

@@ -219,7 +219,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release view "${{ github.ref_name }}" --json assets > /tmp/assets.json
-          python create_release_note.py /tmp/assets.json > /tmp/release_notes.md
+          python -m scripts.release.create_release_note /tmp/assets.json > /tmp/release_notes.md
           gh release edit "${{ github.ref_name }}" --notes-file /tmp/release_notes.md
 
   update_docs:
@@ -255,16 +255,16 @@ jobs:
         run: |
           git pull
           gh release view "${{ github.ref_name }}" --json assets > /tmp/assets.json
-          python create_release_history.py \
+          python -m scripts.release.create_release_history \
             --assets /tmp/assets.json \
             --tag "${{ github.ref_name }}" \
             --repo "${{ github.repository }}" \
             --output doc/release_history.md
-          python create_packages.py --assets /tmp/assets.json --output doc/packages.md
+          python -m scripts.release.create_packages --assets /tmp/assets.json --output doc/packages.md
 
       - name: Update README coverage
         run: |
-          python update_readme_coverage.py
+          python -m scripts.maintenance.update_readme_coverage
 
       - name: Commit and push docs updates
         run: |

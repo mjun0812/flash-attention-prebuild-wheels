@@ -24,9 +24,13 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from common import parse_wheel_filename
-from coverage_matrix import LINUX_ARM64_MATRIX, LINUX_MATRIX, WINDOWS_MATRIX
-from create_matrix import EXCLUDE
+from scripts.common import parse_wheel_filename
+from scripts.coverage_matrix import (
+    EXCLUDE,
+    LINUX_ARM64_MATRIX,
+    LINUX_MATRIX,
+    WINDOWS_MATRIX,
+)
 
 
 # Comprehensive matrix combining all platform-specific matrices

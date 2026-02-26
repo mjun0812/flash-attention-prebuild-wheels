@@ -13,7 +13,7 @@ import argparse
 import urllib.parse
 from pathlib import Path
 
-from check_missing_packages import (
+from scripts.tools.check_missing_packages import (
     build_existing_packages_set,
     generate_expected_matrix,
     get_comprehensive_matrix,

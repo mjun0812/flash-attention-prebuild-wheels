@@ -27,7 +27,7 @@ import argparse
 import re
 from pathlib import Path
 
-from common import (
+from scripts.common import (
     collect_versions_from_assets,
     format_versions,
     load_assets_json,

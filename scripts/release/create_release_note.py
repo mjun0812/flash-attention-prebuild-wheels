@@ -22,7 +22,7 @@ Example:
 import sys
 from pathlib import Path
 
-from common import collect_versions_from_assets, format_versions, load_assets_json
+from scripts.common import collect_versions_from_assets, format_versions, load_assets_json
 
 
 def generate_release_notes(assets: list[dict]) -> str:

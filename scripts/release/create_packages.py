@@ -39,7 +39,7 @@ from urllib.parse import unquote
 
 import pandas as pd
 
-from common import (
+from scripts.common import (
     get_os_emoji,
     get_tag_from_url,
     load_assets_json,
