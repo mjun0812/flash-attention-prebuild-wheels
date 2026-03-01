@@ -171,6 +171,7 @@ def parse_wheel_filename(filename: str) -> dict | None:
         flash_attn-2.7.4.post1+cu130torch2.9-cp310-cp310-linux_x86_64.whl
         flash_attn-2.8.3+cu128torch2.9-cp313-cp313-manylinux_2_34_x86_64.whl
         flash_attn-2.6.3+cu128torch2.9-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+        flash_attn-2.8.3+cu126torch2.10-cp314-cp314t-linux_x86_64.whl
 
     ---
     Wheel filename から情報を抽出
@@ -178,12 +179,14 @@ def parse_wheel_filename(filename: str) -> dict | None:
         flash_attn-2.7.4+cu124torch2.6-cp311-cp311-linux_x86_64.whl
         flash_attn-2.7.4.post1+cu130torch2.9-cp310-cp310-linux_x86_64.whl
         flash_attn-2.6.3+cu128torch2.9-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+        flash_attn-2.8.3+cu126torch2.10-cp314-cp314t-linux_x86_64.whl
     """
     # Flash Attention wheelのパターンに合わせて正規表現を調整
     # PyTorchバージョンはマイナーバージョン1桁の形式も対応 (例: torch2.9)
     # post1 のようなバージョンサフィックスにも対応 (例: 2.7.4.post1)
     # manylinux の複数タグにも対応 (例: manylinux_2_24_x86_64.manylinux_2_28_x86_64)
-    pattern = r"flash_attn-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)\+cu(\d+)torch(\d+\.\d+)-cp(\d+)-cp\d+-(.+?)\.whl"
+    # free-threaded Python (cp314t) にも対応 (例: cp314-cp314t)
+    pattern = r"flash_attn-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)\+cu(\d+)torch(\d+\.\d+)-cp(\d+)-cp\d+(t?)-(.+?)\.whl"
     match = re.match(pattern, filename)
 
     if match:
@@ -191,7 +194,11 @@ def parse_wheel_filename(filename: str) -> dict | None:
         cuda_version = f"{match.group(2)[:2]}.{match.group(2)[2:]}"  # 130 -> 13.0
         torch_version = match.group(3)
         python_version = f"{match.group(4)[:1]}.{match.group(4)[1:]}"  # 310 -> 3.10
-        platform = match.group(5)  # linux_x86_64, win32など
+        free_threaded = match.group(5)  # "t" or ""
+        platform = match.group(6)  # linux_x86_64, win32など
+
+        if free_threaded:
+            python_version += "t"  # 3.14 -> 3.14t
 
         return {
             "flash_version": flash_version,
