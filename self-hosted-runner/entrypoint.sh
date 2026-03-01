@@ -1,23 +1,10 @@
 #!/bin/bash
 
-# ARCH=$(uname -m)
-# 
-# if [ "$ARCH" = "aarch64" ]; then
-#     echo "Architecture is aarch64 (ARM64). Applying QEMU workarounds..."
-#     mkdir -p /etc/docker
-# cat <<EOF > /etc/docker/daemon.json
-# {
-#   "iptables": false,
-#   "ip6tables": false,
-#   "storage-driver": "vfs",
-#   "exec-opts": ["native.cgroupdriver=cgroupfs"],
-#   "default-cgroupns-mode": "host"
-# }
-# EOF
-# fi
-
 # Start docker daemon
 service docker start
+
+# Detect architecture
+ARCH=$(uname -m)
 
 if [ -n "$PERSONAL_ACCESS_TOKEN" ]; then
     echo "Using personal access token";
@@ -27,7 +14,7 @@ if [ -n "$PERSONAL_ACCESS_TOKEN" ]; then
         --pat "$PERSONAL_ACCESS_TOKEN" \
         --name $RUNNER_NAME \
         --runnergroup $RUNNER_GROUP \
-        --labels "${RUNNER_LABELS},${TARGET_ARCH}" \
+        --labels "${RUNNER_LABELS},${ARCH}" \
         --work /home/ubuntu/actions-runner \
         --replace;
 else
@@ -38,7 +25,7 @@ else
         --token "$REGISTRY_TOKEN" \
         --name $RUNNER_NAME \
         --runnergroup $RUNNER_GROUP \
-        --labels "${RUNNER_LABELS},${TARGET_ARCH}" \
+        --labels "${RUNNER_LABELS},${ARCH}" \
         --work /home/ubuntu/actions-runner \
         --replace;
 fi

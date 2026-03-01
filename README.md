@@ -49,12 +49,12 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 <!-- COVERAGE_TABLE_START -->
 ### Coverage
 
-| Platform | Existing | Missing | Coverage |
-|----------|----------|---------|----------|
-| Linux x86_64 | 171 | 0 | 100.0% |
-| Linux ARM64 | 30 | 0 | 100.0% |
-| Windows | 26 | 4 | 86.7% |
-| **Total** | **227** | **4** | **98.3%** |
+| Platform     | Existing | Missing | Coverage  |
+| ------------ | -------- | ------- | --------- |
+| Linux x86_64 | 171      | 0       | 100.0%    |
+| Linux ARM64  | 30       | 0       | 100.0%    |
+| Windows      | 26       | 4       | 86.7%     |
+| **Total**    | **227**  | **4**   | **98.3%** |
 <!-- COVERAGE_TABLE_END -->
 
 > [!NOTE]
@@ -143,102 +143,7 @@ Please note that depending on the combination of versions, it may not be possibl
 In some version combinations, you cannot build wheels on GitHub-hosted runners due to job time limitations.
 To build the wheels for these versions, you can use self-hosted runners.
 
-#### Getting One-Time Registry Token for GitHub Actions Runner
-
-```bash
-gh api \
-  -X POST \
-  /repos/[OWNER]/[REPOSITORY]/actions/runners/registration-token
-```
-
-#### Setup Linux Self-Hosted Runner
-
-Clone the repository and navigate to the self-hosted-runner directory.
-
-```bash
-git clone https://github.com/mjun0812/flash-attention-prebuild-wheels.git
-cd flash-attention-prebuild-wheels/self-hosted-runner
-```
-
-Create environment files from the template. Create one file per architecture you want to build.
-
-```bash
-# For x86_64
-cp env.template env
-
-# For ARM64
-cp env.template env.arm
-```
-
-Edit the environment file(s) to set the required variables.
-
-```bash
-# Registry Token for GitHub Personal Access Token
-PERSONAL_ACCESS_TOKEN=[Github Personal Access Token]
-# or Registry Token for GitHub Actions Runner
-REGISTRY_TOKEN=[Runner Registry Token]
-
-# Optional
-RUNNER_LABELS=Linux,self-hosted
-```
-
-Edit the `compose.yml` file if you use a repository forked from this repository.
-
-```yaml
-runner:
-  platform: linux/amd64
-  privileged: true
-  restart: always
-  env_file:
-    - .env
-  environment:
-    REPOSITORY_URL: https://github.com/[YOUR_USERNAME]/flash-attention-prebuild-wheels
-    RUNNER_NAME: self-hosted-runner
-    RUNNER_GROUP: default
-    TARGET_ARCH: x64
-  build:
-    context: .
-    dockerfile: Dockerfile
-    args:
-      GH_RUNNER_VERSION: 2.329.0
-      TARGET_ARCH: x64
-      PLATFORM: linux/amd64
-  volumes:
-    - fa-self:/var/lib/docker
-
-runner-arm:
-  platform: linux/arm64
-  privileged: true
-  restart: always
-  env_file:
-    - .env.arm
-  environment:
-    REPOSITORY_URL: https://github.com/[YOUR_USERNAME]/flash-attention-prebuild-wheels
-    RUNNER_NAME: self-hosted-runner-arm
-    RUNNER_GROUP: default
-    TARGET_ARCH: arm64
-  build:
-    context: .
-    dockerfile: Dockerfile
-    args:
-      GH_RUNNER_VERSION: 2.329.0
-      TARGET_ARCH: arm64
-      PLATFORM: linux/arm64
-  volumes:
-    - fa-self-arm:/var/lib/docker
-```
-
-Build and run the docker container(s).
-
-```bash
-# x86_64 runner
-docker compose build runner
-docker compose up -d runner
-
-# ARM64 runner (optional)
-docker compose build runner-arm
-docker compose up -d runner-arm
-```
+See [self-hosted-runner/README.md](./self-hosted-runner/README.md) for detailed setup instructions.
 
 ## Build Environments
 
@@ -247,7 +152,7 @@ This repository builds wheels across multiple platforms and environments:
 | Platform           | Runner Type                        | Container Image                           |
 | ------------------ | ---------------------------------- | ----------------------------------------- |
 | **Linux x86_64**   | GitHub-hosted (`ubuntu-22.04`)     | -                                         |
-| **Linux x86_64**   | Self-hosted                        | `ubuntu:22.04` or `manylinux_2_28_x86_64` |
+| **Linux x86_64**   | Self-hosted                        | `ubuntu:24.04` or `manylinux_2_28_x86_64` |
 | **Linux ARM64**    | GitHub-hosted (`ubuntu-22.04-arm`) | -                                         |
 | **Windows x86_64** | GitHub-hosted (`windows-2022`)     | -                                         |
 | **Windows x86_64** | Self-hosted (`windows11`)          | -                                         |

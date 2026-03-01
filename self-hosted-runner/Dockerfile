@@ -1,9 +1,6 @@
-ARG PLATFORM="linux/amd64"
+FROM ubuntu:24.04
 
-FROM --platform=${PLATFORM} ubuntu:24.04
-
-ARG GH_RUNNER_VERSION="2.329.0"
-ARG TARGET_ARCH="x64"
+ARG GH_RUNNER_VERSION="2.331.0"
 
 ENV DEBIAN_FRONTEND=noninteractive \
     AGENT_TOOLSDIRECTORY=/opt/hostedtoolcache
@@ -39,7 +36,6 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     containerd.io \
     docker-buildx-plugin \
     docker-compose-plugin \
-    qemu-user-static \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dotnet
@@ -55,7 +51,14 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 WORKDIR /home/ubuntu
 USER ubuntu
 
-RUN curl -fsSL -o actions-runner.tar.gz -L "https://github.com/actions/runner/releases/download/v${GH_RUNNER_VERSION}/actions-runner-linux-${TARGET_ARCH}-${GH_RUNNER_VERSION}.tar.gz" \
+ARG TARGETARCH
+
+RUN case "${TARGETARCH}" in \
+    amd64) ARCH="x64" ;; \
+    arm64) ARCH="arm64" ;; \
+    *) echo "Unsupported TARGETARCH: ${TARGETARCH}" && exit 1 ;; \
+    esac \
+    && curl -fsSL -o actions-runner.tar.gz -L "https://github.com/actions/runner/releases/download/v${GH_RUNNER_VERSION}/actions-runner-linux-${ARCH}-${GH_RUNNER_VERSION}.tar.gz" \
     && tar xf actions-runner.tar.gz \
     && rm actions-runner.tar.gz
 
@@ -67,4 +70,3 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
-
