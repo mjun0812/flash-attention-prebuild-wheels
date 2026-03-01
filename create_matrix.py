@@ -70,22 +70,23 @@ LINUX_SELF_HOSTED_MATRIX = {
         "2.8.3",
     ],
     "python-version": [
-        "3.10",
-        "3.11",
-        "3.12",
-        "3.13",
+        # "3.10",
+        # "3.11",
+        # "3.12",
+        # "3.13",
         "3.14",
+        "3.14t",
     ],
     "torch-version": [
         # "2.5.1",
-        "2.6.0",
-        "2.7.1",
-        "2.8.0",
-        "2.9.1",
+        # "2.6.0",
+        # "2.7.1",
+        # "2.8.0",
+        # "2.9.1",
         "2.10.0",
     ],
     "cuda-version": [
-        "12.4",
+        # "12.4",
         "12.6",
         "12.8",
         # "12.9",
@@ -211,13 +212,13 @@ def main():
         json.dumps(
             {
                 # "linux": False,
-                "linux": LINUX_MATRIX,
+                # "linux": LINUX_MATRIX,
                 #
                 "linux_arm64": False,
                 # "linux_arm64": LINUX_ARM64_MATRIX,
                 #
-                "linux_self_hosted": False,
-                # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
+                # "linux_self_hosted": False,
+                "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
                 #
                 "linux_arm64_self_hosted": False,
                 # "linux_arm64_self_hosted": LINUX_ARM64_SELF_HOSTED_MATRIX,
