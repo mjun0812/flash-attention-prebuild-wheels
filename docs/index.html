@@ -519,7 +519,7 @@
         const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
         // Wheel filename pattern (ported from common.py)
-        const WHEEL_PATTERN = /flash_attn-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)\+cu(\d+)torch(\d+\.\d+)-cp(\d+)-cp\d+-(.+?)\.whl/;
+        const WHEEL_PATTERN = /flash_attn-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)\+cu(\d+)torch(\d+\.\d+)-cp(\d+)-cp\d+(t?)-(.+?)\.whl/;
 
         // State
         let allWheels = [];
@@ -556,13 +556,13 @@
             const match = filename.match(WHEEL_PATTERN);
             if (!match) return null;
 
-            const [, flashVersion, cudaRaw, torchVersion, pythonRaw, platform] = match;
+            const [, flashVersion, cudaRaw, torchVersion, pythonRaw, freeThreaded, platform] = match;
 
             // Convert CUDA version: 130 -> 13.0
             const cudaVersion = `${cudaRaw.slice(0, -1)}.${cudaRaw.slice(-1)}`;
 
-            // Convert Python version: 310 -> 3.10
-            const pythonVersion = `${pythonRaw[0]}.${pythonRaw.slice(1)}`;
+            // Convert Python version: 310 -> 3.10, with "t" suffix for free-threaded
+            const pythonVersion = `${pythonRaw[0]}.${pythonRaw.slice(1)}${freeThreaded}`;
 
             return {
                 flashVersion,
