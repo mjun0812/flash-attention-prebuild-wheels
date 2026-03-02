@@ -7,7 +7,6 @@ LINUX_MATRIX = {
         # "2.6.3",
         # "2.7.4",
         # "2.8.3",
-        FA3_COMMIT,
     ],
     "python-version": [
         # "3.10",
@@ -213,8 +212,8 @@ def main():
     print(
         json.dumps(
             {
-                # "linux": False,
-                "linux": LINUX_MATRIX,
+                "linux": False,
+                # "linux": LINUX_MATRIX,
                 #
                 "linux_arm64": False,
                 # "linux_arm64": LINUX_ARM64_MATRIX,

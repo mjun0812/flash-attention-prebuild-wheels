@@ -105,7 +105,7 @@ jobs:
         run: |
           pip install --no-cache-dir "$env:wheel_dir\dist\$env:wheel_name"
           if ($env:is_fa3 -eq "true") {
-            python -c "import flash_attn_3; print(flash_attn_3.__version__)"
+            python -c "import flash_attn_3; from importlib.metadata import version; print(version('flash-attn-3'))"
           } else {
             python -c "import flash_attn; print(flash_attn.__version__)"
           }

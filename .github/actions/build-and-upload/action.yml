@@ -71,7 +71,7 @@ runs:
         if [ "${{ steps.build_wheels.outputs.IS_FA3 }}" = "true" ]; then
           pip uninstall -y flash-attn-3 > /dev/null 2>&1
           pip install --no-cache-dir ${{ steps.build_wheels.outputs.WHEEL_PATH }}
-          python -c "import flash_attn_3; print(flash_attn_3.__version__)"
+          python -c "import flash_attn_3; from importlib.metadata import version; print(version('flash-attn-3'))"
         else
           pip uninstall -y flash-attn > /dev/null 2>&1
           pip install --no-cache-dir ${{ steps.build_wheels.outputs.WHEEL_PATH }}
@@ -119,7 +119,7 @@ runs:
           if [ "${{ steps.build_wheels.outputs.IS_FA3 }}" = "true" ]; then
             pip uninstall -y flash-attn-3 > /dev/null 2>&1
             pip install --no-cache-dir ${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}
-            python -c "import flash_attn_3; print(flash_attn_3.__version__)"
+            python -c "import flash_attn_3; from importlib.metadata import version; print(version('flash-attn-3'))"
           else
             pip uninstall -y flash-attn > /dev/null 2>&1
             pip install --no-cache-dir ${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}
