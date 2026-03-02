@@ -1,5 +1,7 @@
 """Coverage matrix definitions for wheel availability checks."""
 
+FA3_COMMIT = "fa3:bb0656c42a3bc0e88e1e3e7a5e7ea7160e17b825"
+
 EXCLUDE = [
     # torch < 2.2 does not support Python 3.12
     {"python-version": "3.12", "torch-version": "2.0.1"},
@@ -49,6 +51,7 @@ LINUX_MATRIX = {
         "2.6.3",
         "2.7.4",
         "2.8.3",
+        FA3_COMMIT,
     ],
     "python-version": [
         "3.10",

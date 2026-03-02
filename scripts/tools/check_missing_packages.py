@@ -190,8 +190,30 @@ def normalize_platform_for_comparison(platform_raw: str) -> str:
         return platform_lower
 
 
+def normalize_fa3_version(version: str) -> str:
+    """Normalize FA3 version string for comparison.
+
+    For FA3 entries in the matrix (e.g., "fa3:bb0656c42a3bc0e88..."), extract
+    the short git hash (first 7 chars) to match what appears in wheel filenames.
+
+    Args:
+        version: Flash-attn version string, possibly with "fa3:" prefix.
+
+    Returns:
+        Normalized version string. FA3 versions are shortened to "fa3:{7-char-hash}".
+        Non-FA3 versions are returned unchanged.
+    """
+    if version.startswith("fa3:"):
+        commit = version[4:]
+        return f"fa3:{commit[:7]}"
+    return version
+
+
 def build_existing_packages_set(assets: list[dict]) -> dict[str, set[tuple]]:
     """Build a set of existing packages grouped by normalized platform.
+
+    For flash_attn_3 wheels, the comparison key uses "fa3:{short_git_hash}" format
+    to match the matrix definition style.
 
     Returns:
         Dict mapping platform to set of (flash, python, torch, cuda) tuples
@@ -212,10 +234,17 @@ def build_existing_packages_set(assets: list[dict]) -> dict[str, set[tuple]]:
         if platform not in packages:
             continue
 
+        # For FA3 wheels, use "fa3:{git_hash}" as the version key to match
+        # the matrix definition format (e.g., "fa3:bb0656c...")
+        if info["package_name"] == "flash_attn_3" and info.get("git_hash"):
+            flash_version_key = f"fa3:{info['git_hash']}"
+        else:
+            flash_version_key = info["flash_version"]
+
         # Normalize torch version (2.9 -> 2.9.1 etc)
         # The wheel has minor version only, but matrix uses full version
         key = (
-            info["flash_version"],
+            flash_version_key,
             info["python_version"],
             info["torch_version"],  # This is like "2.9", not "2.9.1"
             info["cuda_version"],
@@ -288,6 +317,9 @@ def create_status_table(
     missing_count = 0
     excluded_count = 0
 
+    # Normalize FA3 version for comparison with existing packages
+    flash_version_key = normalize_fa3_version(flash_version)
+
     # Add rows for each Python version
     for python in python_versions:
         row = [f"cp{python.replace('.', '')}"]
@@ -296,7 +328,7 @@ def create_status_table(
             torch_minor = normalize_torch_version(torch)
             for cuda in cuda_versions:
                 # Check status
-                key = (flash_version, python, torch_minor, cuda)
+                key = (flash_version_key, python, torch_minor, cuda)
                 is_excl = is_excluded(flash_version, python, torch, cuda)
 
                 if is_excl:
@@ -356,11 +388,12 @@ def display_platform_tables(
 
         # Collect missing packages for summary
         if missing > 0:
+            flash_version_key = normalize_fa3_version(flash_version)
             for python in matrix.get("python-version", []):
                 for torch in matrix.get("torch-version", []):
                     torch_minor = normalize_torch_version(torch)
                     for cuda in matrix.get("cuda-version", []):
-                        key = (flash_version, python, torch_minor, cuda)
+                        key = (flash_version_key, python, torch_minor, cuda)
                         is_excl = is_excluded(flash_version, python, torch, cuda)
                         if not is_excl and key not in existing_packages:
                             missing_packages.append(

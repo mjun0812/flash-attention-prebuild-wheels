@@ -1,12 +1,13 @@
 import json
 
-from scripts.coverage_matrix import EXCLUDE
+from scripts.coverage_matrix import EXCLUDE, FA3_COMMIT
 
 LINUX_MATRIX = {
     "flash-attn-version": [
         "2.6.3",
         "2.7.4",
         "2.8.3",
+        FA3_COMMIT,
     ],
     "python-version": [
         # "3.10",
@@ -68,6 +69,7 @@ LINUX_SELF_HOSTED_MATRIX = {
         "2.6.3",
         "2.7.4",
         "2.8.3",
+        FA3_COMMIT,
     ],
     "python-version": [
         # "3.10",
@@ -211,7 +213,7 @@ def main():
     print(
         json.dumps(
             {
-                # "linux": False,
+                "linux": False,
                 # "linux": LINUX_MATRIX,
                 #
                 "linux_arm64": False,
