@@ -48,6 +48,10 @@ if [[ "$FLASH_ATTN_VERSION" == fa3:* ]]; then
   git clone https://github.com/Dao-AILab/flash-attention.git
   cd flash-attention
   git checkout "$FA3_COMMIT"
+  # Remove --resource-usage flag from upstream setup.py to suppress
+  # verbose ptxas info logs (register usage, stack frame, compile time)
+  # that clutter CI output with thousands of lines per build.
+  sed -i '/"--resource-usage"/d' hopper/setup.py
   cd ..
 else
   IS_FA3=false
