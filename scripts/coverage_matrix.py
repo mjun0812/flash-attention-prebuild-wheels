@@ -1,6 +1,6 @@
 """Coverage matrix definitions for wheel availability checks."""
 
-FA3_COMMIT = "fa3:bb0656c42a3bc0e88e1e3e7a5e7ea7160e17b825"
+FA3_COMMIT = "fa3:e2743ab5b3803bb672b16437ba98a3b1d4576c50"
 
 EXCLUDE = [
     # torch < 2.2 does not support Python 3.12

@@ -46,7 +46,9 @@ if [[ "$FLASH_ATTN_VERSION" == fa3:* ]]; then
   FA3_COMMIT="${FLASH_ATTN_VERSION#fa3:}"
   echo "Building Flash Attention 3 (commit: $FA3_COMMIT)"
   git clone https://github.com/Dao-AILab/flash-attention.git
-  cd flash-attention && git checkout "$FA3_COMMIT" && cd ..
+  cd flash-attention
+  git checkout "$FA3_COMMIT"
+  cd ..
 else
   IS_FA3=false
   echo "Checking out flash-attention v$FLASH_ATTN_VERSION..."
