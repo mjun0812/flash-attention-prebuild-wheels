@@ -51,9 +51,21 @@ python -c "from torch.utils import cpp_extension; print(cpp_extension.CUDA_HOME)
 Write-Host "::endgroup::"
 
 # Checkout flash-attn
-Write-Host "::group::Checking out flash-attention v$FlashAttnVersion"
-git clone -q https://github.com/Dao-AILab/flash-attention.git -b "v$FlashAttnVersion"
-Write-Host "::endgroup::"
+if ($FlashAttnVersion -like "fa3:*") {
+    $IsFa3 = $true
+    $Fa3Commit = $FlashAttnVersion.Substring(4)
+    Write-Host "::group::Building Flash Attention 3 (commit: $Fa3Commit)"
+    git clone -q https://github.com/Dao-AILab/flash-attention.git
+    Push-Location flash-attention
+    git checkout $Fa3Commit
+    Pop-Location
+    Write-Host "::endgroup::"
+} else {
+    $IsFa3 = $false
+    Write-Host "::group::Checking out flash-attention v$FlashAttnVersion"
+    git clone -q https://github.com/Dao-AILab/flash-attention.git -b "v$FlashAttnVersion"
+    Write-Host "::endgroup::"
+}
 
 # Build wheels
 Write-Host "::group::Setting up build environment"
@@ -74,11 +86,22 @@ $env:CXXFLAGS = "/w"
 $env:CFLAGS = "/w"
 # Suppress ninja verbose output
 $env:NINJA_STATUS = ""
-$env:FLASH_ATTN_LOCAL_VERSION = "cu$MatrixCudaVersion" + "torch$MatrixTorchVersion"
+if ($IsFa3) {
+    Push-Location flash-attention
+    $ShortHash = (git rev-parse --short=7 HEAD).Trim()
+    Pop-Location
+    $env:FLASH_ATTN_LOCAL_VERSION = "cu$MatrixCudaVersion" + "torch$MatrixTorchVersion" + "git$ShortHash"
+} else {
+    $env:FLASH_ATTN_LOCAL_VERSION = "cu$MatrixCudaVersion" + "torch$MatrixTorchVersion"
+}
 Write-Host "::endgroup::"
 
 Write-Host "::group::Building Flash Attention wheel (this takes a while...)"
-cd flash-attention
+if ($IsFa3) {
+    cd flash-attention\hopper
+} else {
+    cd flash-attention
+}
 python setup.py bdist_wheel --dist-dir=dist
 Write-Host "::endgroup::"
 

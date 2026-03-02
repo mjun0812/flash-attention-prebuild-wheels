@@ -172,6 +172,7 @@ def parse_wheel_filename(filename: str) -> dict | None:
         flash_attn-2.8.3+cu128torch2.9-cp313-cp313-manylinux_2_34_x86_64.whl
         flash_attn-2.6.3+cu128torch2.9-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
         flash_attn-2.8.3+cu126torch2.10-cp314-cp314t-linux_x86_64.whl
+        flash_attn_3-3.0.0+cu126torch2.10git1a2b3c4-cp312-cp312-linux_x86_64.whl
 
     ---
     Wheel filename から情報を抽出
@@ -180,33 +181,52 @@ def parse_wheel_filename(filename: str) -> dict | None:
         flash_attn-2.7.4.post1+cu130torch2.9-cp310-cp310-linux_x86_64.whl
         flash_attn-2.6.3+cu128torch2.9-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
         flash_attn-2.8.3+cu126torch2.10-cp314-cp314t-linux_x86_64.whl
+        flash_attn_3-3.0.0+cu126torch2.10git1a2b3c4-cp312-cp312-linux_x86_64.whl
     """
+    # Determine package name from filename prefix
+    if filename.startswith("flash_attn_3-"):
+        package_name = "flash_attn_3"
+    elif filename.startswith("flash_attn-"):
+        package_name = "flash_attn"
+    else:
+        return None
+
     # Flash Attention wheelのパターンに合わせて正規表現を調整
     # PyTorchバージョンはマイナーバージョン1桁の形式も対応 (例: torch2.9)
     # post1 のようなバージョンサフィックスにも対応 (例: 2.7.4.post1)
     # manylinux の複数タグにも対応 (例: manylinux_2_24_x86_64.manylinux_2_28_x86_64)
     # free-threaded Python (cp314t) にも対応 (例: cp314-cp314t)
-    pattern = r"flash_attn-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)\+cu(\d+)torch(\d+\.\d+)-cp(\d+)-cp\d+(t?)-(.+?)\.whl"
+    # fa3 の local_version には git{hash} サフィックスが付く (例: cu126torch2.10git1a2b3c4)
+    pattern = (
+        r"flash_attn(?:_3)?-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)"
+        r"\+cu(\d+)torch(\d+\.\d+)(?:git([0-9a-f]+))?"
+        r"-cp(\d+)-cp\d+(t?)-(.+?)\.whl"
+    )
     match = re.match(pattern, filename)
 
     if match:
         flash_version = match.group(1)
         cuda_version = f"{match.group(2)[:2]}.{match.group(2)[2:]}"  # 130 -> 13.0
         torch_version = match.group(3)
-        python_version = f"{match.group(4)[:1]}.{match.group(4)[1:]}"  # 310 -> 3.10
-        free_threaded = match.group(5)  # "t" or ""
-        platform = match.group(6)  # linux_x86_64, win32など
+        git_hash = match.group(4)  # None or "1a2b3c4"
+        python_version = f"{match.group(5)[:1]}.{match.group(5)[1:]}"  # 310 -> 3.10
+        free_threaded = match.group(6)  # "t" or ""
+        platform = match.group(7)  # linux_x86_64, win32など
 
         if free_threaded:
             python_version += "t"  # 3.14 -> 3.14t
 
-        return {
+        result = {
+            "package_name": package_name,
             "flash_version": flash_version,
             "cuda_version": cuda_version,
             "torch_version": torch_version,
             "python_version": python_version,
             "platform": platform,
         }
+        if git_hash:
+            result["git_hash"] = git_hash
+        return result
     return None
 
 

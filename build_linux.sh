@@ -41,8 +41,17 @@ python -c "import torch; print('CUDA:', torch.version.cuda)"
 python -c "from torch.utils import cpp_extension; print(cpp_extension.CUDA_HOME)"
 
 # Checkout flash-attn
-echo "Checking out flash-attention v$FLASH_ATTN_VERSION..."
-git clone https://github.com/Dao-AILab/flash-attention.git -b "v$FLASH_ATTN_VERSION"
+if [[ "$FLASH_ATTN_VERSION" == fa3:* ]]; then
+  IS_FA3=true
+  FA3_COMMIT="${FLASH_ATTN_VERSION#fa3:}"
+  echo "Building Flash Attention 3 (commit: $FA3_COMMIT)"
+  git clone https://github.com/Dao-AILab/flash-attention.git
+  cd flash-attention && git checkout "$FA3_COMMIT" && cd ..
+else
+  IS_FA3=false
+  echo "Checking out flash-attention v$FLASH_ATTN_VERSION..."
+  git clone https://github.com/Dao-AILab/flash-attention.git -b "v$FLASH_ATTN_VERSION"
+fi
 
 # Determine MAX_JOBS and NVCC_THREADS based on system resources
 NUM_THREADS=$(nproc)
@@ -88,8 +97,14 @@ echo "  NVCC_THREADS: $NVCC_THREADS"
 
 # Build wheels
 echo "Building wheels..."
-cd flash-attention
-LOCAL_VERSION_LABEL="cu${MATRIX_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}"
+if [ "$IS_FA3" = true ]; then
+  SHORT_HASH=$(cd flash-attention && git rev-parse --short=7 HEAD)
+  LOCAL_VERSION_LABEL="cu${MATRIX_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}git${SHORT_HASH}"
+  cd flash-attention/hopper
+else
+  LOCAL_VERSION_LABEL="cu${MATRIX_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}"
+  cd flash-attention
+fi
 NVCC_THREADS=$NVCC_THREADS MAX_JOBS=$MAX_JOBS \
   FLASH_ATTENTION_FORCE_BUILD=TRUE FLASH_ATTN_LOCAL_VERSION=${LOCAL_VERSION_LABEL} \
   NVCC_APPEND_FLAGS="--allow-unsupported-compiler" \
