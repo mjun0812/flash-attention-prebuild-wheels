@@ -173,6 +173,7 @@ def parse_wheel_filename(filename: str) -> dict | None:
         flash_attn-2.6.3+cu128torch2.9-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
         flash_attn-2.8.3+cu126torch2.10-cp314-cp314t-linux_x86_64.whl
         flash_attn_3-3.0.0+cu126torch2.10git1a2b3c4-cp312-cp312-linux_x86_64.whl
+        flash_attn_3-3.0.0+cu128torch2.10gite2743ab-cp39-abi3-linux_x86_64.whl
 
     ---
     Wheel filename から情報を抽出
@@ -182,6 +183,7 @@ def parse_wheel_filename(filename: str) -> dict | None:
         flash_attn-2.6.3+cu128torch2.9-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
         flash_attn-2.8.3+cu126torch2.10-cp314-cp314t-linux_x86_64.whl
         flash_attn_3-3.0.0+cu126torch2.10git1a2b3c4-cp312-cp312-linux_x86_64.whl
+        flash_attn_3-3.0.0+cu128torch2.10gite2743ab-cp39-abi3-linux_x86_64.whl
     """
     # Determine package name from filename prefix
     if filename.startswith("flash_attn_3-"):
@@ -196,11 +198,12 @@ def parse_wheel_filename(filename: str) -> dict | None:
     # post1 のようなバージョンサフィックスにも対応 (例: 2.7.4.post1)
     # manylinux の複数タグにも対応 (例: manylinux_2_24_x86_64.manylinux_2_28_x86_64)
     # free-threaded Python (cp314t) にも対応 (例: cp314-cp314t)
+    # ABI3 (Stable ABI) にも対応 (例: cp39-abi3)
     # fa3 の local_version には git{hash} サフィックスが付く (例: cu126torch2.10git1a2b3c4)
     pattern = (
         r"flash_attn(?:_3)?-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)"
         r"\+cu(\d+)torch(\d+\.\d+)(?:git([0-9a-f]+))?"
-        r"-cp(\d+)-cp\d+(t?)-(.+?)\.whl"
+        r"-cp(\d+)-(?:cp\d+(t?)|abi3)-(.+?)\.whl"
     )
     match = re.match(pattern, filename)
 
@@ -209,12 +212,17 @@ def parse_wheel_filename(filename: str) -> dict | None:
         cuda_version = f"{match.group(2)[:2]}.{match.group(2)[2:]}"  # 130 -> 13.0
         torch_version = match.group(3)
         git_hash = match.group(4)  # None or "1a2b3c4"
-        python_version = f"{match.group(5)[:1]}.{match.group(5)[1:]}"  # 310 -> 3.10
-        free_threaded = match.group(6)  # "t" or ""
+        cp_version = match.group(5)  # "39", "310", etc.
+        free_threaded = match.group(6) or ""  # "t", "", or None (abi3)
         platform = match.group(7)  # linux_x86_64, win32など
+        is_abi3 = match.group(6) is None  # abi3 の場合 group(6) は None
 
-        if free_threaded:
-            python_version += "t"  # 3.14 -> 3.14t
+        if is_abi3:
+            python_version = f"{cp_version[:1]}.{cp_version[1:]}+ (abi3)"  # 39 -> 3.9+ (abi3)
+        else:
+            python_version = f"{cp_version[:1]}.{cp_version[1:]}"  # 310 -> 3.10
+            if free_threaded:
+                python_version += "t"  # 3.14 -> 3.14t
 
         result = {
             "package_name": package_name,
@@ -226,6 +234,8 @@ def parse_wheel_filename(filename: str) -> dict | None:
         }
         if git_hash:
             result["git_hash"] = git_hash
+        if is_abi3:
+            result["abi3"] = True
         return result
     return None
 
