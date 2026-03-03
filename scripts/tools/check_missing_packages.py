@@ -30,6 +30,7 @@ from scripts.coverage_matrix import (
     LINUX_ARM64_MATRIX,
     LINUX_MATRIX,
     WINDOWS_MATRIX,
+    get_python_versions_for_platform,
 )
 
 
@@ -215,6 +216,10 @@ def build_existing_packages_set(assets: list[dict]) -> dict[str, set[tuple]]:
     For flash_attn_3 wheels, the comparison key uses "fa3:{short_git_hash}" format
     to match the matrix definition style.
 
+    For abi3 wheels (e.g., cp39-abi3), a single wheel covers all Python versions
+    >= the minimum. These are expanded to all Python versions defined in the
+    platform's coverage matrix.
+
     Returns:
         Dict mapping platform to set of (flash, python, torch, cuda) tuples
     """
@@ -241,15 +246,22 @@ def build_existing_packages_set(assets: list[dict]) -> dict[str, set[tuple]]:
         else:
             flash_version_key = info["flash_version"]
 
-        # Normalize torch version (2.9 -> 2.9.1 etc)
-        # The wheel has minor version only, but matrix uses full version
-        key = (
-            flash_version_key,
-            info["python_version"],
-            info["torch_version"],  # This is like "2.9", not "2.9.1"
-            info["cuda_version"],
-        )
-        packages[platform].add(key)
+        torch_version = info["torch_version"]  # This is like "2.9", not "2.9.1"
+        cuda_version = info["cuda_version"]
+
+        if info.get("abi3"):
+            # abi3 wheel covers all Python versions in the matrix
+            for python_ver in get_python_versions_for_platform(platform):
+                key = (flash_version_key, python_ver, torch_version, cuda_version)
+                packages[platform].add(key)
+        else:
+            key = (
+                flash_version_key,
+                info["python_version"],
+                torch_version,
+                cuda_version,
+            )
+            packages[platform].add(key)
 
     return packages
 

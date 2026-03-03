@@ -1,5 +1,7 @@
 """Coverage matrix definitions for wheel availability checks."""
 
+from __future__ import annotations
+
 FA3_COMMIT = "fa3:e2743ab5b3803bb672b16437ba98a3b1d4576c50"
 
 EXCLUDE = [
@@ -119,3 +121,22 @@ WINDOWS_MATRIX = {
         "13.0",
     ],
 }
+
+_PLATFORM_MATRICES = {
+    "linux": LINUX_MATRIX,
+    "linux_arm64": LINUX_ARM64_MATRIX,
+    "windows": WINDOWS_MATRIX,
+}
+
+
+def get_python_versions_for_platform(platform: str) -> list[str]:
+    """Get the list of Python versions defined in the matrix for a platform.
+
+    Args:
+        platform: Normalized platform key ("linux", "linux_arm64", "windows").
+
+    Returns:
+        List of Python version strings (e.g., ["3.10", "3.11", "3.12"]).
+    """
+    matrix = _PLATFORM_MATRICES.get(platform, {})
+    return matrix.get("python-version", [])
