@@ -419,13 +419,19 @@
         <div class="card">
             <div class="filters">
                 <div class="filter-group">
+                    <label for="package-filter">Package</label>
+                    <select id="package-filter">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group">
                     <label for="platform-filter">Platform</label>
                     <select id="platform-filter">
                         <option value="">All</option>
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="flash-filter">Flash-Attention</label>
+                    <label for="flash-filter">Version</label>
                     <select id="flash-filter">
                         <option value="">All Versions</option>
                     </select>
@@ -487,8 +493,9 @@
                     <table>
                         <thead>
                             <tr>
+                                <th class="sortable" data-sort="package">Package</th>
                                 <th class="sortable" data-sort="platform">Platform</th>
-                                <th class="sortable" data-sort="flash">Flash-Attn</th>
+                                <th class="sortable" data-sort="flash">Version</th>
                                 <th class="sortable" data-sort="python">Python</th>
                                 <th class="sortable" data-sort="torch">PyTorch</th>
                                 <th class="sortable" data-sort="cuda">CUDA</th>
@@ -519,7 +526,8 @@
         const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
         // Wheel filename pattern (ported from common.py)
-        const WHEEL_PATTERN = /flash_attn-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)\+cu(\d+)torch(\d+\.\d+)-cp(\d+)-cp\d+(t?)-(.+?)\.whl/;
+        // Supports both flash_attn and flash_attn_3, and both cpXXX/cpXXXt and abi3 tags
+        const WHEEL_PATTERN = /flash_attn(?:_3)?-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)\+cu(\d+)torch(\d+\.\d+)(?:git([0-9a-f]+))?-cp(\d+)-(?:cp\d+(t?)|abi3)-(.+?)\.whl/;
 
         // State
         let allWheels = [];
@@ -530,6 +538,7 @@
 
         // DOM Elements
         const elements = {
+            packageFilter: document.getElementById('package-filter'),
             flashFilter: document.getElementById('flash-filter'),
             pythonFilter: document.getElementById('python-filter'),
             torchFilter: document.getElementById('torch-filter'),
@@ -556,15 +565,27 @@
             const match = filename.match(WHEEL_PATTERN);
             if (!match) return null;
 
-            const [, flashVersion, cudaRaw, torchVersion, pythonRaw, freeThreaded, platform] = match;
+            const [, flashVersion, cudaRaw, torchVersion, gitHash, pythonRaw, freeThreaded, platform] = match;
 
             // Convert CUDA version: 130 -> 13.0
             const cudaVersion = `${cudaRaw.slice(0, -1)}.${cudaRaw.slice(-1)}`;
 
+            // Detect abi3: freeThreaded group is undefined when abi3 matched
+            const isAbi3 = freeThreaded === undefined;
+
             // Convert Python version: 310 -> 3.10, with "t" suffix for free-threaded
-            const pythonVersion = `${pythonRaw[0]}.${pythonRaw.slice(1)}${freeThreaded}`;
+            let pythonVersion;
+            if (isAbi3) {
+                pythonVersion = `${pythonRaw[0]}.${pythonRaw.slice(1)}+ (abi3)`;
+            } else {
+                pythonVersion = `${pythonRaw[0]}.${pythonRaw.slice(1)}${freeThreaded}`;
+            }
+
+            // Determine package name from filename
+            const packageName = filename.startsWith('flash_attn_3-') ? 'flash_attn_3' : 'flash_attn';
 
             return {
+                packageName,
                 flashVersion,
                 cudaVersion,
                 torchVersion,
@@ -676,7 +697,7 @@
             const seen = new Map();
 
             for (const wheel of wheels) {
-                const key = `${wheel.flashVersion}-${wheel.pythonVersion}-${wheel.torchVersion}-${wheel.cudaVersion}-${wheel.platform}`;
+                const key = `${wheel.packageName}-${wheel.flashVersion}-${wheel.pythonVersion}-${wheel.torchVersion}-${wheel.cudaVersion}-${wheel.platform}`;
                 if (!seen.has(key)) {
                     seen.set(key, wheel);
                 }
@@ -725,9 +746,15 @@
             elements.cacheInfo.textContent = `Data cached at ${date.toLocaleString()}`;
         }
 
+        // Package display name mapping
+        function getPackageDisplayName(packageName) {
+            return packageName === 'flash_attn_3' ? 'FA3' : 'FA2';
+        }
+
         // Populate filter dropdowns
         function populateFilters(wheels) {
             const sets = {
+                package: new Set(),
                 flash: new Set(),
                 python: new Set(),
                 torch: new Set(),
@@ -736,6 +763,7 @@
             };
 
             for (const wheel of wheels) {
+                sets.package.add(getPackageDisplayName(wheel.packageName));
                 sets.flash.add(wheel.flashVersion);
                 sets.python.add(wheel.pythonVersion);
                 sets.torch.add(wheel.torchVersion);
@@ -744,12 +772,14 @@
             }
 
             // Sort and populate each filter
+            const sortedPackage = Array.from(sets.package).sort();
             const sortedFlash = Array.from(sets.flash).sort(compareVersions).reverse();
             const sortedPython = Array.from(sets.python).sort(compareVersions).reverse();
             const sortedTorch = Array.from(sets.torch).sort(compareVersions).reverse();
             const sortedCuda = Array.from(sets.cuda).sort(compareVersions).reverse();
             const sortedPlatform = Array.from(sets.platform).sort();
 
+            populateSelect(elements.packageFilter, sortedPackage, 'All');
             populateSelect(elements.flashFilter, sortedFlash, 'All Versions');
             populateSelect(elements.pythonFilter, sortedPython, 'All');
             populateSelect(elements.torchFilter, sortedTorch, 'All');
@@ -778,6 +808,7 @@
         // Apply filters to wheels
         function applyFilters() {
             const filters = {
+                package: elements.packageFilter.value,
                 flash: elements.flashFilter.value,
                 python: elements.pythonFilter.value,
                 torch: elements.torchFilter.value,
@@ -786,6 +817,7 @@
             };
 
             filteredWheels = allWheels.filter(wheel => {
+                if (filters.package && getPackageDisplayName(wheel.packageName) !== filters.package) return false;
                 if (filters.flash && wheel.flashVersion !== filters.flash) return false;
                 if (filters.python && wheel.pythonVersion !== filters.python) return false;
                 if (filters.torch && wheel.torchVersion !== filters.torch) return false;
@@ -807,6 +839,7 @@
         // Sort wheels
         function sortWheels() {
             const sortKey = {
+                package: 'packageName',
                 flash: 'flashVersion',
                 python: 'pythonVersion',
                 torch: 'torchVersion',
@@ -816,7 +849,7 @@
 
             filteredWheels.sort((a, b) => {
                 let cmp;
-                if (sortColumn === 'platform') {
+                if (sortColumn === 'platform' || sortColumn === 'package') {
                     cmp = a[sortKey].localeCompare(b[sortKey]);
                 } else {
                     cmp = compareVersions(a[sortKey], b[sortKey]);
@@ -840,6 +873,7 @@
 
             const html = filteredWheels.map((wheel, index) => `
                 <tr data-index="${index}" class="${selectedWheel === index ? 'selected' : ''}">
+                    <td>${wheel.packageName === 'flash_attn_3' ? 'FA3' : 'FA2'}</td>
                     <td>${wheel.platform}</td>
                     <td>${wheel.flashVersion}</td>
                     <td>${wheel.pythonVersion}</td>
@@ -923,6 +957,7 @@
         function updateUrlParams() {
             const params = new URLSearchParams();
 
+            if (elements.packageFilter.value) params.set('package', elements.packageFilter.value);
             if (elements.flashFilter.value) params.set('flash', elements.flashFilter.value);
             if (elements.pythonFilter.value) params.set('python', elements.pythonFilter.value);
             if (elements.torchFilter.value) params.set('torch', elements.torchFilter.value);
@@ -940,6 +975,7 @@
         function loadFiltersFromUrl() {
             const params = new URLSearchParams(window.location.search);
 
+            elements.packageFilter.value = params.get('package') || '';
             elements.flashFilter.value = params.get('flash') || '';
             elements.pythonFilter.value = params.get('python') || '';
             elements.torchFilter.value = params.get('torch') || '';
@@ -949,6 +985,7 @@
 
         // Reset all filters
         function resetFilters() {
+            elements.packageFilter.value = '';
             elements.flashFilter.value = '';
             elements.pythonFilter.value = '';
             elements.torchFilter.value = '';
@@ -997,6 +1034,7 @@
         }
 
         // Event listeners
+        elements.packageFilter.addEventListener('change', applyFilters);
         elements.flashFilter.addEventListener('change', applyFilters);
         elements.pythonFilter.addEventListener('change', applyFilters);
         elements.torchFilter.addEventListener('change', applyFilters);
