@@ -91,10 +91,11 @@ If you use this repository in your research and find it helpful, please cite thi
 - [@xhiroga](https://github.com/xhiroga) : Sponsored me!
 - cjustus613 : Buy me a coffee!
 - [@KiralyCraft](https://github.com/KiralyCraft) : Provided with computing resource!
-- [@kun432](https://github.com/kun432) : 2x Buy me a coffee!
+- [@kun432](https://github.com/kun432) : Buy me a coffee 3 times!
 - [@wodeyuzhou](https://github.com/wodeyuzhou) : Sponsored me!
 - Gabr1e1 : Buy me a coffee!
 - wp : Buy me a coffee!
+- wangxiyu191: Buy me a coffee!
 
 ## Star History and Download Statistics
 
