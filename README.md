@@ -58,11 +58,15 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 <!-- COVERAGE_TABLE_END -->
 
 > [!NOTE]
+> Since v0.8.0, Flash Attention 3 (`flash_attn_3`) wheels are also available.
+> Flash Attention 3 requires Hopper (SM90) or newer GPUs and CUDA 12.3+.
+
+> [!NOTE]
 > Since v0.7.0, wheels are built with manylinux2_28 platform.
 > These wheels for Linux x86_64 and ManyLinux are compatible with old glibc versions (<=2.17).
 
 > [!NOTE]
-> Since v0.5.0, wheels are built with a local version label indicating the CUDA and PyTorch versions.  
+> Since v0.5.0, wheels are built with a local version label indicating the CUDA and PyTorch versions.
 > Example: `pip list` -> `flash_attn==2.8.3 (old) -> flash_attn==2.8.3+cu130torch2.9 (>= built since v0.5.0)`
 
 See [./doc/packages.md](./doc/packages.md) for the full list of available packages.

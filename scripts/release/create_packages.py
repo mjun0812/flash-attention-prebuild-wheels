@@ -50,6 +50,10 @@ from scripts.common import (
 )
 
 ADD_NOTE = """> [!NOTE]
+> Since v0.8.0, Flash Attention 3 (`flash_attn_3`) wheels are also available.
+> Flash Attention 3 requires Hopper (SM90) or newer GPUs and CUDA 12.3+.
+
+> [!NOTE]
 > Since v0.7.0, wheels are built with manylinux2_28 platform.
 > These wheels for Linux x86_64 and ManyLinux are compatible with old glibc versions (<=2.17).
 
