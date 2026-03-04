@@ -249,7 +249,7 @@ jobs:
           python-version: 3.14
 
       - name: Install dependencies
-        run: pip install pandas
+        run: pip install pandas requests rich
 
       - name: Update docs
         run: |
