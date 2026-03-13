@@ -23,6 +23,7 @@ LINUX_MATRIX = {
         # "2.8.0",
         # "2.9.1",
         "2.10.0",
+        # "2.11.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -53,6 +54,7 @@ LINUX_ARM64_MATRIX = {
         # "2.8.0",
         "2.9.1",
         "2.10.0",
+        "2.11.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -85,6 +87,7 @@ LINUX_SELF_HOSTED_MATRIX = {
         "2.8.0",
         "2.9.1",
         "2.10.0",
+        "2.11.0",
     ],
     "cuda-version": [
         "12.4",
@@ -116,6 +119,7 @@ LINUX_ARM64_SELF_HOSTED_MATRIX = {
         "2.8.0",
         "2.9.1",
         "2.10.0",
+        "2.11.0",
     ],
     "cuda-version": [
         "12.4",
@@ -146,6 +150,7 @@ WINDOWS_MATRIX = {
         "2.8.0",
         "2.9.1",
         "2.10.0",
+        "2.11.0",
     ],
     "cuda-version": [
         "12.4",
@@ -171,6 +176,7 @@ WINDOWS_CODEBUILD_MATRIX = {
     "torch-version": [
         "2.9.1",
         # "2.10.0",
+        # "2.11.0",
     ],
     "cuda-version": [
         "12.8",
@@ -199,6 +205,7 @@ WINDOWS_SELF_HOSTED_MATRIX = {
         "2.8.0",
         "2.9.1",
         "2.10.0",
+        "2.11.0",
     ],
     "cuda-version": [
         "12.4",
