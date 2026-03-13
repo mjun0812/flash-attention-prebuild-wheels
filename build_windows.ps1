@@ -100,18 +100,16 @@ Write-Host "::group::Building Flash Attention wheel (this takes a while...)"
 if ($IsFa3) {
     # FA3's setup.py downloads Linux-only NVIDIA toolchain binaries (nvcc/ptxas),
     # which fails on Windows with KeyError: 'Windows'.
-    # Use offline build mode and copy system CUDA binaries to the expected paths instead.
+    # Use offline build mode and create directory junctions to the system CUDA toolkit
+    # so that nvcc can find cicc and other tools via relative paths.
     $env:FLASH_ATTENTION_OFFLINE_BUILD = "TRUE"
-    $backendBin = Join-Path (Get-Location) "flash-attention\third_party\nvidia\backend\bin"
-    $backendNvvm = Join-Path (Get-Location) "flash-attention\third_party\nvidia\backend\nvvm\bin"
-    New-Item -ItemType Directory -Path $backendBin -Force | Out-Null
-    New-Item -ItemType Directory -Path $backendNvvm -Force | Out-Null
-    Write-Host "Copying CUDA binaries from $env:CUDA_HOME to backend directory"
-    Copy-Item "$env:CUDA_HOME\bin\nvcc.exe" "$backendBin\nvcc.exe"
-    Copy-Item "$env:CUDA_HOME\bin\ptxas.exe" "$backendBin\ptxas.exe"
-    if (Test-Path "$env:CUDA_HOME\nvvm\bin") {
-        Copy-Item "$env:CUDA_HOME\nvvm\bin\*" "$backendNvvm\" -Recurse
-    }
+    $backendDir = Join-Path (Get-Location) "flash-attention\third_party\nvidia\backend"
+    New-Item -ItemType Directory -Path $backendDir -Force | Out-Null
+    Write-Host "Creating directory junctions from backend to $env:CUDA_HOME"
+    New-Item -ItemType Junction -Path (Join-Path $backendDir "bin") -Target "$env:CUDA_HOME\bin"
+    $nvvmDir = Join-Path $backendDir "nvvm"
+    New-Item -ItemType Directory -Path $nvvmDir -Force | Out-Null
+    New-Item -ItemType Junction -Path (Join-Path $nvvmDir "bin") -Target "$env:CUDA_HOME\nvvm\bin"
     cd flash-attention\hopper
 } else {
     cd flash-attention
