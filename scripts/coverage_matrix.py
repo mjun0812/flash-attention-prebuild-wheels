@@ -36,11 +36,14 @@ EXCLUDE = [
     # torch 2.10.0 only supports CUDA 12.6, 12.8, 13.0
     {"torch-version": "2.10.0", "cuda-version": "12.4"},
     {"torch-version": "2.10.0", "cuda-version": "12.9"},
+    # torch 2.11.0 only supports CUDA 12.6, 12.8, 12.9, 13.0
+    {"torch-version": "2.11.0", "cuda-version": "12.4"},
     # torch < 2.6 does not support Python 3.13
     {"torch-version": "2.5.1", "python-version": "3.13"},
     # torch >= 2.9 does not support Python 3.9
     {"torch-version": "2.9.1", "python-version": "3.9"},
     {"torch-version": "2.10.0", "python-version": "3.9"},
+    {"torch-version": "2.11.0", "python-version": "3.9"},
     # torch < 2.9 does not support Python 3.14
     {"torch-version": "2.5.1", "python-version": "3.14"},
     {"torch-version": "2.6.0", "python-version": "3.14"},
@@ -69,11 +72,13 @@ LINUX_MATRIX = {
         "2.8.0",
         "2.9.1",
         "2.10.0",
+        "2.11.0",
     ],
     "cuda-version": [
         "12.4",
         "12.6",
         "12.8",
+        "12.9",
         "13.0",
     ],
 }
@@ -92,10 +97,12 @@ LINUX_ARM64_MATRIX = {
     "torch-version": [
         "2.9.1",
         "2.10.0",
+        "2.11.0",
     ],
     "cuda-version": [
         "12.6",
         "12.8",
+        "12.9",
         "13.0",
     ],
 }
@@ -114,6 +121,7 @@ WINDOWS_MATRIX = {
     "torch-version": [
         "2.9.1",
         "2.10.0",
+        "2.11.0",
     ],
     "cuda-version": [
         "12.6",
