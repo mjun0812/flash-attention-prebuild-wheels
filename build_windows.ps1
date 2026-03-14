@@ -98,18 +98,12 @@ Write-Host "::endgroup::"
 
 Write-Host "::group::Building Flash Attention wheel (this takes a while...)"
 if ($IsFa3) {
-    # FA3's setup.py downloads Linux-only NVIDIA toolchain binaries (nvcc/ptxas),
-    # which fails on Windows with KeyError: 'Windows'.
-    # Use offline build mode and create directory junctions to the system CUDA toolkit
-    # so that nvcc can find cicc and other tools via relative paths.
-    $env:FLASH_ATTENTION_OFFLINE_BUILD = "TRUE"
-    $backendDir = Join-Path (Get-Location) "flash-attention\third_party\nvidia\backend"
-    New-Item -ItemType Directory -Path $backendDir -Force | Out-Null
-    Write-Host "Creating directory junctions from backend to $env:CUDA_HOME"
-    New-Item -ItemType Junction -Path (Join-Path $backendDir "bin") -Target "$env:CUDA_HOME\bin"
-    $nvvmDir = Join-Path $backendDir "nvvm"
-    New-Item -ItemType Directory -Path $nvvmDir -Force | Out-Null
-    New-Item -ItemType Junction -Path (Join-Path $nvvmDir "bin") -Target "$env:CUDA_HOME\nvvm\bin"
+    # Replace setup.py with Windows-patched version (based on upstream PR #2047)
+    # This handles: Linux-only NVIDIA toolchain download skip, and
+    # Windows linker command line length limit via Ninja response files.
+    $patchedSetup = Join-Path $PSScriptRoot "patches\fa3\setup.py"
+    Copy-Item $patchedSetup "flash-attention\hopper\setup.py" -Force
+    Write-Host "Replaced hopper/setup.py with Windows-patched version"
     cd flash-attention\hopper
 } else {
     cd flash-attention
