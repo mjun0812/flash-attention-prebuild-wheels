@@ -1,6 +1,9 @@
 import json
 
-from scripts.coverage_matrix import EXCLUDE, FA3_COMMIT
+from scripts.coverage_matrix import EXCLUDE
+
+FA3_COMMIT = "fa3:e2743ab5b3803bb672b16437ba98a3b1d4576c50"
+
 
 LINUX_MATRIX = {
     "flash-attn-version": [
