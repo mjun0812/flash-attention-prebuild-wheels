@@ -57,6 +57,8 @@ else
   IS_FA3=false
   echo "Checking out flash-attention v$FLASH_ATTN_VERSION..."
   git clone https://github.com/Dao-AILab/flash-attention.git -b "v$FLASH_ATTN_VERSION"
+  # Remove FA4 (flash_attn/cute) to prevent it from being included in the FA2 wheel
+  rm -rf flash-attention/flash_attn/cute
 fi
 
 # Determine MAX_JOBS and NVCC_THREADS based on system resources

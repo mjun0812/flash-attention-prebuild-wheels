@@ -64,6 +64,11 @@ if ($FlashAttnVersion -like "fa3:*") {
     $IsFa3 = $false
     Write-Host "::group::Checking out flash-attention v$FlashAttnVersion"
     git clone -q https://github.com/Dao-AILab/flash-attention.git -b "v$FlashAttnVersion"
+    # Remove FA4 (flash_attn/cute) to prevent it from being included in the FA2 wheel
+    if (Test-Path "flash-attention\flash_attn\cute") {
+        Remove-Item -Recurse -Force "flash-attention\flash_attn\cute"
+        Write-Host "Removed flash_attn/cute (FA4) from FA2 build"
+    }
     Write-Host "::endgroup::"
 }
 
