@@ -1,32 +1,28 @@
 # Copyright (c) 2024, Jay Shah, Ganesh Bikshandi, Ying Zhang, Vijay Thakkar, Pradeep Ramani, Tri Dao.
 
-import sys
-import warnings
+import ast
+import itertools
 import os
-import stat
+import platform
 import re
 import shutil
-import ast
-from pathlib import Path
-from packaging.version import parse, Version
-import platform
+import stat
+import subprocess
+import sys
 import sysconfig
 import tarfile
-import itertools
-
-from setuptools import setup, find_packages
-import subprocess
-
-import urllib.request
 import urllib.error
-from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
+import urllib.request
+import warnings
+from pathlib import Path
 
 import torch
-from torch.utils.cpp_extension import CppExtension, CUDAExtension, CUDA_HOME
+from packaging.version import Version, parse
+from setuptools import find_packages, setup
+from torch.utils.cpp_extension import CUDA_HOME, CppExtension, CUDAExtension
 from torch.utils.cpp_extension import BuildExtension as _BuildExtension
+from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
 
-
-# with open("../README.md", "r", encoding="utf-8") as fh:
 with open("../README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
@@ -78,15 +74,15 @@ DISABLE_HDIMDIFF192 = (
 # "-gencode arch=compute_sm90a,code=sm_90a" to files ending in '_sm90.cu',
 # and pass "-gencode arch=compute_sm80,code=sm_80" to files ending in '_sm80.cu'
 from torch.utils.cpp_extension import (
-    IS_HIP_EXTENSION,
     COMMON_HIP_FLAGS,
-    SUBPROCESS_DECODE_ARGS,
+    IS_HIP_EXTENSION,
     IS_WINDOWS,
-    get_cxx_compiler,
-    _join_rocm_home,
-    _join_cuda_home,
+    SUBPROCESS_DECODE_ARGS,
     _is_cuda_file,
+    _join_cuda_home,
+    _join_rocm_home,
     _maybe_write,
+    get_cxx_compiler,
 )
 
 
@@ -228,9 +224,7 @@ def _write_ninja_file(
     # See https://ninja-build.org/build.ninja.html for reference.
     compile_rule = ["rule compile"]
     if IS_WINDOWS:
-        compile_rule.append(
-            "  command = cl $cflags -c $in /Fo$out $post_cflags"
-        )
+        compile_rule.append("  command = cl $cflags -c $in /Fo$out $post_cflags")
     else:
         compile_rule.append(
             "  command = $cxx -MMD -MF $out.d $cflags -c $in -o $out $post_cflags"
@@ -518,36 +512,36 @@ if not SKIP_CUDA_BUILD:
     ):
         download_and_copy(
             name="nvcc",
-            src_func=lambda system,
-            arch,
-            version: f"cuda_nvcc-{system}-{arch}-{version}-archive/bin",
+            src_func=lambda system, arch, version: (
+                f"cuda_nvcc-{system}-{arch}-{version}-archive/bin"
+            ),
             dst_path="bin",
             version=NVIDIA_TOOLCHAIN_VERSION["nvcc"],
-            url_func=lambda system,
-            arch,
-            version: f"https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/{system}-{arch}/cuda_nvcc-{system}-{arch}-{version}-archive.tar.xz",
+            url_func=lambda system, arch, version: (
+                f"https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/{system}-{arch}/cuda_nvcc-{system}-{arch}-{version}-archive.tar.xz"
+            ),
         )
         download_and_copy(
             name="ptxas",
-            src_func=lambda system,
-            arch,
-            version: f"cuda_nvcc-{system}-{arch}-{version}-archive/bin/ptxas",
+            src_func=lambda system, arch, version: (
+                f"cuda_nvcc-{system}-{arch}-{version}-archive/bin/ptxas"
+            ),
             dst_path="bin",
             version=NVIDIA_TOOLCHAIN_VERSION["ptxas"],
-            url_func=lambda system,
-            arch,
-            version: f"https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/{system}-{arch}/cuda_nvcc-{system}-{arch}-{version}-archive.tar.xz",
+            url_func=lambda system, arch, version: (
+                f"https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/{system}-{arch}/cuda_nvcc-{system}-{arch}-{version}-archive.tar.xz"
+            ),
         )
         download_and_copy(
             name="ptxas",
-            src_func=lambda system,
-            arch,
-            version: f"cuda_nvcc-{system}-{arch}-{version}-archive/nvvm/bin",
+            src_func=lambda system, arch, version: (
+                f"cuda_nvcc-{system}-{arch}-{version}-archive/nvvm/bin"
+            ),
             dst_path="nvvm/bin",
             version=NVIDIA_TOOLCHAIN_VERSION["ptxas"],
-            url_func=lambda system,
-            arch,
-            version: f"https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/{system}-{arch}/cuda_nvcc-{system}-{arch}-{version}-archive.tar.xz",
+            url_func=lambda system, arch, version: (
+                f"https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/{system}-{arch}/cuda_nvcc-{system}-{arch}-{version}-archive.tar.xz"
+            ),
         )
         base_dir = os.path.dirname(__file__)
         ctk_path_new = os.path.abspath(

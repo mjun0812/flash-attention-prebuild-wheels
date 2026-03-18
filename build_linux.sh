@@ -2,6 +2,8 @@
 
 set -e
 
+SCRIPT_DIR=$(dirname "$(realpath "$0")")
+
 # Parameters with defaults
 FLASH_ATTN_VERSION=$1
 PYTHON_VERSION=$2
@@ -40,25 +42,31 @@ python -c "import torch; print('PyTorch:', torch.__version__)"
 python -c "import torch; print('CUDA:', torch.version.cuda)"
 python -c "from torch.utils import cpp_extension; print(cpp_extension.CUDA_HOME)"
 
-# Checkout flash-attn
+# FlashAttention Variant handling
+FLASH_ATTN_VARIANT=""
 if [[ "$FLASH_ATTN_VERSION" == fa3:* ]]; then
-  IS_FA3=true
-  FA3_COMMIT="${FLASH_ATTN_VERSION#fa3:}"
-  echo "Building Flash Attention 3 (commit: $FA3_COMMIT)"
-  git clone https://github.com/Dao-AILab/flash-attention.git
-  cd flash-attention
-  git checkout "$FA3_COMMIT"
-  # Remove --resource-usage flag from upstream setup.py to suppress
-  # verbose ptxas info logs (register usage, stack frame, compile time)
-  # that clutter CI output with thousands of lines per build.
-  sed -i '/"--resource-usage"/d' hopper/setup.py
-  cd ..
+  FLASH_ATTN_VARIANT="Flash Attention 3"
 else
-  IS_FA3=false
-  echo "Checking out flash-attention v$FLASH_ATTN_VERSION..."
-  git clone https://github.com/Dao-AILab/flash-attention.git -b "v$FLASH_ATTN_VERSION"
+  FLASH_ATTN_VARIANT="Flash Attention 2"
+fi
+echo "Selected Flash Attention variant: $FLASH_ATTN_VARIANT"
+
+# Checkout flash-attn
+if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
+  FA_COMMIT="${FLASH_ATTN_VERSION#fa3:}"
+  echo "Building $FLASH_ATTN_VARIANT (commit: $FA_COMMIT)"
+  git clone https://github.com/Dao-AILab/flash-attention.git flash-attention
+  git -C flash-attention checkout "$FA_COMMIT"
+  # Replace upstream setup.py with patched version
+  cp "$SCRIPT_DIR/patches/fa3/setup.py" flash-attention/hopper/setup.py
+elif [[ "${FLASH_ATTN_VARIANT}" == "Flash Attention 2" ]]; then
+  echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
+  git clone https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FLASH_ATTN_VERSION"
   # Remove FA4 (flash_attn/cute) to prevent it from being included in the FA2 wheel
   rm -rf flash-attention/flash_attn/cute
+else
+  echo "Unknown Flash Attention variant: $FLASH_ATTN_VARIANT"
+  exit 1
 fi
 
 # Determine MAX_JOBS and NVCC_THREADS based on system resources
@@ -67,8 +75,6 @@ RAM_GB=$(free -g | awk '/^Mem:/{print $2}')
 echo "System resources:"
 echo "  CPU threads: $NUM_THREADS"
 echo "  RAM: ${RAM_GB}GB"
-
-# Determine MAX_JOBS and NVCC_THREADS based on system resources
 if [[ -z "${MAX_JOBS:-}" && -z "${NVCC_THREADS:-}" ]]; then
   # Calculate max product based on following constraints:
   # - MAX_JOBS x NVCC_THREADS(<= 4) <= NUM_THREADS
@@ -98,15 +104,14 @@ if [[ -z "${MAX_JOBS:-}" && -z "${NVCC_THREADS:-}" ]]; then
   MAX_JOBS=$((MAX_JOBS < 1 ? 1 : MAX_JOBS))
   NVCC_THREADS=$((NVCC_THREADS < 1 ? 1 : NVCC_THREADS))
 fi
-
 echo "Build parallelism settings:"
 echo "  MAX_JOBS: $MAX_JOBS"
 echo "  NVCC_THREADS: $NVCC_THREADS"
 
 # Build wheels
 echo "Building wheels..."
-if [ "$IS_FA3" = true ]; then
-  SHORT_HASH=$(cd flash-attention && git rev-parse --short=7 HEAD)
+if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
+  SHORT_HASH=$(git -C flash-attention rev-parse --short=7 HEAD)
   LOCAL_VERSION_LABEL="cu${MATRIX_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}git${SHORT_HASH}"
   cd flash-attention/hopper
 else

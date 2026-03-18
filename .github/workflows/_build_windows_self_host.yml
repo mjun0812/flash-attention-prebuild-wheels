@@ -2,18 +2,18 @@
 # Build wheels with GitHub hosted runner on Windows x86_64
 # #########################################################
 # Prerequisites (must be pre-installed on the runner):
-#   - pwsh
-#   - Git
-#   - GitHub CLI (gh)
 #   - Chocolatey
+#   - pwsh (winget install --id Microsoft.PowerShell --source winget)
+#   - Git (winget install --id Git.Git -e --source winget)
+#   - GitHub CLI (winget install --id GitHub.cli)
+#   - vswhere (winget install Microsoft.VisualStudio.Locator)
+#   - CMake (winget install -e --id Kitware.CMake)
+#   - Ninja (winget install Ninja-build.Ninja)
+#   - Make (choco install make)
 #   - Visual Studio BuildTools 2022 with:
 #     - Microsoft.VisualStudio.Component.VC.Tools.x86.x64
 #     - Microsoft.VisualStudio.Component.VC.CMake.Project
 #     - Microsoft.VisualStudio.Component.Windows11SDK.22621
-#   - vswhere
-#   - CMake
-#   - Ninja
-#   - Make (optional)
 # #########################################################
 
 name: "[Windows x86_64, self-hosted] Build wheels and upload to GitHub Releases"
