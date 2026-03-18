@@ -496,9 +496,10 @@ if not SKIP_CUDA_BUILD:
     elif bare_metal_version >= Version("13.0"):
         # CUDA 13.0+ uses system nvcc and CCCL headers are in /usr/local/cuda/include/cccl/
         cccl_include = os.path.join(CUDA_HOME, "include", "cccl")
+        pathsep = ";" if IS_WINDOWS else ":"
         for env_var in ["CPLUS_INCLUDE_PATH", "C_INCLUDE_PATH"]:
             current = os.environ.get(env_var, "")
-            os.environ[env_var] = cccl_include + (":" + current if current else "")
+            os.environ[env_var] = cccl_include + (pathsep + current if current else "")
 
     # ptxas 12.8 gives the best perf currently
     # We want to use the nvcc front end from 12.6 however, since if we use nvcc 12.8
