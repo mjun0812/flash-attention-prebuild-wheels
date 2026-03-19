@@ -26,10 +26,12 @@ jobs:
       matrix: ${{ steps.create_matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
       - name: Create Matrix
         id: create_matrix
         run: |
-          python create_matrix.py | tee /tmp/matrix.json
+          uv run --python 3.14 --script create_matrix.py | tee /tmp/matrix.json
           echo "matrix=$(cat /tmp/matrix.json)" >> $GITHUB_OUTPUT
 
   # #########################################################
@@ -207,19 +209,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.14
-
-      - name: Install dependencies
-        run: pip install pandas
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
 
       - name: Generate Release Notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release view "${{ github.ref_name }}" --json assets > /tmp/assets.json
-          python -m scripts.release.create_release_note /tmp/assets.json > /tmp/release_notes.md
+          uv run --python 3.14 --script scripts/release/create_release_note.py /tmp/assets.json > /tmp/release_notes.md
           gh release edit "${{ github.ref_name }}" --notes-file /tmp/release_notes.md
 
   update_docs:
@@ -244,27 +242,23 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.14
-
-      - name: Install dependencies
-        run: pip install pandas requests rich
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
 
       - name: Update docs
         run: |
           git pull
           gh release view "${{ github.ref_name }}" --json assets > /tmp/assets.json
-          python -m scripts.release.create_release_history \
+          uv run --python 3.14 --script scripts/release/create_release_history.py \
             --assets /tmp/assets.json \
             --tag "${{ github.ref_name }}" \
             --repo "${{ github.repository }}" \
             --output doc/release_history.md
-          python -m scripts.release.create_packages --assets /tmp/assets.json --output doc/packages.md
+          uv run --python 3.14 --script scripts/release/create_packages.py --assets /tmp/assets.json --output doc/packages.md
 
       - name: Update README coverage
         run: |
-          python -m scripts.maintenance.update_readme_coverage
+          uv run --python 3.14 --script scripts/maintenance/update_readme_coverage.py
 
       - name: Commit and push docs updates
         run: |

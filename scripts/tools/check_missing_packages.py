@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   "pandas",
+#   "requests",
+#   "rich",
+# ]
+# ///
+
 """Check missing packages by comparing GitHub releases with expected matrix.
 
 This script fetches wheel assets from GitHub releases and compares them with
-the expected package matrix defined in create_matrix.py. It displays a colored
-table showing which packages exist, are missing, or are excluded.
+the expected package matrix defined in scripts.coverage_matrix. It displays a
+colored table showing which packages exist, are missing, or are excluded.
 
 Usage:
     python check_missing_packages.py
@@ -19,6 +27,9 @@ import sys
 import time
 from pathlib import Path
 
+if __package__ is None or __package__ == "":
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 import requests
 from rich.console import Console
 from rich.table import Table
@@ -26,25 +37,11 @@ from rich.text import Text
 
 from scripts.common import parse_wheel_filename
 from scripts.coverage_matrix import (
-    EXCLUDE,
-    LINUX_ARM64_MATRIX,
-    LINUX_MATRIX,
-    WINDOWS_MATRIX,
-    get_python_versions_for_platform,
+    get_non_free_threaded_python_versions_for_platform,
+    get_platform_matrix,
+    is_excluded_combination,
+    normalize_torch_version,
 )
-
-
-# Comprehensive matrix combining all platform-specific matrices
-def get_comprehensive_matrix(platform: str) -> dict:
-    """Get comprehensive matrix for a platform."""
-    if platform == "linux":
-        return LINUX_MATRIX
-    elif platform == "linux_arm64":
-        return LINUX_ARM64_MATRIX
-    elif platform == "windows":
-        return WINDOWS_MATRIX
-    else:
-        return {}
 
 
 def parse_version_tuple(version: str) -> tuple:
@@ -153,28 +150,6 @@ def load_or_fetch_assets(repo: str, cache_path: Path, use_cache: bool) -> list[d
     return assets
 
 
-def is_excluded(
-    flash_version: str,
-    python_version: str,
-    torch_version: str,
-    cuda_version: str,
-) -> bool:
-    """Check if a combination is in the EXCLUDE list."""
-    for excl in EXCLUDE:
-        match = True
-        if "flash-attn-version" in excl and excl["flash-attn-version"] != flash_version:
-            match = False
-        if "python-version" in excl and excl["python-version"] != python_version:
-            match = False
-        if "torch-version" in excl and excl["torch-version"] != torch_version:
-            match = False
-        if "cuda-version" in excl and excl["cuda-version"] != cuda_version:
-            match = False
-        if match:
-            return True
-    return False
-
-
 def normalize_platform_for_comparison(platform_raw: str) -> str:
     """Normalize platform string for comparison.
 
@@ -210,7 +185,9 @@ def normalize_fa3_version(version: str) -> str:
     return version
 
 
-def build_existing_packages_set(assets: list[dict]) -> dict[str, set[tuple]]:
+def build_existing_packages_set(
+    assets: list[dict],
+) -> dict[str, set[tuple[str, str, str, str]]]:
     """Build a set of existing packages grouped by normalized platform.
 
     For flash_attn_3 wheels, the comparison key uses "fa3:{short_git_hash}" format
@@ -223,7 +200,7 @@ def build_existing_packages_set(assets: list[dict]) -> dict[str, set[tuple]]:
     Returns:
         Dict mapping platform to set of (flash, python, torch, cuda) tuples
     """
-    packages: dict[str, set[tuple]] = {
+    packages: dict[str, set[tuple[str, str, str, str]]] = {
         "linux": set(),
         "linux_arm64": set(),
         "windows": set(),
@@ -250,8 +227,10 @@ def build_existing_packages_set(assets: list[dict]) -> dict[str, set[tuple]]:
         cuda_version = info["cuda_version"]
 
         if info.get("abi3"):
-            # abi3 wheel covers all Python versions in the matrix
-            for python_ver in get_python_versions_for_platform(platform):
+            # abi3 wheels do not cover free-threaded interpreters such as cp314t.
+            for python_ver in get_non_free_threaded_python_versions_for_platform(
+                platform
+            ):
                 key = (flash_version_key, python_ver, torch_version, cuda_version)
                 packages[platform].add(key)
         else:
@@ -266,33 +245,11 @@ def build_existing_packages_set(assets: list[dict]) -> dict[str, set[tuple]]:
     return packages
 
 
-def normalize_torch_version(version: str) -> str:
-    """Convert full torch version to minor version for comparison.
-
-    Example: 2.9.1 -> 2.9, 2.10.0 -> 2.10
-    """
-    parts = version.split(".")
-    if len(parts) >= 2:
-        return f"{parts[0]}.{parts[1]}"
-    return version
-
-
-def generate_expected_matrix(matrix: dict) -> list[tuple]:
-    """Generate all expected combinations from a matrix definition."""
-    combinations = []
-    for flash in matrix.get("flash-attn-version", []):
-        for python in matrix.get("python-version", []):
-            for torch in matrix.get("torch-version", []):
-                for cuda in matrix.get("cuda-version", []):
-                    combinations.append((flash, python, torch, cuda))
-    return combinations
-
-
 def create_status_table(
     platform_name: str,
     flash_version: str,
     matrix: dict,
-    existing: set[tuple],
+    existing: set[tuple[str, str, str, str]],
     console: Console,
 ) -> tuple[Table, int, int, int]:
     """Create a rich table for a specific platform and flash-attn version.
@@ -303,6 +260,34 @@ def create_status_table(
     python_versions = sorted(matrix.get("python-version", []), key=parse_version_tuple)
     torch_versions = sorted(matrix.get("torch-version", []), key=parse_version_tuple)
     cuda_versions = sorted(matrix.get("cuda-version", []), key=parse_version_tuple)
+
+    existing_count = 0
+    missing_count = 0
+    excluded_count = 0
+
+    # Normalize FA3 version for comparison with existing packages
+    flash_version_key = normalize_fa3_version(flash_version)
+
+    visible_columns: list[tuple[str, str, str]] = []
+    for torch in torch_versions:
+        torch_minor = normalize_torch_version(torch)
+        for cuda in cuda_versions:
+            has_non_excluded_cell = False
+            for python in python_versions:
+                is_excl = is_excluded_combination(flash_version, python, torch, cuda)
+                if is_excl:
+                    excluded_count += 1
+                    continue
+
+                has_non_excluded_cell = True
+                key = (flash_version_key, python, torch_minor, cuda)
+                if key in existing:
+                    existing_count += 1
+                else:
+                    missing_count += 1
+
+            if has_non_excluded_cell:
+                visible_columns.append((torch, torch_minor, cuda))
 
     # Create table
     table = Table(
@@ -315,45 +300,28 @@ def create_status_table(
     # Add Python column
     table.add_column("Python", style="bold", justify="center")
 
-    # Add Torch/CUDA columns - group by torch version
-    for torch in torch_versions:
-        torch_minor = normalize_torch_version(torch)
-        for cuda in cuda_versions:
-            table.add_column(
-                f"T{torch_minor}\nCU{cuda}",
-                justify="center",
-                min_width=6,
-            )
-
-    existing_count = 0
-    missing_count = 0
-    excluded_count = 0
-
-    # Normalize FA3 version for comparison with existing packages
-    flash_version_key = normalize_fa3_version(flash_version)
+    # Add only columns that contain at least one non-excluded cell.
+    for _, torch_minor, cuda in visible_columns:
+        table.add_column(
+            f"T{torch_minor}\nCU{cuda}",
+            justify="center",
+            min_width=6,
+        )
 
     # Add rows for each Python version
     for python in python_versions:
         row = [f"cp{python.replace('.', '')}"]
 
-        for torch in torch_versions:
-            torch_minor = normalize_torch_version(torch)
-            for cuda in cuda_versions:
-                # Check status
-                key = (flash_version_key, python, torch_minor, cuda)
-                is_excl = is_excluded(flash_version, python, torch, cuda)
+        for torch, torch_minor, cuda in visible_columns:
+            key = (flash_version_key, python, torch_minor, cuda)
+            if is_excluded_combination(flash_version, python, torch, cuda):
+                cell = Text("-", style="dim")
+            elif key in existing:
+                cell = Text("✓", style="bold green")
+            else:
+                cell = Text("✗", style="bold red")
 
-                if is_excl:
-                    cell = Text("-", style="dim")
-                    excluded_count += 1
-                elif key in existing:
-                    cell = Text("✓", style="bold green")
-                    existing_count += 1
-                else:
-                    cell = Text("✗", style="bold red")
-                    missing_count += 1
-
-                row.append(cell)
+            row.append(cell)
 
         table.add_row(*row)
 
@@ -406,7 +374,9 @@ def display_platform_tables(
                     torch_minor = normalize_torch_version(torch)
                     for cuda in matrix.get("cuda-version", []):
                         key = (flash_version_key, python, torch_minor, cuda)
-                        is_excl = is_excluded(flash_version, python, torch, cuda)
+                        is_excl = is_excluded_combination(
+                            flash_version, python, torch, cuda
+                        )
                         if not is_excl and key not in existing_packages:
                             missing_packages.append(
                                 {
@@ -499,7 +469,7 @@ def main() -> None:
     console.print()
 
     for platform in platforms:
-        matrix = get_comprehensive_matrix(platform)
+        matrix = get_platform_matrix(platform)
         if not matrix.get("flash-attn-version"):
             continue
 

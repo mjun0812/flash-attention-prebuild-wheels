@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   "pandas",
+#   "requests",
+#   "rich",
+# ]
+# ///
+
 """Update README.md with package coverage badges and table.
 
 This script fetches wheel assets from GitHub releases, calculates coverage
@@ -10,16 +18,22 @@ Usage:
 """
 
 import argparse
+import sys
 import urllib.parse
 from pathlib import Path
 
+if __package__ is None or __package__ == "":
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from scripts.coverage_matrix import (
+    generate_expected_matrix,
+    get_platform_matrix,
+    is_excluded_combination,
+    normalize_torch_version,
+)
 from scripts.tools.check_missing_packages import (
     build_existing_packages_set,
-    generate_expected_matrix,
-    get_comprehensive_matrix,
-    is_excluded,
     load_or_fetch_assets,
-    normalize_torch_version,
 )
 
 REPO = "mjun0812/flash-attention-prebuild-wheels"
@@ -36,10 +50,11 @@ COVERAGE_TABLE_END = "<!-- COVERAGE_TABLE_END -->"
 
 
 def calc_platform_stats(
-    platform: str, existing_packages: dict[str, set[tuple]]
-) -> dict:
+    platform: str,
+    existing_packages: dict[str, set[tuple[str, str, str, str]]],
+) -> dict[str, int]:
     """Calculate existing, missing, excluded counts for a platform."""
-    matrix = get_comprehensive_matrix(platform)
+    matrix = get_platform_matrix(platform)
     if not matrix.get("flash-attn-version"):
         return {"existing": 0, "missing": 0, "excluded": 0}
 
@@ -52,7 +67,7 @@ def calc_platform_stats(
 
     for flash, python, torch, cuda in combinations:
         torch_minor = normalize_torch_version(torch)
-        if is_excluded(flash, python, torch, cuda):
+        if is_excluded_combination(flash, python, torch, cuda):
             excluded += 1
         elif (flash, python, torch_minor, cuda) in existing_set:
             existing += 1
@@ -113,9 +128,7 @@ def generate_coverage_table(stats_by_platform: dict[str, dict]) -> str:
             continue
         total = s["existing"] + s["missing"]
         pct = f"{s['existing'] / total * 100:.1f}%" if total > 0 else "N/A"
-        lines.append(
-            f"| {display_name} | {s['existing']} | {s['missing']} | {pct} |"
-        )
+        lines.append(f"| {display_name} | {s['existing']} | {s['missing']} | {pct} |")
         total_existing += s["existing"]
         total_missing += s["missing"]
 
@@ -131,9 +144,7 @@ def generate_coverage_table(stats_by_platform: dict[str, dict]) -> str:
     return "\n".join(lines)
 
 
-def update_readme(
-    readme_path: Path, badge_block: str, table_block: str
-) -> None:
+def update_readme(readme_path: Path, badge_block: str, table_block: str) -> None:
     """Replace content between COVERAGE markers in README."""
     content = readme_path.read_text(encoding="utf-8")
 
@@ -163,12 +174,8 @@ def update_readme(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Update README.md with coverage info")
-    parser.add_argument(
-        "--repo", type=str, default=REPO, help="GitHub repository"
-    )
-    parser.add_argument(
-        "--cache", action="store_true", help="Use assets.json as cache"
-    )
+    parser.add_argument("--repo", type=str, default=REPO, help="GitHub repository")
+    parser.add_argument("--cache", action="store_true", help="Use assets.json as cache")
     parser.add_argument(
         "--cache-file", type=str, default="assets.json", help="Cache file path"
     )

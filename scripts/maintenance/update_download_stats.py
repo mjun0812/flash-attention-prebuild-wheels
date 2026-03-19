@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   "matplotlib",
+#   "requests",
+# ]
+# ///
+
 """
 Fetch GitHub release download statistics and generate a graph.
 

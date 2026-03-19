@@ -17,24 +17,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.14
-
-      - name: Install dependencies
-        run: |
-          pip install requests matplotlib rich pandas
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
 
       - name: Update download statistics
         run: |
-          python -m scripts.maintenance.update_download_stats
+          uv run --python 3.14 --script scripts/maintenance/update_download_stats.py
 
       - name: Update README coverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python -m scripts.maintenance.update_readme_coverage
+          uv run --python 3.14 --script scripts/maintenance/update_readme_coverage.py
 
       - name: Commit and push changes
         run: |

@@ -1,3 +1,9 @@
+# /// script
+# dependencies = [
+#   "pandas",
+# ]
+# ///
+
 """Generate release notes from assets.json.
 
 This script generates markdown release notes from a GitHub release assets JSON file.
@@ -22,7 +28,14 @@ Example:
 import sys
 from pathlib import Path
 
-from scripts.common import collect_versions_from_assets, format_versions, load_assets_json
+if __package__ is None or __package__ == "":
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from scripts.common import (
+    collect_versions_from_assets,
+    format_versions,
+    load_assets_json,
+)
 
 
 def generate_release_notes(assets: list[dict]) -> str:

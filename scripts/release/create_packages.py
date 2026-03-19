@@ -1,3 +1,9 @@
+# /// script
+# dependencies = [
+#   "pandas",
+# ]
+# ///
+
 """Create and update doc/packages.md from assets.json.
 
 This script generates a comprehensive package documentation page (doc/packages.md) from
@@ -36,6 +42,9 @@ import re
 import sys
 from pathlib import Path
 from urllib.parse import unquote
+
+if __package__ is None or __package__ == "":
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import pandas as pd
 

@@ -1,3 +1,9 @@
+# /// script
+# dependencies = [
+#   "pandas",
+# ]
+# ///
+
 """Update the History section in README.md from assets.
 
 This script updates the History section in README.md by inserting or updating a release entry.
@@ -25,7 +31,11 @@ Example:
 
 import argparse
 import re
+import sys
 from pathlib import Path
+
+if __package__ is None or __package__ == "":
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from scripts.common import (
     collect_versions_from_assets,
@@ -35,7 +45,7 @@ from scripts.common import (
 
 
 def render_body_from_versions(
-    versions_by_platform: dict[str, dict[str, set[str]]]
+    versions_by_platform: dict[str, dict[str, set[str]]],
 ) -> str:
     """Render markdown body from aggregated version data.
 

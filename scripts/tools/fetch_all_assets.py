@@ -1,3 +1,9 @@
+# /// script
+# dependencies = [
+#   "requests",
+# ]
+# ///
+
 """
 Fetch all assets from all GitHub releases and save to assets.json
 
