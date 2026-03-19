@@ -97,6 +97,14 @@ jobs:
             echo "wheel_dir=$wheelDir" >> $env:GITHUB_ENV
           }
 
+      - name: Upload raw Windows build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-raw-log-codebuild-${{ inputs.python-version }}-${{ inputs.torch-version }}-${{ inputs.cuda-version }}-${{ github.run_attempt }}
+          path: windows-build-raw.log
+          if-no-files-found: ignore
+
       - name: Install Test
         shell: pwsh
         run: |

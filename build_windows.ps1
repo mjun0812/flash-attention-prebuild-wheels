@@ -15,6 +15,61 @@ param(
 # Error handling
 $ErrorActionPreference = "Stop"
 
+function Invoke-FilteredNativeCommand {
+    param(
+        [Parameter(Mandatory=$true)]
+        [scriptblock]$Command,
+
+        [Parameter(Mandatory=$true)]
+        [string]$LogPath
+    )
+
+    $includeNotePattern = '^(メモ: インクルード ファイル:|Note: including file:)'
+    $duplicateWarningPattern = '^cl : .*warning D9025'
+    $templateInstantiationPattern = '^\s*instantiation of "'
+    $suppressedIncludeNotes = 0
+    $suppressedDuplicateWarnings = 0
+    $suppressedTemplateInstantiations = 0
+    $templateNoticeShown = $false
+    $seenWarnings = New-Object 'System.Collections.Generic.HashSet[string]'
+
+    if (Test-Path $LogPath) {
+        Remove-Item -Path $LogPath -Force
+    }
+
+    & $Command 2>&1 |
+        Tee-Object -FilePath $LogPath |
+        ForEach-Object {
+            $line = [string]$_
+            $shouldEmit = $true
+
+            if ($line -match $includeNotePattern) {
+                $suppressedIncludeNotes++
+                $shouldEmit = $false
+            } elseif ($line -match $duplicateWarningPattern) {
+                if (-not $seenWarnings.Add($line)) {
+                    $suppressedDuplicateWarnings++
+                    $shouldEmit = $false
+                }
+            } elseif ($line -match $templateInstantiationPattern) {
+                $suppressedTemplateInstantiations++
+                if (-not $templateNoticeShown) {
+                    Write-Host "[log-filter] Suppressing verbose template instantiation traces. Raw log: $LogPath"
+                    $templateNoticeShown = $true
+                }
+                $shouldEmit = $false
+            }
+
+            if ($shouldEmit) {
+                Write-Host $line
+            }
+        }
+
+    $exitCode = $LASTEXITCODE
+    Write-Host "[log-filter] Suppressed $suppressedIncludeNotes include-note lines, $suppressedDuplicateWarnings duplicate D9025 warnings, and $suppressedTemplateInstantiations template-instantiation lines."
+    return $exitCode
+}
+
 Write-Host "Building Flash Attention with parameters:"
 Write-Host "  Flash-Attention: $FlashAttnVersion"
 Write-Host "  Python: $PythonVersion"
@@ -100,6 +155,8 @@ $env:FLASH_ATTENTION_FORCE_BUILD = "TRUE"
 $env:NVCC_FLAGS = "-w --disable-warnings"
 $env:CXXFLAGS = "/w"
 $env:CFLAGS = "/w"
+# Avoid verbose dependency-generation output from nvcc on Windows builds.
+$env:TORCH_EXTENSION_SKIP_NVCC_GEN_DEPENDENCIES = "1"
 # Suppress ninja verbose output
 $env:NINJA_STATUS = ""
 if ($FlashAttnVariant -eq "Flash Attention 3") {
@@ -110,14 +167,27 @@ if ($FlashAttnVariant -eq "Flash Attention 3") {
 }
 Write-Host "::endgroup::"
 
+$WorkspaceRoot = if ($env:GITHUB_WORKSPACE) { $env:GITHUB_WORKSPACE } else { (Get-Location).Path }
+$BuildLogPath = Join-Path $WorkspaceRoot "windows-build-raw.log"
+if ($env:GITHUB_ENV) {
+    "build_log_path=$BuildLogPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+}
+
 Write-Host "::group::Building Flash Attention wheel (this takes a while...)"
 if ($FlashAttnVariant -eq "Flash Attention 3") {
     cd flash-attention\hopper
 } else {
     cd flash-attention
 }
-python setup.py bdist_wheel --dist-dir=dist
+$BuildExitCode = Invoke-FilteredNativeCommand -LogPath $BuildLogPath -Command {
+    python setup.py bdist_wheel --dist-dir=dist
+}
 Write-Host "::endgroup::"
+
+if ($BuildExitCode -ne 0) {
+    Write-Host "Build failed. Full raw log saved to: $BuildLogPath"
+    exit $BuildExitCode
+}
 
 $WheelName = Get-ChildItem -Path "dist\*.whl" | Select-Object -First 1 | ForEach-Object { $_.Name }
 Write-Host "Built wheel: $wheelName"
