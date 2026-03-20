@@ -55,7 +55,7 @@ jobs:
     runs-on: ${{ fromjson(inputs.runner) }}
     timeout-minutes: 2160
     env:
-      MAX_JOBS: 2
+      MAX_JOBS: 4
       NVCC_THREADS: 2
     steps:
       - uses: actions/checkout@v4
