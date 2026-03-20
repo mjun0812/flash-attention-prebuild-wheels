@@ -14,6 +14,7 @@
 #     - Microsoft.VisualStudio.Component.VC.Tools.x86.x64
 #     - Microsoft.VisualStudio.Component.VC.CMake.Project
 #     - Microsoft.VisualStudio.Component.Windows11SDK.22621
+#     winget install --id Microsoft.VisualStudio.2022.BuildTools --accept-source-agreements --accept-package-agreements --override "--passive --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.VisualStudio.ComponentGroup.ClangCL --add Microsoft.VisualStudio.Component.VC.CMake.Project --add Microsoft.VisualStudio.Component.Windows11SDK.26100"
 # #########################################################
 
 name: "[Windows x86_64, self-hosted] Build wheels and upload to GitHub Releases"
