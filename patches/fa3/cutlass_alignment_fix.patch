@@ -1,0 +1,27 @@
+--- a/include/cute/container/alignment.hpp
++++ b/include/cute/container/alignment.hpp
+@@ -50,8 +50,14 @@
+ 
+ #if defined(__CUDACC__)
+ #  define CUTE_ALIGNAS(n) __align__(n)
++#  if defined(_MSC_VER)
++#    define CUTE_ALIGNAS_HOST_SAFE(n) __align__(64)
++#  else
++#    define CUTE_ALIGNAS_HOST_SAFE(n) __align__(n)
++#  endif
+ #else
+ #  define CUTE_ALIGNAS(n) alignas(n)
++#  define CUTE_ALIGNAS_HOST_SAFE(n) alignas(n)
+ #endif
+ 
+ template <size_t Alignment, class Child = void>
+@@ -64,7 +70,7 @@
+ template <class Child> struct CUTE_ALIGNAS( 16) aligned_struct< 16, Child> {};
+ template <class Child> struct CUTE_ALIGNAS( 32) aligned_struct< 32, Child> {};
+ template <class Child> struct CUTE_ALIGNAS( 64) aligned_struct< 64, Child> {};
+-template <class Child> struct CUTE_ALIGNAS(128) aligned_struct<128, Child> {};
+-template <class Child> struct CUTE_ALIGNAS(256) aligned_struct<256, Child> {};
++template <class Child> struct CUTE_ALIGNAS_HOST_SAFE(128) aligned_struct<128, Child> {};
++template <class Child> struct CUTE_ALIGNAS_HOST_SAFE(256) aligned_struct<256, Child> {};
+ 
+ } // end namespace cute

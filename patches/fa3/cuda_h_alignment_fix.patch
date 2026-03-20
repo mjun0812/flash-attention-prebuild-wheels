@@ -1,0 +1,13 @@
+--- a/include/cuda.h
++++ b/include/cuda.h
+@@ -1,8 +1,8 @@
+ typedef struct CUtensorMap_st {
+ #if defined(__cplusplus) && (__cplusplus >= 201103L)
+-    alignas(128)
++    alignas(64)
+ #elif __STDC_VERSION__ >= 201112L
+-    _Alignas(128)
++    _Alignas(64)
+ #endif
+     cuuint64_t opaque[CU_TENSOR_MAP_NUM_QWORDS];
+ } CUtensorMap;

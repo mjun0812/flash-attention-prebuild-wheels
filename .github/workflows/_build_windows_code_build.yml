@@ -81,6 +81,9 @@ jobs:
         timeout-minutes: 2160
         run: |
           .\build_windows.ps1 -FlashAttnVersion "${{ inputs.flash-attn-version }}" -PythonVersion "${{ inputs.python-version }}" -TorchVersion "${{ inputs.torch-version }}" -CudaVersion "${{ inputs.cuda-version }}"
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
           # build_windows.ps1 changes cwd (cd flash-attention[\hopper]), so use
           # absolute paths from GITHUB_WORKSPACE to locate the built wheel.
           if ("${{ inputs.flash-attn-version }}" -like "fa3:*") {

@@ -19,8 +19,19 @@ from pathlib import Path
 import torch
 from packaging.version import Version, parse
 from setuptools import find_packages, setup
-from torch.utils.cpp_extension import CUDA_HOME, CppExtension, CUDAExtension
+from torch.utils.cpp_extension import CUDA_HOME, CUDAExtension
 from torch.utils.cpp_extension import BuildExtension as _BuildExtension
+from torch.utils.cpp_extension import (
+    COMMON_HIP_FLAGS,
+    IS_HIP_EXTENSION,
+    IS_WINDOWS,
+    SUBPROCESS_DECODE_ARGS,
+    _is_cuda_file,
+    _join_cuda_home,
+    _join_rocm_home,
+    _maybe_write,
+    get_cxx_compiler,
+)
 from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
 
 with open("../README.md", "r", encoding="utf-8") as fh:
@@ -70,21 +81,6 @@ DISABLE_HDIMDIFF192 = (
     os.getenv("FLASH_ATTENTION_DISABLE_HDIMDIFF192", "FALSE") == "TRUE"
 )
 
-# HACK: we monkey patch pytorch's _write_ninja_file to pass
-# "-gencode arch=compute_sm90a,code=sm_90a" to files ending in '_sm90.cu',
-# and pass "-gencode arch=compute_sm80,code=sm_80" to files ending in '_sm80.cu'
-from torch.utils.cpp_extension import (
-    COMMON_HIP_FLAGS,
-    IS_HIP_EXTENSION,
-    IS_WINDOWS,
-    SUBPROCESS_DECODE_ARGS,
-    _is_cuda_file,
-    _join_cuda_home,
-    _join_rocm_home,
-    _maybe_write,
-    get_cxx_compiler,
-)
-
 
 def create_build_config_file():
     CONFIG = {
@@ -121,6 +117,13 @@ def create_build_config_file():
         f.write("    from pprint import pprint\n")
         f.write("    pprint(CONFIG)\n")
         f.write("\n")
+
+
+def _escape_ninja_path(path: str) -> str:
+    """Escape a filesystem path for emission into a Ninja build file."""
+    if IS_WINDOWS:
+        path = path.replace(":", "$:")
+    return path.replace(" ", "$ ")
 
 
 def _write_ninja_file(
@@ -289,18 +292,19 @@ def _write_ninja_file(
                 rule = "cuda_compile_sm80_sm90"
         else:
             rule = "compile"
-        if IS_WINDOWS:
-            source_file = source_file.replace(":", "$:")
-            object_file = object_file.replace(":", "$:")
-        source_file = source_file.replace(" ", "$ ")
-        object_file = object_file.replace(" ", "$ ")
+        source_file = _escape_ninja_path(source_file)
+        object_file = _escape_ninja_path(object_file)
         build.append(f"build {object_file}: {rule} {source_file}")
 
     if cuda_dlink_post_cflags:
         devlink_out = os.path.join(os.path.dirname(objects[0]), "dlink.o")
         devlink_rule = ["rule cuda_devlink"]
         devlink_rule.append("  command = $nvcc $in -o $out $cuda_dlink_post_cflags")
-        devlink = [f"build {devlink_out}: cuda_devlink {' '.join(objects)}"]
+        escaped_devlink_out = _escape_ninja_path(devlink_out)
+        escaped_objects = [_escape_ninja_path(obj) for obj in objects]
+        devlink = [
+            f"build {escaped_devlink_out}: cuda_devlink {' '.join(escaped_objects)}"
+        ]
         objects += [devlink_out]
     else:
         devlink_rule, devlink = [], []
@@ -323,9 +327,11 @@ def _write_ninja_file(
         else:
             link_rule.append("  command = $cxx $in $ldflags -o $out")
 
-        link = [f"build {library_target}: link {' '.join(objects)}"]
+        escaped_library_target = _escape_ninja_path(library_target)
+        escaped_objects = [_escape_ninja_path(obj) for obj in objects]
+        link = [f"build {escaped_library_target}: link {' '.join(escaped_objects)}"]
 
-        default = [f"default {library_target}"]
+        default = [f"default {escaped_library_target}"]
     else:
         link_rule, link, default = [], [], []
 
@@ -866,7 +872,8 @@ class BuildExtension(_BuildExtension):
                 else os.path.join(output_dir, output_filename)
             )
             output_dir = os.path.dirname(library_target)
-            objs = [f"{o.replace(':', '$:')}" for o in objects]
+            escaped_library_target = _escape_ninja_path(library_target)
+            objs = [_escape_ninja_path(o) for o in objects]
             libraries, library_dirs, runtime_library_dirs = self.compiler._fix_lib_args(
                 libraries, library_dirs, runtime_library_dirs
             )
@@ -901,7 +908,7 @@ class BuildExtension(_BuildExtension):
                             "  rspfile = $out.rsp",
                             "  rspfile_content = $in_newline",
                             "",
-                            f"build {library_target.replace(':', '$:')}: link {' '.join(objs)}",
+                            f"build {escaped_library_target}: link {' '.join(objs)}",
                         ]
                     )
                     + "\n"

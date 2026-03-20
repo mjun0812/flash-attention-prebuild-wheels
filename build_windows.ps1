@@ -70,6 +70,89 @@ function Invoke-FilteredNativeCommand {
     return $exitCode
 }
 
+function Test-Cuda13OrNewer {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Version
+    )
+
+    try {
+        return ([Version]$Version -ge [Version]"13.0")
+    } catch {
+        Write-Warning "Could not parse CUDA version '$Version' for alignment workaround check. Skipping CUDA 13.0+ patches."
+        return $false
+    }
+}
+
+function Apply-GitPatch {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$RepoPath,
+
+        [Parameter(Mandatory=$true)]
+        [string]$PatchPath,
+
+        [Parameter(Mandatory=$true)]
+        [string]$Description
+    )
+
+    if (-not (Test-Path $PatchPath)) {
+        Write-Error "Patch file not found: $PatchPath"
+        exit 1
+    }
+
+    Write-Host "Applying $Description..."
+    git -C $RepoPath apply --ignore-whitespace $PatchPath
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Failed to apply $Description"
+        exit 1
+    }
+    Write-Host "$Description applied successfully"
+}
+
+function Apply-CudaToolkitPatch {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$CudaHome,
+
+        [Parameter(Mandatory=$true)]
+        [string]$PatchPath,
+
+        [Parameter(Mandatory=$true)]
+        [string]$Description
+    )
+
+    if (-not (Test-Path $PatchPath)) {
+        Write-Error "Patch file not found: $PatchPath"
+        exit 1
+    }
+    if (-not $CudaHome -or -not (Test-Path $CudaHome)) {
+        Write-Error "CUDA_HOME not found: $CudaHome"
+        exit 1
+    }
+
+    $gitExe = (Get-Command git -ErrorAction SilentlyContinue).Source
+    if (-not $gitExe) {
+        Write-Error "git.exe not found on PATH; cannot locate patch.exe"
+        exit 1
+    }
+
+    $gitRoot = Split-Path (Split-Path $gitExe -Parent) -Parent
+    $patchExe = Join-Path $gitRoot "usr\bin\patch.exe"
+    if (-not (Test-Path $patchExe)) {
+        Write-Error "patch.exe not found at expected path: $patchExe"
+        exit 1
+    }
+
+    Write-Host "Applying $Description..."
+    & $patchExe --fuzz 2 -p1 --directory $CudaHome -i $PatchPath
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Failed to apply $Description"
+        exit 1
+    }
+    Write-Host "$Description applied successfully"
+}
+
 Write-Host "Building Flash Attention with parameters:"
 Write-Host "  Flash-Attention: $FlashAttnVersion"
 Write-Host "  Python: $PythonVersion"
@@ -123,6 +206,21 @@ if ($FlashAttnVariant -eq "Flash Attention 3") {
     # Replace upstream setup.py with patched version
     $patchedSetup = Join-Path $PSScriptRoot "patches\fa3\setup.py"
     Copy-Item $patchedSetup "flash-attention\hopper\setup.py" -Force
+    # MSVC cannot pass 128-byte aligned CUDA-generated types by value on CUDA 13.0+.
+    if (Test-Cuda13OrNewer -Version $CudaVersion) {
+        $cutlassPatch = Join-Path $PSScriptRoot "patches\fa3\cutlass_alignment_fix.patch"
+        $cudaHeaderPatch = Join-Path $PSScriptRoot "patches\fa3\cuda_h_alignment_fix.patch"
+
+        git -C flash-attention submodule update --init csrc/cutlass
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to initialize cutlass submodule for CUDA 13.0+ alignment workaround"
+            exit 1
+        }
+
+        $cutlassRoot = Join-Path (Resolve-Path "flash-attention").Path "csrc\cutlass"
+        Apply-GitPatch -RepoPath $cutlassRoot -PatchPath $cutlassPatch -Description "cutlass alignment workaround for CUDA 13.0+"
+        Apply-CudaToolkitPatch -CudaHome $env:CUDA_HOME -PatchPath $cudaHeaderPatch -Description "CUDA header alignment workaround for CUDA 13.0+"
+    }
     Write-Host "::endgroup::"
 } elseif ($FlashAttnVariant -eq "Flash Attention 2") {
     Write-Host "::group::Checking out flash-attention v$FlashAttnVersion"
