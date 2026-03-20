@@ -24,13 +24,74 @@ function Invoke-FilteredNativeCommand {
         [string]$LogPath
     )
 
-    $includeNotePattern = '^(メモ: インクルード ファイル:|Note: including file:)'
-    $duplicateWarningPattern = '^cl : .*warning D9025'
-    $templateInstantiationPattern = '^\s*instantiation of "'
-    $suppressedIncludeNotes = 0
-    $suppressedDuplicateWarnings = 0
-    $suppressedTemplateInstantiations = 0
-    $templateNoticeShown = $false
+    $suppressionRules = @(
+        @{
+            Name = "include-note lines"
+            Pattern = '^(メモ: インクルード ファイル:|Note: including file:)'
+        },
+        @{
+            Name = "duplicate D9025 warnings"
+            Pattern = '^cl : .*warning D9025'
+            Deduplicate = $true
+        },
+        @{
+            Name = "template-instantiation lines"
+            Pattern = '^\s*instantiation of "'
+            Notice = "Suppressing verbose template instantiation traces. Raw log: $LogPath"
+        },
+        @{
+            Name = "torch CUDA probe warnings"
+            Pattern = 'UserWarning: cudaGetDeviceCount\(\) returned cudaErrorNotSupported'
+        },
+        @{
+            Name = "wheel bdist_wheel FutureWarnings"
+            Pattern = "FutureWarning: The 'wheel' package is no longer the canonical location of the 'bdist_wheel' command"
+        },
+        @{
+            Name = "cl D9002 warnings"
+            Pattern = '^cl : .*warning D9002'
+        },
+        @{
+            Name = "MSVC C4996 warnings"
+            Pattern = 'warning C4996:'
+        },
+        @{
+            Name = "CUDA diagnostic #177-D warnings"
+            Pattern = 'warning #177-D:'
+            SuppressContinuation = $true
+            Notice = "Suppressing verbose CUDA diagnostic blocks. Raw log: $LogPath"
+        },
+        @{
+            Name = "CUDA diagnostic #186-D warnings"
+            Pattern = 'warning #186-D:'
+            SuppressContinuation = $true
+            Notice = "Suppressing verbose CUDA diagnostic blocks. Raw log: $LogPath"
+        },
+        @{
+            Name = "CUDA diagnostic #221-D warnings"
+            Pattern = 'warning #221-D:'
+            SuppressContinuation = $true
+            Notice = "Suppressing verbose CUDA diagnostic blocks. Raw log: $LogPath"
+        },
+        @{
+            Name = "CUDA diagnostic #550-D warnings"
+            Pattern = 'warning #550-D:'
+            SuppressContinuation = $true
+            Notice = "Suppressing verbose CUDA diagnostic blocks. Raw log: $LogPath"
+        },
+        @{
+            Name = "CUDA diagnostic remarks"
+            Pattern = '^Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"'
+        }
+    )
+    $suppressedCounts = @{}
+    foreach ($rule in $suppressionRules) {
+        $suppressedCounts[$rule.Name] = 0
+    }
+    $diagnosticContinuationPattern = '^(?:\s+\S.*|\s*\^$|\s*detected during:$|\s*$)'
+    $suppressedDiagnosticContinuationLines = 0
+    $suppressedContinuation = $false
+    $shownNotices = New-Object 'System.Collections.Generic.HashSet[string]'
     $seenWarnings = New-Object 'System.Collections.Generic.HashSet[string]'
 
     if (Test-Path $LogPath) {
@@ -43,21 +104,40 @@ function Invoke-FilteredNativeCommand {
             $line = [string]$_
             $shouldEmit = $true
 
-            if ($line -match $includeNotePattern) {
-                $suppressedIncludeNotes++
-                $shouldEmit = $false
-            } elseif ($line -match $duplicateWarningPattern) {
-                if (-not $seenWarnings.Add($line)) {
-                    $suppressedDuplicateWarnings++
+            if ($suppressedContinuation) {
+                if ($line -match $diagnosticContinuationPattern) {
+                    $suppressedDiagnosticContinuationLines++
                     $shouldEmit = $false
+                } else {
+                    $suppressedContinuation = $false
                 }
-            } elseif ($line -match $templateInstantiationPattern) {
-                $suppressedTemplateInstantiations++
-                if (-not $templateNoticeShown) {
-                    Write-Host "[log-filter] Suppressing verbose template instantiation traces. Raw log: $LogPath"
-                    $templateNoticeShown = $true
+            }
+
+            if ($shouldEmit) {
+                foreach ($rule in $suppressionRules) {
+                    if ($line -match $rule.Pattern) {
+                        if ($rule.Deduplicate) {
+                            if (-not $seenWarnings.Add($line)) {
+                                $suppressedCounts[$rule.Name]++
+                                $shouldEmit = $false
+                            }
+                        } else {
+                            $suppressedCounts[$rule.Name]++
+                            $shouldEmit = $false
+                        }
+
+                        if (-not $shouldEmit) {
+                            if ($rule.SuppressContinuation) {
+                                $suppressedContinuation = $true
+                            }
+                            if ($rule.Notice -and $shownNotices.Add($rule.Notice)) {
+                                Write-Host "[log-filter] $($rule.Notice)"
+                            }
+                        }
+
+                        break
+                    }
                 }
-                $shouldEmit = $false
             }
 
             if ($shouldEmit) {
@@ -66,7 +146,21 @@ function Invoke-FilteredNativeCommand {
         }
 
     $exitCode = $LASTEXITCODE
-    Write-Host "[log-filter] Suppressed $suppressedIncludeNotes include-note lines, $suppressedDuplicateWarnings duplicate D9025 warnings, and $suppressedTemplateInstantiations template-instantiation lines."
+    $summaryParts = @()
+    foreach ($rule in $suppressionRules) {
+        $count = [int]$suppressedCounts[$rule.Name]
+        if ($count -gt 0) {
+            $summaryParts += "$count $($rule.Name)"
+        }
+    }
+    if ($suppressedDiagnosticContinuationLines -gt 0) {
+        $summaryParts += "$suppressedDiagnosticContinuationLines diagnostic-context lines"
+    }
+    if ($summaryParts.Count -gt 0) {
+        Write-Host "[log-filter] Suppressed $($summaryParts -join ', ')."
+    } else {
+        Write-Host "[log-filter] No lines suppressed."
+    }
     return $exitCode
 }
 
