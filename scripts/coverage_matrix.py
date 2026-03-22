@@ -57,6 +57,14 @@ TORCH_EXPERIMENTAL_FREE_THREADED_PYTHON_VERSIONS = {
 }
 
 
+# CUDA_VERSIONS: CUDA version using PyTorch. e.g., ["11.7", "11.8", ...]
+# This will be generated from TORCH_SUPPORT_CUDA_VERSIONS
+CUDA_VERSIONS = [
+    v for versions in TORCH_SUPPORT_CUDA_VERSIONS.values() for v in versions
+]  # Flatten the list of CUDA versions from the support mapping
+CUDA_VERSIONS = sorted(set(CUDA_VERSIONS))
+
+
 def parse_python_version(version: str) -> tuple[int, int]:
     """Parse a Python version string to a comparable tuple.
 
@@ -105,13 +113,6 @@ def is_supported_python_version(torch_version: str, python_version: str) -> bool
         torch_version, ()
     )
 
-
-# CUDA_VERSIONS: CUDA version using PyTorch. e.g., ["11.7", "11.8", ...]
-# This will be generated from TORCH_SUPPORT_CUDA_VERSIONS
-CUDA_VERSIONS = [
-    v for versions in TORCH_SUPPORT_CUDA_VERSIONS.values() for v in versions
-]  # Flatten the list of CUDA versions from the support mapping
-CUDA_VERSIONS = sorted(set(CUDA_VERSIONS))
 
 EXCLUDE = []
 # Exclude incompatible CUDA versions for each PyTorch version
