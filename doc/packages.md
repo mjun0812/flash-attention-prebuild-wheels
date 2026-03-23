@@ -46,6 +46,7 @@
   - [Flash-Attention 2.7.4](#flash-attention-274)
   - [Flash-Attention 2.6.3](#flash-attention-263)
 - [Windows x86_64](#windows-x86_64)
+  - [Flash-Attention 3.0.0](#flash-attention-300)
   - [Flash-Attention 2.8.3](#flash-attention-283)
   - [Flash-Attention 2.8.2](#flash-attention-282)
   - [Flash-Attention 2.7.4.post1](#flash-attention-274post1)
@@ -1599,6 +1600,18 @@
 </details>
 
 ## 🪟 Windows x86_64
+
+### Flash-Attention 3.0.0
+
+<details>
+<summary>Packages for Flash-Attention 3.0.0</summary>
+
+| Python | PyTorch | CUDA | package |
+| ------ | ------- | ---- | ------- |
+| 3.9+ (abi3) | 2.9 | 13.0 | [Download1(v0.9.3)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.3/flash_attn_3-3.0.0+cu130torch2.9gite2743ab-cp39-abi3-win_amd64.whl) |
+| 3.9+ (abi3) | 2.10 | 13.0 | [Download1(v0.9.3)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.3/flash_attn_3-3.0.0+cu130torch2.10gite2743ab-cp39-abi3-win_amd64.whl) |
+
+</details>
 
 ### Flash-Attention 2.8.3
 
