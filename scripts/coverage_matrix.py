@@ -34,7 +34,7 @@ TORCH_SUPPORT_CUDA_VERSIONS = {
     "2.8": ("12.6", "12.8", "12.9"),
     "2.9": ("12.6", "12.8", "13.0"),
     "2.10": ("12.6", "12.8", "13.0"),
-    "2.11": ("12.6", "12.8", "12.9", "13.0"),
+    "2.11": ("12.6", "12.8", "13.0"),
 }
 # torch_version: minimum and maximum supported Python versions
 TORCH_SUPPORT_PYTHON_VERSIONS = {
