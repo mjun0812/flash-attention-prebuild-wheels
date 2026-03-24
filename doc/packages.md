@@ -1608,7 +1608,9 @@
 
 | Python | PyTorch | CUDA | package |
 | ------ | ------- | ---- | ------- |
+| 3.9+ (abi3) | 2.9 | 12.8 | [Download1(v0.9.3)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.3/flash_attn_3-3.0.0+cu128torch2.9gite2743ab-cp39-abi3-win_amd64.whl) |
 | 3.9+ (abi3) | 2.9 | 13.0 | [Download1(v0.9.3)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.3/flash_attn_3-3.0.0+cu130torch2.9gite2743ab-cp39-abi3-win_amd64.whl) |
+| 3.9+ (abi3) | 2.10 | 12.8 | [Download1(v0.9.3)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.3/flash_attn_3-3.0.0+cu128torch2.10gite2743ab-cp39-abi3-win_amd64.whl) |
 | 3.9+ (abi3) | 2.10 | 13.0 | [Download1(v0.9.3)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.3/flash_attn_3-3.0.0+cu130torch2.10gite2743ab-cp39-abi3-win_amd64.whl) |
 
 </details>
