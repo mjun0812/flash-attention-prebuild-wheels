@@ -1,0 +1,309 @@
+# #########################################################
+# Build wheels with self-hosted runner (no container)
+# #########################################################
+# Prerequisites (must be pre-installed on the runner):
+#   - sudo access
+#   - Basic tools: curl, wget, git
+#
+# All other dependencies (build tools, Python, CUDA, gh CLI)
+# are installed during the workflow and cleaned up afterwards.
+# #########################################################
+
+name: "[Linux, self-hosted, no container] Build wheels and upload to GitHub Releases"
+
+on:
+  workflow_call:
+    inputs:
+      flash-attn-version:
+        description: "Flash-Attention version"
+        required: true
+        type: string
+      python-version:
+        description: "Python version"
+        required: true
+        type: string
+      torch-version:
+        description: "PyTorch version"
+        required: true
+        type: string
+      cuda-version:
+        description: "CUDA version"
+        required: true
+        type: string
+      runner:
+        description: "Runner type"
+        required: false
+        type: string
+        default: '["self-hosted", "Linux", "x64"]'
+      is-upload:
+        description: "Whether to upload the release asset"
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build_wheels_no_container:
+    name: Build wheels and Upload (Linux, self-hosted, no container)
+    runs-on: ${{ fromjson(inputs.runner) }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      TERM: xterm-256color
+    timeout-minutes: 2160
+
+    steps:
+      - name: Check environment
+        run: |
+          cat /etc/os-release || true
+          echo "-----------------------------"
+          cat /etc/lsb-release || true
+          echo "-----------------------------"
+          lscpu || true
+          echo "-----------------------------"
+          df -h || true
+          echo "-----------------------------"
+          free -h || true
+
+      - name: Install tools
+        run: |
+          # Auto-detect package manager and install dependencies
+          if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+              curl \
+              ca-certificates \
+              sudo \
+              software-properties-common \
+              wget \
+              unzip \
+              zip \
+              git \
+              build-essential \
+              gcc \
+              g++ \
+              clang \
+              ninja-build \
+              keyboard-configuration \
+              time \
+              patchelf
+          elif command -v dnf >/dev/null 2>&1; then
+            sudo dnf install -y \
+              curl \
+              ca-certificates \
+              sudo \
+              wget \
+              unzip \
+              zip \
+              git \
+              gcc-toolset-13-gcc \
+              gcc-toolset-13-gcc-c++ \
+              clang \
+              ninja-build \
+              time \
+              patchelf
+            # Activate gcc-toolset-13 for CUDA compatibility
+            if [ -f /opt/rh/gcc-toolset-13/enable ]; then
+              # Export PATH and other env vars to GITHUB_ENV for subsequent steps
+              source /opt/rh/gcc-toolset-13/enable
+              echo "PATH=$PATH" >> $GITHUB_ENV
+              echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" >> $GITHUB_ENV
+              echo "CC=$(which gcc)" >> $GITHUB_ENV
+              echo "CXX=$(which g++)" >> $GITHUB_ENV
+              echo "GCC version: $(gcc --version | head -1)"
+            fi
+          else
+            echo "Error: No supported package manager found (apt-get or dnf)"
+            exit 1
+          fi
+
+      - name: Install gh
+        run: |
+          # Auto-detect package manager and install GitHub CLI
+          if command -v apt-get >/dev/null 2>&1; then
+            sudo mkdir -p -m 755 /etc/apt/keyrings
+            out=$(mktemp)
+            wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg
+            cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
+            sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update
+            sudo apt install gh -y
+          elif command -v dnf >/dev/null 2>&1; then
+            sudo dnf install -y 'dnf-command(config-manager)'
+            sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+            sudo dnf -y install gh --repo gh-cli
+          else
+            echo "Error: No supported package manager found (apt-get or dnf)"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: Configure Git safe directory
+        run: |
+          git config --global --add safe.directory $(pwd)
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install Python
+        run: |
+          uv venv -p ${{ inputs.python-version }}
+          uv pip install -U pip setuptools==75.8.0 wheel packaging psutil auditwheel
+          current_dir=$(pwd)
+          echo "$current_dir/.venv/bin" >> $GITHUB_PATH
+
+      - name: Setup CUDA
+        uses: mjun0812/setup-cuda@v1
+        with:
+          version: ${{ inputs.cuda-version }}
+
+      - name: Build wheels
+        id: build_wheels
+        run: |
+          chmod +x build_linux.sh
+          ./build_linux.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.cuda-version }}
+          if [[ "${{ inputs.flash-attn-version }}" == fa3:* ]]; then
+            wheel_path=$(ls flash-attention/hopper/dist/*.whl | head -n 1)
+            echo "IS_FA3=true" >> $GITHUB_OUTPUT
+          else
+            wheel_path=$(ls flash-attention/dist/*.whl | head -n 1)
+            echo "IS_FA3=false" >> $GITHUB_OUTPUT
+          fi
+          echo "WHEEL_PATH=$wheel_path" >> $GITHUB_OUTPUT
+
+      - name: Install Test
+        run: |
+          if [ "${{ steps.build_wheels.outputs.IS_FA3 }}" = "true" ]; then
+            pip uninstall -y flash-attn-3 > /dev/null 2>&1
+            pip install --no-cache-dir ${{ steps.build_wheels.outputs.WHEEL_PATH }}
+            python -c "import flash_attn_3; from importlib.metadata import version; print(version('flash-attn-3'))"
+          else
+            pip uninstall -y flash-attn > /dev/null 2>&1
+            pip install --no-cache-dir ${{ steps.build_wheels.outputs.WHEEL_PATH }}
+            python -c "import flash_attn; print(flash_attn.__version__)"
+          fi
+
+      - name: Upload Release Asset
+        if: ${{ inputs.is-upload }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag_name=${{ github.ref_name }}
+          wheel_path="${{ steps.build_wheels.outputs.WHEEL_PATH }}"
+          # Check if the file exists
+          if [ ! -f "$wheel_path" ]; then
+            echo "Error: Wheel file not found at $wheel_path"
+            exit 1
+          fi
+          # Upload the release asset using GitHub CLI
+          gh release upload "$tag_name" "$wheel_path" --clobber
+
+      - name: Apply auditwheel repair
+        continue-on-error: true
+        id: auditwheel_repair
+        run: |
+          if [ "${{ steps.build_wheels.outputs.IS_FA3 }}" = "true" ]; then
+            DIST_MANYLINUX_DIR="flash-attention/hopper/dist_manylinux"
+          else
+            DIST_MANYLINUX_DIR="flash-attention/dist_manylinux"
+          fi
+          auditwheel show ${{ steps.build_wheels.outputs.WHEEL_PATH }}
+          auditwheel repair \
+            --exclude libc10* --exclude libtorch* --exclude libcu* --exclude libnv* --exclude 'libtorch*' \
+            ${{ steps.build_wheels.outputs.WHEEL_PATH }} -w "$DIST_MANYLINUX_DIR"
+          wheel_path_manylinux=$(ls "$DIST_MANYLINUX_DIR"/*manylinux*.whl 2>/dev/null | head -n 1 || echo "")
+          echo "WHEEL_PATH_MANYLINUX=$wheel_path_manylinux" >> $GITHUB_OUTPUT
+
+      - name: Test manylinux wheel
+        continue-on-error: true
+        run: |
+          if [ -n "${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}" ] && [ -f "${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}" ]; then
+            if [ "${{ steps.build_wheels.outputs.IS_FA3 }}" = "true" ]; then
+              pip uninstall -y flash-attn-3 > /dev/null 2>&1
+              pip install --no-cache-dir ${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}
+              python -c "import flash_attn_3; from importlib.metadata import version; print(version('flash-attn-3'))"
+            else
+              pip uninstall -y flash-attn > /dev/null 2>&1
+              pip install --no-cache-dir ${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}
+              python -c "import flash_attn; print(flash_attn.__version__)"
+            fi
+          fi
+
+      - name: Upload manylinux wheel
+        if: ${{ inputs.is-upload }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag_name=${{ github.ref_name }}
+          wheel_path_manylinux="${{ steps.auditwheel_repair.outputs.WHEEL_PATH_MANYLINUX }}"
+          if [ -n "$wheel_path_manylinux" ] && [ -f "$wheel_path_manylinux" ]; then
+            # Upload the release asset using GitHub CLI
+            gh release upload "$tag_name" "$wheel_path_manylinux" --clobber
+          else
+            echo "Skipping manylinux wheel upload: file not found"
+          fi
+
+      # Cleanup step - always runs even if previous steps fail
+      - name: Cleanup (always run)
+        if: always()
+        run: |
+          echo "=========================================="
+          echo "Starting cleanup for self-hosted runner..."
+          echo "=========================================="
+
+          # 1. Remove flash-attention directory (source and build artifacts)
+          FLASH_ATTN_DIR="$(pwd)/flash-attention"
+          if [ -d "$FLASH_ATTN_DIR" ]; then
+            echo "[1/6] Removing flash-attention directory: $FLASH_ATTN_DIR"
+            rm -rf "$FLASH_ATTN_DIR" || true
+          else
+            echo "[1/6] flash-attention directory not found, skipping"
+          fi
+
+          # 2. Remove Python virtual environment (.venv)
+          VENV_DIR="$(pwd)/.venv"
+          if [ -d "$VENV_DIR" ]; then
+            echo "[2/6] Removing Python virtual environment: $VENV_DIR"
+            rm -rf "$VENV_DIR" || true
+          else
+            echo "[2/6] .venv directory not found, skipping"
+          fi
+
+          # 3. Remove pip cache
+          PIP_CACHE_DIR="$HOME/.cache/pip"
+          if [ -d "$PIP_CACHE_DIR" ]; then
+            echo "[3/6] Removing pip cache: $PIP_CACHE_DIR"
+            rm -rf "$PIP_CACHE_DIR" || true
+          else
+            echo "[3/6] pip cache not found, skipping"
+          fi
+
+          # 4. Remove uv cache
+          UV_CACHE_DIR="$HOME/.cache/uv"
+          if [ -d "$UV_CACHE_DIR" ]; then
+            echo "[4/6] Removing uv cache: $UV_CACHE_DIR"
+            rm -rf "$UV_CACHE_DIR" || true
+          else
+            echo "[4/6] uv cache not found, skipping"
+          fi
+
+          # 5. Uninstall CUDA
+          echo "[5/6] Removing CUDA installation..."
+          if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get remove -y --purge 'cuda*' 'libcudnn*' 'libnccl*' 2>/dev/null || true
+            sudo apt-get autoremove -y 2>/dev/null || true
+          elif command -v dnf >/dev/null 2>&1; then
+            sudo dnf remove -y 'cuda*' 'libcudnn*' 'libnccl*' 2>/dev/null || true
+          fi
+          sudo rm -rf /usr/local/cuda* || true
+
+          # 6. Remove temp files
+          echo "[6/6] Removing temporary files"
+          rm -rf /tmp/pip-* /tmp/torch* /tmp/cuda* /tmp/flash* /tmp/uv-* 2>/dev/null || true
+
+          echo "=========================================="
+          echo "Cleanup completed."
+          echo "=========================================="

@@ -16,8 +16,10 @@ on:
         type: choice
         options:
           - linux-x64-self-hosted
+          - linux-x64-no-container
           - linux-arm64
           - linux-arm64-self-hosted
+          - linux-arm64-no-container
           - windows-self-hosted
           - windows-github-hosted
           - windows-codebuild
@@ -59,6 +61,20 @@ jobs:
       use-container: true
 
   # #########################################################
+  # Linux x86_64 self-hosted runner (no container)
+  # #########################################################
+  linux-x64-no-container:
+    if: inputs.platform == 'linux-x64-no-container'
+    uses: ./.github/workflows/_build_linux_no_container.yml
+    with:
+      flash-attn-version: ${{ inputs.flash-attn-version }}
+      python-version: ${{ inputs.python-version }}
+      torch-version: ${{ inputs.torch-version }}
+      cuda-version: ${{ inputs.cuda-version }}
+      is-upload: false
+      runner: '["self-hosted", "Linux", "x64"]'
+
+  # #########################################################
   # Linux ARM64 GitHub-hosted runner
   # #########################################################
   linux-arm64:
@@ -86,6 +102,20 @@ jobs:
       is-upload: false
       runner: '["self-hosted-arm"]'
       container-image: "quay.io/pypa/manylinux_2_28_aarch64"
+
+  # #########################################################
+  # Linux ARM64 self-hosted runner (no container)
+  # #########################################################
+  linux-arm64-no-container:
+    if: inputs.platform == 'linux-arm64-no-container'
+    uses: ./.github/workflows/_build_linux_no_container.yml
+    with:
+      flash-attn-version: ${{ inputs.flash-attn-version }}
+      python-version: ${{ inputs.python-version }}
+      torch-version: ${{ inputs.torch-version }}
+      cuda-version: ${{ inputs.cuda-version }}
+      is-upload: false
+      runner: '["self-hosted-arm", "arm64"]'
 
   # #########################################################
   # Windows x86_64 self-hosted runner
