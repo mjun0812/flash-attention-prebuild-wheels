@@ -173,6 +173,13 @@ jobs:
           current_dir=$(pwd)
           echo "$current_dir/.venv/bin" >> $GITHUB_PATH
 
+          # Export Python include path for C extensions (Python.h)
+          # uv's standalone Python stores headers under the managed Python,
+          # not under /usr/include, so we need to add it to CPATH.
+          PYTHON_INCLUDE=$(python -c "import sysconfig; print(sysconfig.get_path('include'))")
+          echo "Python include path: $PYTHON_INCLUDE"
+          echo "CPATH=$PYTHON_INCLUDE${CPATH:+:$CPATH}" >> $GITHUB_ENV
+
       - name: Setup CUDA
         uses: mjun0812/setup-cuda@v1
         with:
