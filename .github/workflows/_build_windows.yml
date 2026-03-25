@@ -38,9 +38,6 @@ jobs:
   build_windows_wheels:
     name: Build wheels and Upload (Windows x86_64, GitHub hosted runner)
     runs-on: ${{ inputs.runner }}
-    env:
-      MAX_JOBS: 2
-      NVCC_THREADS: 2
     steps:
       - uses: actions/checkout@v4
 

@@ -54,9 +54,6 @@ jobs:
     name: Build wheels and Upload (Windows x86_64, self-hosted runner)
     runs-on: ${{ fromjson(inputs.runner) }}
     timeout-minutes: 2160
-    env:
-      MAX_JOBS: 4
-      NVCC_THREADS: 2
     steps:
       - uses: actions/checkout@v4
 

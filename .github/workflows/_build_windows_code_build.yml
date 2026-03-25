@@ -34,9 +34,6 @@ jobs:
     timeout-minutes: 2160
     runs-on: codebuild-flash-attention-pre-build-wheel-windows-${{ github.run_id }}-${{ github.run_attempt }}
     # Large Instance
-    env:
-      MAX_JOBS: 6
-      NVCC_THREADS: 2
     steps:
       - uses: actions/checkout@v4
 

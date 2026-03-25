@@ -336,10 +336,39 @@ Import-Module 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Co
 Enter-VsDevShell -VsInstallPath 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools' -DevCmdArguments '-arch=x64 -host_arch=x64'
 $env:DISTUTILS_USE_SDK = 1
 $env:BUILD_TARGET = "cuda"
-# Use environment variables from workflow if available, otherwise use defaults
-if (-not $env:MAX_JOBS) { $env:MAX_JOBS = "2" }
-if (-not $env:NVCC_THREADS) { $env:NVCC_THREADS = "2" }
-Write-Host "Environment variables:"
+# Determine MAX_JOBS and NVCC_THREADS based on system resources
+$NumThreads = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+$RamGB = [math]::Floor((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)
+Write-Host "System resources:"
+Write-Host "  CPU threads: $NumThreads"
+Write-Host "  RAM: ${RamGB}GB"
+if (-not $env:MAX_JOBS -and -not $env:NVCC_THREADS) {
+    # Calculate max product based on following constraints:
+    # - MAX_JOBS x NVCC_THREADS(<= 4) <= NUM_THREADS
+    # - 2.8GB x MAX_JOBS x NVCC_THREADS(<= 4) <= RAM_GB
+    $MaxProductCpu = $NumThreads
+    $MaxProductRam = [math]::Floor($RamGB / 2.8)
+    $MaxProduct = [math]::Min($MaxProductCpu, $MaxProductRam)
+
+    $BaseThreads = [math]::Floor([math]::Sqrt($MaxProduct))
+
+    if ($RamGB -le 16) {
+        # If RAM is 16GB or less, set NVCC_THREADS to 1 and MAX_JOBS to 2
+        $env:NVCC_THREADS = "1"
+        $env:MAX_JOBS = "2"
+    } elseif ($BaseThreads -le 4) {
+        $env:NVCC_THREADS = "$BaseThreads"
+        $env:MAX_JOBS = "$BaseThreads"
+    } else {
+        $env:NVCC_THREADS = "4"
+        $env:MAX_JOBS = "$([math]::Floor($MaxProduct / 4))"
+    }
+
+    # Ensure minimum values of 1
+    if ([int]$env:MAX_JOBS -lt 1) { $env:MAX_JOBS = "1" }
+    if ([int]$env:NVCC_THREADS -lt 1) { $env:NVCC_THREADS = "1" }
+}
+Write-Host "Build parallelism settings:"
 Write-Host "  MAX_JOBS: $env:MAX_JOBS"
 Write-Host "  NVCC_THREADS: $env:NVCC_THREADS"
 $env:FLASH_ATTENTION_FORCE_BUILD = "TRUE"
