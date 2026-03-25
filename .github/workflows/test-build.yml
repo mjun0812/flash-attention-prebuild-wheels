@@ -115,7 +115,7 @@ jobs:
       torch-version: ${{ inputs.torch-version }}
       cuda-version: ${{ inputs.cuda-version }}
       is-upload: false
-      runner: '["self-hosted-arm", "arm64"]'
+      runner: '["self-hosted-arm"]'
 
   # #########################################################
   # Windows x86_64 self-hosted runner
