@@ -68,74 +68,93 @@ jobs:
 
       - name: Install tools
         run: |
-          # Auto-detect package manager and install dependencies
-          if command -v apt-get >/dev/null 2>&1; then
-            sudo apt-get update && sudo apt-get install -y --no-install-recommends \
-              curl \
-              ca-certificates \
-              sudo \
-              software-properties-common \
-              wget \
-              unzip \
-              zip \
-              git \
-              build-essential \
-              gcc \
-              g++ \
-              clang \
-              ninja-build \
-              keyboard-configuration \
-              time \
-              patchelf
-          elif command -v dnf >/dev/null 2>&1; then
-            sudo dnf install -y \
-              curl \
-              ca-certificates \
-              sudo \
-              wget \
-              unzip \
-              zip \
-              git \
-              gcc-toolset-13-gcc \
-              gcc-toolset-13-gcc-c++ \
-              clang \
-              ninja-build \
-              time \
-              patchelf
-            # Activate gcc-toolset-13 for CUDA compatibility
-            if [ -f /opt/rh/gcc-toolset-13/enable ]; then
-              # Export PATH and other env vars to GITHUB_ENV for subsequent steps
-              source /opt/rh/gcc-toolset-13/enable
-              echo "PATH=$PATH" >> $GITHUB_ENV
-              echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" >> $GITHUB_ENV
-              echo "CC=$(which gcc)" >> $GITHUB_ENV
-              echo "CXX=$(which g++)" >> $GITHUB_ENV
-              echo "GCC version: $(gcc --version | head -1)"
+          # Check if key build tools are already installed
+          REQUIRED_CMDS=(gcc g++ clang ninja patchelf)
+          MISSING=false
+          for cmd in "${REQUIRED_CMDS[@]}"; do
+            if ! command -v "$cmd" >/dev/null 2>&1; then
+              echo "Missing: $cmd"
+              MISSING=true
             fi
+          done
+
+          if [ "$MISSING" = "false" ]; then
+            echo "All build tools already installed, skipping"
           else
-            echo "Error: No supported package manager found (apt-get or dnf)"
-            exit 1
+            echo "Installing build tools..."
+            # Auto-detect package manager and install dependencies
+            if command -v apt-get >/dev/null 2>&1; then
+              sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+                curl \
+                ca-certificates \
+                sudo \
+                software-properties-common \
+                wget \
+                unzip \
+                zip \
+                git \
+                build-essential \
+                gcc \
+                g++ \
+                clang \
+                ninja-build \
+                keyboard-configuration \
+                time \
+                patchelf
+            elif command -v dnf >/dev/null 2>&1; then
+              sudo dnf install -y \
+                curl \
+                ca-certificates \
+                sudo \
+                wget \
+                unzip \
+                zip \
+                git \
+                gcc-toolset-13-gcc \
+                gcc-toolset-13-gcc-c++ \
+                clang \
+                ninja-build \
+                time \
+                patchelf
+            else
+              echo "Error: No supported package manager found (apt-get or dnf)"
+              exit 1
+            fi
+          fi
+
+          # Activate gcc-toolset-13 for CUDA compatibility (always check, even if skipped install)
+          if [ -f /opt/rh/gcc-toolset-13/enable ]; then
+            source /opt/rh/gcc-toolset-13/enable
+            echo "PATH=$PATH" >> $GITHUB_ENV
+            echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" >> $GITHUB_ENV
+            echo "CC=$(which gcc)" >> $GITHUB_ENV
+            echo "CXX=$(which g++)" >> $GITHUB_ENV
+            echo "GCC version: $(gcc --version | head -1)"
           fi
 
       - name: Install gh
         run: |
-          # Auto-detect package manager and install GitHub CLI
-          if command -v apt-get >/dev/null 2>&1; then
-            sudo mkdir -p -m 755 /etc/apt/keyrings
-            out=$(mktemp)
-            wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg
-            cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
-            sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-            sudo apt update
-            sudo apt install gh -y
-          elif command -v dnf >/dev/null 2>&1; then
-            sudo dnf install -y 'dnf-command(config-manager)'
-            sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
-            sudo dnf -y install gh --repo gh-cli
+          if command -v gh >/dev/null 2>&1; then
+            echo "GitHub CLI already installed: $(gh --version | head -1)"
           else
-            echo "Error: No supported package manager found (apt-get or dnf)"
-            exit 1
+            echo "Installing GitHub CLI..."
+            if command -v apt-get >/dev/null 2>&1; then
+              sudo mkdir -p -m 755 /etc/apt/keyrings
+              out=$(mktemp)
+              wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg
+              cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
+              sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+              sudo apt update
+              sudo apt install gh -y
+            elif command -v dnf >/dev/null 2>&1; then
+              sudo dnf install -y 'dnf-command(config-manager)'
+              sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+              sudo dnf -y install gh --repo gh-cli
+            else
+              echo "Error: No supported package manager found (apt-get or dnf)"
+              exit 1
+            fi
           fi
 
       - uses: actions/checkout@v4
