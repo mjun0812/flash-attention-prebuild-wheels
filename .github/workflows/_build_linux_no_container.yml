@@ -174,10 +174,16 @@ jobs:
           echo "$current_dir/.venv/bin" >> $GITHUB_PATH
 
           # Export Python include path for C extensions (Python.h)
-          # uv's standalone Python stores headers under the managed Python,
-          # not under /usr/include, so we need to add it to CPATH.
-          # Use .venv/bin/python directly since GITHUB_PATH is not yet active in this step.
-          PYTHON_INCLUDE=$($current_dir/.venv/bin/python -c "import sysconfig; print(sysconfig.get_path('include'))")
+          # uv's standalone Python may report a wrong sysconfig include path
+          # (e.g. /usr/include/python3.12 which doesn't exist). Resolve the
+          # real Python binary and find the include directory relative to it.
+          REAL_PYTHON=$(readlink -f $current_dir/.venv/bin/python)
+          PYTHON_PREFIX=$(dirname $(dirname "$REAL_PYTHON"))
+          PYTHON_INCLUDE=$(find "$PYTHON_PREFIX/include" -name "Python.h" -printf "%h" -quit 2>/dev/null || echo "")
+          if [ -z "$PYTHON_INCLUDE" ]; then
+            # Fallback to sysconfig
+            PYTHON_INCLUDE=$($current_dir/.venv/bin/python -c "import sysconfig; print(sysconfig.get_path('include'))")
+          fi
           echo "Python include path: $PYTHON_INCLUDE"
           echo "CPATH=$PYTHON_INCLUDE${CPATH:+:$CPATH}" >> $GITHUB_ENV
 
