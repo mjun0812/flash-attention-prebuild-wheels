@@ -178,11 +178,31 @@ jobs:
           # (e.g. /usr/include/python3.12 which doesn't exist). Resolve the
           # real Python binary and find the include directory relative to it.
           REAL_PYTHON=$(readlink -f $current_dir/.venv/bin/python)
+          echo "Real Python binary: $REAL_PYTHON"
           PYTHON_PREFIX=$(dirname $(dirname "$REAL_PYTHON"))
-          PYTHON_INCLUDE=$(find "$PYTHON_PREFIX/include" -name "Python.h" -printf "%h" -quit 2>/dev/null || echo "")
+          echo "Python prefix: $PYTHON_PREFIX"
+
+          # Search for Python.h in multiple locations:
+          # 1. uv managed Python directory
+          # 2. Python prefix from real binary
+          # 3. sysconfig reported path (fallback)
+          PYTHON_INCLUDE=""
+          UV_PYTHON_DIR="${UV_PYTHON_INSTALL_DIR:-$HOME/.local/share/uv/python}"
+          for search_dir in "$UV_PYTHON_DIR" "$PYTHON_PREFIX"; do
+            if [ -d "$search_dir" ]; then
+              found=$(find "$search_dir" -name "Python.h" -printf "%h" -quit 2>/dev/null || echo "")
+              if [ -n "$found" ]; then
+                PYTHON_INCLUDE="$found"
+                echo "Found Python.h in: $PYTHON_INCLUDE"
+                break
+              fi
+            fi
+          done
+
           if [ -z "$PYTHON_INCLUDE" ]; then
             # Fallback to sysconfig
             PYTHON_INCLUDE=$($current_dir/.venv/bin/python -c "import sysconfig; print(sysconfig.get_path('include'))")
+            echo "Fallback to sysconfig: $PYTHON_INCLUDE"
           fi
           echo "Python include path: $PYTHON_INCLUDE"
           echo "CPATH=$PYTHON_INCLUDE${CPATH:+:$CPATH}" >> $GITHUB_ENV
