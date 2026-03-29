@@ -1,6 +1,9 @@
-FROM ubuntu:24.04
+ARG PLATFORM="linux/amd64"
+
+FROM --platform=${PLATFORM} ubuntu:24.04
 
 ARG GH_RUNNER_VERSION="2.331.0"
+ARG TARGETARCH
 
 ENV DEBIAN_FRONTEND=noninteractive \
     AGENT_TOOLSDIRECTORY=/opt/hostedtoolcache
@@ -68,8 +71,6 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
 WORKDIR /home/ubuntu
 USER ubuntu
-
-ARG TARGETARCH
 
 RUN case "${TARGETARCH}" in \
     amd64) ARCH="x64" ;; \
