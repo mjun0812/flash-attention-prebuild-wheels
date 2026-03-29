@@ -66,98 +66,7 @@ jobs:
           echo "-----------------------------"
           free -h || true
 
-      - name: Install tools
-        run: |
-          # Check if key build tools are already installed
-          REQUIRED_CMDS=(gcc g++ clang ninja patchelf)
-          MISSING=false
-          for cmd in "${REQUIRED_CMDS[@]}"; do
-            if ! command -v "$cmd" >/dev/null 2>&1; then
-              echo "Missing: $cmd"
-              MISSING=true
-            fi
-          done
-
-          if [ "$MISSING" = "false" ]; then
-            echo "All build tools already installed, skipping"
-          else
-            echo "Installing build tools..."
-            # Auto-detect package manager and install dependencies
-            if command -v apt-get >/dev/null 2>&1; then
-              sudo apt-get update && sudo apt-get install -y --no-install-recommends \
-                curl \
-                ca-certificates \
-                sudo \
-                software-properties-common \
-                wget \
-                unzip \
-                zip \
-                git \
-                build-essential \
-                gcc \
-                g++ \
-                clang \
-                ninja-build \
-                keyboard-configuration \
-                time \
-                patchelf
-            elif command -v dnf >/dev/null 2>&1; then
-              sudo dnf install -y \
-                curl \
-                ca-certificates \
-                sudo \
-                wget \
-                unzip \
-                zip \
-                git \
-                gcc-toolset-13-gcc \
-                gcc-toolset-13-gcc-c++ \
-                clang \
-                ninja-build \
-                time \
-                patchelf
-            else
-              echo "Error: No supported package manager found (apt-get or dnf)"
-              exit 1
-            fi
-          fi
-
-          # Activate gcc-toolset-13 for CUDA compatibility (always check, even if skipped install)
-          if [ -f /opt/rh/gcc-toolset-13/enable ]; then
-            source /opt/rh/gcc-toolset-13/enable
-            echo "PATH=$PATH" >> $GITHUB_ENV
-            echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" >> $GITHUB_ENV
-            echo "CC=$(which gcc)" >> $GITHUB_ENV
-            echo "CXX=$(which g++)" >> $GITHUB_ENV
-            echo "GCC version: $(gcc --version | head -1)"
-          fi
-
-      - name: Install gh
-        run: |
-          if command -v gh >/dev/null 2>&1; then
-            echo "GitHub CLI already installed: $(gh --version | head -1)"
-          else
-            echo "Installing GitHub CLI..."
-            if command -v apt-get >/dev/null 2>&1; then
-              sudo mkdir -p -m 755 /etc/apt/keyrings
-              out=$(mktemp)
-              wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg
-              cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
-              sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-              sudo apt update
-              sudo apt install gh -y
-            elif command -v dnf >/dev/null 2>&1; then
-              sudo dnf install -y 'dnf-command(config-manager)'
-              sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
-              sudo dnf -y install gh --repo gh-cli
-            else
-              echo "Error: No supported package manager found (apt-get or dnf)"
-              exit 1
-            fi
-          fi
-
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Configure Git safe directory
         run: |
@@ -172,40 +81,6 @@ jobs:
           uv pip install -U pip setuptools==75.8.0 wheel packaging psutil auditwheel
           current_dir=$(pwd)
           echo "$current_dir/.venv/bin" >> $GITHUB_PATH
-
-          # Export Python include path for C extensions (Python.h)
-          # uv's standalone Python may report a wrong sysconfig include path
-          # (e.g. /usr/include/python3.12 which doesn't exist). Resolve the
-          # real Python binary and find the include directory relative to it.
-          REAL_PYTHON=$(readlink -f $current_dir/.venv/bin/python)
-          echo "Real Python binary: $REAL_PYTHON"
-          PYTHON_PREFIX=$(dirname $(dirname "$REAL_PYTHON"))
-          echo "Python prefix: $PYTHON_PREFIX"
-
-          # Search for Python.h in multiple locations:
-          # 1. uv managed Python directory
-          # 2. Python prefix from real binary
-          # 3. sysconfig reported path (fallback)
-          PYTHON_INCLUDE=""
-          UV_PYTHON_DIR="${UV_PYTHON_INSTALL_DIR:-$HOME/.local/share/uv/python}"
-          for search_dir in "$UV_PYTHON_DIR" "$PYTHON_PREFIX"; do
-            if [ -d "$search_dir" ]; then
-              found=$(find "$search_dir" -name "Python.h" -printf "%h" -quit 2>/dev/null || echo "")
-              if [ -n "$found" ]; then
-                PYTHON_INCLUDE="$found"
-                echo "Found Python.h in: $PYTHON_INCLUDE"
-                break
-              fi
-            fi
-          done
-
-          if [ -z "$PYTHON_INCLUDE" ]; then
-            # Fallback to sysconfig
-            PYTHON_INCLUDE=$($current_dir/.venv/bin/python -c "import sysconfig; print(sysconfig.get_path('include'))")
-            echo "Fallback to sysconfig: $PYTHON_INCLUDE"
-          fi
-          echo "Python include path: $PYTHON_INCLUDE"
-          echo "CPATH=$PYTHON_INCLUDE${CPATH:+:$CPATH}" >> $GITHUB_ENV
 
       - name: Setup CUDA
         uses: mjun0812/setup-cuda@v1
@@ -360,3 +235,9 @@ jobs:
           echo "=========================================="
           echo "Cleanup completed."
           echo "=========================================="
+
+      - name: Clean up
+        shell: bash
+        if: always()
+        run: |
+          rm -rf /opt/hostedtoolcache/Python

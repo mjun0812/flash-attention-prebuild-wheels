@@ -42,7 +42,7 @@ jobs:
       DEBIAN_FRONTEND: noninteractive
       TERM: xterm-256color
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Maximize build space
         run: |

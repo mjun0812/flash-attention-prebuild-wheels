@@ -55,7 +55,7 @@ jobs:
     runs-on: ${{ fromjson(inputs.runner) }}
     timeout-minutes: 2160
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Enable Git long paths
         shell: pwsh

@@ -35,7 +35,7 @@ jobs:
     runs-on: codebuild-flash-attention-pre-build-wheel-windows-${{ github.run_id }}-${{ github.run_attempt }}
     # Large Instance
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Enable Git long paths
         shell: pwsh

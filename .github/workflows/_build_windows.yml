@@ -39,7 +39,7 @@ jobs:
     name: Build wheels and Upload (Windows x86_64, GitHub hosted runner)
     runs-on: ${{ inputs.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Enable Git long paths
         shell: pwsh
