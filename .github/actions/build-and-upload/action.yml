@@ -45,6 +45,58 @@ runs:
         current_dir=$(pwd)
         echo "$current_dir/.venv/bin" >> $GITHUB_PATH
 
+    - name: Debug Python include paths
+      shell: bash
+      run: |
+        echo "===== Python binary info ====="
+        which python
+        python --version
+        REAL_PYTHON=$(readlink -f $(which python))
+        echo "Real python binary: $REAL_PYTHON"
+
+        echo ""
+        echo "===== sysconfig paths ====="
+        python -c "
+        import sysconfig
+        print('include:', sysconfig.get_path('include'))
+        print('platinclude:', sysconfig.get_path('platinclude'))
+        print('prefix:', sysconfig.get_config_var('prefix'))
+        print('INCLUDEPY:', sysconfig.get_config_var('INCLUDEPY'))
+        print('installed_base:', sysconfig.get_config_var('installed_base'))
+        "
+
+        echo ""
+        echo "===== Check if Python.h exists at sysconfig path ====="
+        INCLUDE_PATH=$(python -c "import sysconfig; print(sysconfig.get_path('include'))")
+        echo "sysconfig include path: $INCLUDE_PATH"
+        if [ -f "$INCLUDE_PATH/Python.h" ]; then
+          echo "OK: Python.h found at $INCLUDE_PATH/Python.h"
+        else
+          echo "NOT FOUND: Python.h not at $INCLUDE_PATH/Python.h"
+        fi
+
+        echo ""
+        echo "===== .venv/include contents ====="
+        ls -la .venv/include/ 2>/dev/null || echo ".venv/include/ does not exist"
+        ls -la .venv/include/*/ 2>/dev/null || echo "No subdirectories in .venv/include/"
+
+        echo ""
+        echo "===== uv python directory ====="
+        UV_PYTHON_DIR="${HOME}/.local/share/uv/python"
+        echo "UV_PYTHON_DIR: $UV_PYTHON_DIR"
+        ls -la "$UV_PYTHON_DIR/" 2>/dev/null || echo "uv python dir not found"
+
+        echo ""
+        echo "===== Search for Python.h ====="
+        # Search in uv managed directory
+        find "$UV_PYTHON_DIR" -name "Python.h" 2>/dev/null | head -5 || echo "Not found in uv dir"
+        # Search in venv
+        find .venv -name "Python.h" 2>/dev/null | head -5 || echo "Not found in .venv"
+        # Search in real python prefix
+        REAL_PREFIX=$(dirname $(dirname "$REAL_PYTHON"))
+        echo "Real python prefix: $REAL_PREFIX"
+        find "$REAL_PREFIX" -name "Python.h" 2>/dev/null | head -5 || echo "Not found in real prefix"
+
     - name: Setup CUDA
       uses: mjun0812/setup-cuda@v1
       with:
