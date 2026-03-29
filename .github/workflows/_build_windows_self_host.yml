@@ -86,15 +86,22 @@ jobs:
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v2
 
+      - name: Set OEM code page to UTF-8
+        shell: pwsh
+        run: |
+          # PyTorch cpp_extension.py uses Python's 'oem' codec to decode
+          # cl.exe output. On Japanese Windows, the OEM code page (cp932)
+          # cannot decode certain bytes from MSVC. Override the system OEM
+          # and ANSI code pages to UTF-8 (65001) via registry.
+          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage' -Name 'OEMCP' -Value '65001'
+          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage' -Name 'ACP' -Value '65001'
+
       - name: Build wheels
         shell: pwsh
         timeout-minutes: 2160
         env:
           PYTHONUTF8: "1"
         run: |
-          # Set console code page to UTF-8 to avoid UnicodeDecodeError
-          # in torch cpp_extension when detecting compiler version
-          chcp 65001
           .\build_windows.ps1 -FlashAttnVersion "${{ inputs.flash-attn-version }}" -PythonVersion "${{ inputs.python-version }}" -TorchVersion "${{ inputs.torch-version }}" -CudaVersion "${{ inputs.cuda-version }}"
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
@@ -232,6 +239,11 @@ jobs:
               Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
             }
           }
+
+          # 7. Restore OEM/ANSI code page to original values (Japanese: 932/932)
+          Write-Host "[7/7] Restoring OEM/ANSI code page..."
+          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage' -Name 'OEMCP' -Value '932' -ErrorAction SilentlyContinue
+          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage' -Name 'ACP' -Value '932' -ErrorAction SilentlyContinue
 
           Write-Host "=========================================="
           Write-Host "Cleanup completed."
