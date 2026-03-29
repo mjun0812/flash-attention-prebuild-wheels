@@ -20,6 +20,7 @@ services:
   # Qemu Runner (Arm64)
   runner-arm:
     platform: linux/arm64
+    privileged: true
     restart: always
     env_file:
       - .env.arm
