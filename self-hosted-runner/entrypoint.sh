@@ -25,6 +25,7 @@ service docker start
 
 if [ "$RUN_AS_ROOT" = "true" ]; then
     RUN_PREFIX=""
+    export RUNNER_ALLOW_RUNASROOT=1
 else
     RUN_PREFIX="runuser -u ubuntu --"
 fi
