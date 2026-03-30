@@ -40,22 +40,26 @@ runs:
     - name: Install Python
       shell: bash
       run: |
-        uv venv -p ${{ inputs.python-version }}
+        uv venv -p ${{ inputs.python-version }} --python-preference only-managed
         uv pip install -U pip setuptools==75.8.0 wheel packaging psutil auditwheel
         current_dir=$(pwd)
         echo "$current_dir/.venv/bin" >> $GITHUB_PATH
 
     - name: Setup CUDA
-      uses: mjun0812/setup-cuda@v1
+      uses: mjun0812/setup-cuda@v1.3.0
       with:
         version: ${{ inputs.cuda-version }}
 
     - name: Build wheels
-      id: build_wheels
       shell: bash
       run: |
         chmod +x build_linux.sh
         ./build_linux.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.cuda-version }}
+
+    - name: Locate wheel
+      id: build_wheels
+      shell: bash
+      run: |
         if [[ "${{ inputs.flash-attn-version }}" == fa3:* ]]; then
           wheel_path=$(ls flash-attention/hopper/dist/*.whl | head -n 1)
           echo "IS_FA3=true" >> $GITHUB_OUTPUT

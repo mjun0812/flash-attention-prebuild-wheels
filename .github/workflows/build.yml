@@ -10,7 +10,7 @@ jobs:
     name: Create Releases
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -25,7 +25,7 @@ jobs:
     outputs:
       matrix: ${{ steps.create_matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install uv
         uses: astral-sh/setup-uv@v7
       - name: Create Matrix
@@ -125,6 +125,49 @@ jobs:
       container-image: "quay.io/pypa/manylinux_2_28_aarch64"
     secrets: inherit
 
+  # ################ Self-hosted runner (no container) ################
+  build_wheels_linux_no_container:
+    name: Build Linux (no container)
+    needs: [create_releases, create_matrix]
+    if: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_no_container }}
+    strategy:
+      fail-fast: false
+      matrix:
+        flash-attn-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_no_container.flash-attn-version }}
+        python-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_no_container.python-version }}
+        torch-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_no_container.torch-version }}
+        cuda-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_no_container.cuda-version }}
+        exclude: ${{ fromjson(needs.create_matrix.outputs.matrix).exclude }}
+    uses: ./.github/workflows/_build_linux_no_container.yml
+    with:
+      flash-attn-version: ${{ matrix.flash-attn-version }}
+      python-version: ${{ matrix.python-version }}
+      torch-version: ${{ matrix.torch-version }}
+      cuda-version: ${{ matrix.cuda-version }}
+      runner: '["self-hosted", "Linux", "x64"]'
+    secrets: inherit
+
+  build_wheels_linux_arm64_no_container:
+    name: Build Linux ARM64 (no container)
+    needs: [create_releases, create_matrix]
+    if: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64_no_container }}
+    strategy:
+      fail-fast: false
+      matrix:
+        flash-attn-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64_no_container.flash-attn-version }}
+        python-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64_no_container.python-version }}
+        torch-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64_no_container.torch-version }}
+        cuda-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_arm64_no_container.cuda-version }}
+        exclude: ${{ fromjson(needs.create_matrix.outputs.matrix).exclude }}
+    uses: ./.github/workflows/_build_linux_no_container.yml
+    with:
+      flash-attn-version: ${{ matrix.flash-attn-version }}
+      python-version: ${{ matrix.python-version }}
+      torch-version: ${{ matrix.torch-version }}
+      cuda-version: ${{ matrix.cuda-version }}
+      runner: '["self-hosted-arm", "arm64"]'
+    secrets: inherit
+
   # #########################################################
   # Windows
   # #########################################################
@@ -201,13 +244,15 @@ jobs:
       - build_wheels_linux_arm64
       - build_wheels_linux_self_hosted
       - build_wheels_linux_arm64_self_hosted
+      - build_wheels_linux_no_container
+      - build_wheels_linux_arm64_no_container
       - build_wheels_windows
       - build_wheels_windows_code_build
       - build_wheels_windows_self_hosted
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -227,6 +272,8 @@ jobs:
       - build_wheels_linux_arm64
       - build_wheels_linux_self_hosted
       - build_wheels_linux_arm64_self_hosted
+      - build_wheels_linux_no_container
+      - build_wheels_linux_arm64_no_container
       - build_wheels_windows
       - build_wheels_windows_code_build
       - build_wheels_windows_self_hosted
@@ -238,7 +285,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.repository.default_branch }}
 

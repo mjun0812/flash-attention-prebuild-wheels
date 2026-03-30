@@ -1,6 +1,9 @@
-FROM ubuntu:24.04
+ARG PLATFORM="linux/amd64"
+
+FROM --platform=${PLATFORM} ubuntu:24.04
 
 ARG GH_RUNNER_VERSION="2.331.0"
+ARG TARGETARCH
 
 ENV DEBIAN_FRONTEND=noninteractive \
     AGENT_TOOLSDIRECTORY=/opt/hostedtoolcache
@@ -8,7 +11,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN mkdir -p /opt/hostedtoolcache \
     && chown -R ubuntu:ubuntu /opt/hostedtoolcache
 
-RUN apt-get update && apt-get install -y --no-install-recommends\
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     sudo \
@@ -18,6 +21,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends\
     zip \
     git \
     libc-bin \
+    build-essential \
+    gcc \
+    g++ \
+    clang \
+    ninja-build \
+    keyboard-configuration \
+    time \
+    patchelf \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Docker
@@ -38,6 +49,16 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
 
+# Install GitHub CLI
+RUN mkdir -p -m 755 /etc/apt/keyrings \
+    && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    && cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && mkdir -p -m 755 /etc/apt/sources.list.d \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+    && apt update \
+    && apt install gh -y
+
 # Install dotnet
 RUN add-apt-repository ppa:dotnet/backports
 
@@ -50,8 +71,6 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
 WORKDIR /home/ubuntu
 USER ubuntu
-
-ARG TARGETARCH
 
 RUN case "${TARGETARCH}" in \
     amd64) ARCH="x64" ;; \
