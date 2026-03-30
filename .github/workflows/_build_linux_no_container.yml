@@ -88,10 +88,13 @@ jobs:
           version: ${{ inputs.cuda-version }}
 
       - name: Build wheels
-        id: build_wheels
         run: |
           chmod +x build_linux.sh
           ./build_linux.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.cuda-version }}
+
+      - name: Locate wheel
+        id: build_wheels
+        run: |
           if [[ "${{ inputs.flash-attn-version }}" == fa3:* ]]; then
             wheel_path=$(ls flash-attention/hopper/dist/*.whl | head -n 1)
             echo "IS_FA3=true" >> $GITHUB_OUTPUT
