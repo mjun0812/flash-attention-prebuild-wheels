@@ -4,8 +4,8 @@
 [![Search Page](https://img.shields.io/badge/Search_Page-Find_Your_Wheel-blue?style=for-the-badge&logo=googlelens)](https://mjunya.com/flash-attention-prebuild-wheels/)
 <!-- COVERAGE_BADGE_START -->
 ![Linux x86_64](https://img.shields.io/badge/Linux_x86_64-93.1%25-green?style=for-the-badge)
-![Linux ARM64](https://img.shields.io/badge/Linux_ARM64-45.5%25-red?style=for-the-badge)
-![Windows](https://img.shields.io/badge/Windows-69.7%25-red?style=for-the-badge)
+![Linux ARM64](https://img.shields.io/badge/Linux_ARM64-29.4%25-red?style=for-the-badge)
+![Windows](https://img.shields.io/badge/Windows-45.1%25-red?style=for-the-badge)
 <!-- COVERAGE_BADGE_END -->
 
 This repository provides wheels for the pre-built [flash-attention](https://github.com/Dao-AILab/flash-attention).
@@ -51,10 +51,10 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 
 | Platform | Existing | Missing | Coverage |
 |----------|----------|---------|----------|
-| Linux x86_64 | 242 | 18 | 93.1% |
-| Linux ARM64 | 30 | 36 | 45.5% |
-| Windows | 46 | 20 | 69.7% |
-| **Total** | **318** | **74** | **81.1%** |
+| Linux x86_64 | 309 | 23 | 93.1% |
+| Linux ARM64 | 30 | 72 | 29.4% |
+| Windows | 46 | 56 | 45.1% |
+| **Total** | **385** | **151** | **71.8%** |
 <!-- COVERAGE_TABLE_END -->
 
 > [!NOTE]
