@@ -1722,6 +1722,8 @@
 | 3.9+ (abi3) | 2.9 | 13.0 | [Download1(v0.9.3)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.3/flash_attn_3-3.0.0+cu130torch2.9gite2743ab-cp39-abi3-win_amd64.whl) |
 | 3.9+ (abi3) | 2.10 | 12.8 | [Download1(v0.9.3)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.3/flash_attn_3-3.0.0+cu128torch2.10gite2743ab-cp39-abi3-win_amd64.whl) |
 | 3.9+ (abi3) | 2.10 | 13.0 | [Download1(v0.9.3)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.3/flash_attn_3-3.0.0+cu130torch2.10gite2743ab-cp39-abi3-win_amd64.whl) |
+| 3.9+ (abi3) | 2.11 | 12.8 | [Download1(v0.9.6)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.6/flash_attn_3-3.0.0+cu128torch2.11gite2743ab-cp39-abi3-win_amd64.whl) |
+| 3.9+ (abi3) | 2.11 | 13.0 | [Download1(v0.9.6)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.6/flash_attn_3-3.0.0+cu130torch2.11gite2743ab-cp39-abi3-win_amd64.whl) |
 
 </details>
 
@@ -1750,6 +1752,7 @@
 | 3.10 | 2.10 | 12.6 | [Download1(v0.7.12)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.12/flash_attn-2.8.3+cu126torch2.10-cp310-cp310-win_amd64.whl) |
 | 3.10 | 2.10 | 12.8 | [Download1(v0.7.13)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.13/flash_attn-2.8.3+cu128torch2.10-cp310-cp310-win_amd64.whl) |
 | 3.10 | 2.10 | 13.0 | [Download1(v0.7.13)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.13/flash_attn-2.8.3+cu130torch2.10-cp310-cp310-win_amd64.whl), [Download2(v0.7.12)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.12/flash_attn-2.8.3+cu130torch2.10-cp310-cp310-win_amd64.whl) |
+| 3.10 | 2.11 | 13.0 | [Download1(v0.9.6)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.6/flash_attn-2.8.3+cu130torch2.11-cp310-cp310-win_amd64.whl) |
 | 3.11 | 2.5 | 12.4 | [Download1(v0.4.19)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.19/flash_attn-2.8.3+cu124torch2.5-cp311-cp311-win_amd64.whl) |
 | 3.11 | 2.5 | 12.6 | [Download1(v0.4.19)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.19/flash_attn-2.8.3+cu126torch2.5-cp311-cp311-win_amd64.whl) |
 | 3.11 | 2.5 | 12.8 | [Download1(v0.7.7)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.7/flash_attn-2.8.3+cu128torch2.5-cp311-cp311-win_amd64.whl) |
@@ -1768,6 +1771,7 @@
 | 3.11 | 2.10 | 12.6 | [Download1(v0.7.12)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.12/flash_attn-2.8.3+cu126torch2.10-cp311-cp311-win_amd64.whl) |
 | 3.11 | 2.10 | 12.8 | [Download1(v0.7.13)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.13/flash_attn-2.8.3+cu128torch2.10-cp311-cp311-win_amd64.whl) |
 | 3.11 | 2.10 | 13.0 | [Download1(v0.7.13)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.13/flash_attn-2.8.3+cu130torch2.10-cp311-cp311-win_amd64.whl), [Download2(v0.7.12)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.12/flash_attn-2.8.3+cu130torch2.10-cp311-cp311-win_amd64.whl) |
+| 3.11 | 2.11 | 13.0 | [Download1(v0.9.6)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.6/flash_attn-2.8.3+cu130torch2.11-cp311-cp311-win_amd64.whl) |
 | 3.12 | 2.5 | 12.4 | [Download1(v0.4.19)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.19/flash_attn-2.8.3+cu124torch2.5-cp312-cp312-win_amd64.whl) |
 | 3.12 | 2.5 | 12.6 | [Download1(v0.4.19)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.19/flash_attn-2.8.3+cu126torch2.5-cp312-cp312-win_amd64.whl) |
 | 3.12 | 2.5 | 12.8 | [Download1(v0.7.11)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.11/flash_attn-2.8.3+cu128torch2.5-cp312-cp312-win_amd64.whl) |
@@ -1786,6 +1790,7 @@
 | 3.12 | 2.10 | 12.6 | [Download1(v0.7.12)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.12/flash_attn-2.8.3+cu126torch2.10-cp312-cp312-win_amd64.whl) |
 | 3.12 | 2.10 | 12.8 | [Download1(v0.7.13)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.13/flash_attn-2.8.3+cu128torch2.10-cp312-cp312-win_amd64.whl) |
 | 3.12 | 2.10 | 13.0 | [Download1(v0.7.13)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.13/flash_attn-2.8.3+cu130torch2.10-cp312-cp312-win_amd64.whl), [Download2(v0.7.12)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.12/flash_attn-2.8.3+cu130torch2.10-cp312-cp312-win_amd64.whl) |
+| 3.12 | 2.11 | 12.6 | [Download1(v0.9.6)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.6/flash_attn-2.8.3+cu126torch2.11-cp312-cp312-win_amd64.whl) |
 | 3.13 | 2.6 | 12.4 | [Download1(v0.4.19)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.19/flash_attn-2.8.3+cu124torch2.6-cp313-cp313-win_amd64.whl) |
 | 3.13 | 2.6 | 12.6 | [Download1(v0.4.19)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.19/flash_attn-2.8.3+cu126torch2.6-cp313-cp313-win_amd64.whl) |
 | 3.13 | 2.6 | 12.8 | [Download1(v0.7.11)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.11/flash_attn-2.8.3+cu128torch2.6-cp313-cp313-win_amd64.whl) |
@@ -1805,6 +1810,7 @@
 | 3.14 | 2.9 | 13.0 | [Download1(v0.7.13)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.13/flash_attn-2.8.3+cu130torch2.9-cp314-cp314-win_amd64.whl) |
 | 3.14 | 2.10 | 12.6 | [Download1(v0.7.12)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.12/flash_attn-2.8.3+cu126torch2.10-cp314-cp314-win_amd64.whl) |
 | 3.14 | 2.10 | 13.0 | [Download1(v0.7.12)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.12/flash_attn-2.8.3+cu130torch2.10-cp314-cp314-win_amd64.whl) |
+| 3.14 | 2.11 | 13.0 | [Download1(v0.9.6)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.6/flash_attn-2.8.3+cu130torch2.11-cp314-cp314-win_amd64.whl) |
 
 </details>
 
