@@ -183,19 +183,19 @@ LINUX_ARM64_NO_CONTAINER_MATRIX = {
         "3.14t",
     ],
     "torch-version": [
-        "2.5.1",
-        "2.6.0",
-        "2.7.1",
-        "2.8.0",
+        # "2.5.1",
+        # "2.6.0",
+        # "2.7.1",
+        # "2.8.0",
         "2.9.1",
         "2.10.0",
         "2.11.0",
     ],
     "cuda-version": [
-        "12.4",
+        # "12.4",
         "12.6",
         "12.8",
-        "12.9",
+        # "12.9",
         "13.0",
     ],
 }
@@ -302,14 +302,14 @@ def main():
                 "linux_no_container": False,
                 # "linux_no_container": LINUX_NO_CONTAINER_MATRIX,
                 #
-                "linux_arm64_no_container": False,
-                # "linux_arm64_no_container": LINUX_ARM64_NO_CONTAINER_MATRIX,
+                # "linux_arm64_no_container": False,
+                "linux_arm64_no_container": LINUX_ARM64_NO_CONTAINER_MATRIX,
                 #
                 "windows": False,
                 # "windows": WINDOWS_MATRIX,
                 #
-                # "windows_self_hosted": False,
-                "windows_self_hosted": WINDOWS_SELF_HOSTED_MATRIX,
+                "windows_self_hosted": False,
+                # "windows_self_hosted": WINDOWS_SELF_HOSTED_MATRIX,
                 #
                 "windows_code_build": False,
                 # "windows_code_build": WINDOWS_CODEBUILD_MATRIX,
