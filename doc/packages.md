@@ -31,6 +31,7 @@
   - [Flash-Attention 2.4.3](#flash-attention-243)
   - [Flash-Attention 1.0.9](#flash-attention-109)
 - [Linux arm64](#linux-arm64)
+  - [Flash-Attention 3.0.0](#flash-attention-300)
   - [Flash-Attention 2.8.3](#flash-attention-283)
   - [Flash-Attention 2.7.4](#flash-attention-274)
   - [Flash-Attention 2.6.3](#flash-attention-263)
@@ -40,6 +41,7 @@
   - [Flash-Attention 2.7.4](#flash-attention-274)
   - [Flash-Attention 2.6.3](#flash-attention-263)
 - [Manylinux 2_34 arm64](#manylinux-2_34-arm64)
+  - [Flash-Attention 3.0.0](#flash-attention-300)
   - [Flash-Attention 2.8.3](#flash-attention-283)
 - [Manylinux2014 x86_64](#manylinux2014-x86_64)
   - [Flash-Attention 2.8.3](#flash-attention-283)
@@ -1177,6 +1179,17 @@
 
 ## 🐧 Linux arm64
 
+### Flash-Attention 3.0.0
+
+<details>
+<summary>Packages for Flash-Attention 3.0.0</summary>
+
+| Python | PyTorch | CUDA | package |
+| ------ | ------- | ---- | ------- |
+| 3.9+ (abi3) | 2.9 | 12.8 | [Download1(v0.9.7)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.7/flash_attn_3-3.0.0+cu128torch2.9gite2743ab-cp39-abi3-linux_aarch64.whl) |
+
+</details>
+
 ### Flash-Attention 2.8.3
 
 <details>
@@ -1612,6 +1625,17 @@
 </details>
 
 ## 🐧 Manylinux 2_34 arm64
+
+### Flash-Attention 3.0.0
+
+<details>
+<summary>Packages for Flash-Attention 3.0.0</summary>
+
+| Python | PyTorch | CUDA | package |
+| ------ | ------- | ---- | ------- |
+| 3.9+ (abi3) | 2.9 | 12.8 | [Download1(v0.9.7)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.7/flash_attn_3-3.0.0+cu128torch2.9gite2743ab-cp39-abi3-manylinux_2_34_aarch64.whl) |
+
+</details>
 
 ### Flash-Attention 2.8.3
 
