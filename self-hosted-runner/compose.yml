@@ -17,7 +17,6 @@ services:
       - fa-self:/var/lib/docker
 
   runner-arm:
-    platform: linux/arm64
     privileged: true
     restart: always
     env_file:
