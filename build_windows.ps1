@@ -344,8 +344,8 @@ Write-Host "  CPU threads: $NumThreads"
 Write-Host "  RAM: ${RamGB}GB"
 if (-not $env:MAX_JOBS -and -not $env:NVCC_THREADS) {
     # Calculate max product based on following constraints:
-    # - MAX_JOBS x NVCC_THREADS(<= 4) <= NUM_THREADS
-    # - 2.8GB x MAX_JOBS x NVCC_THREADS(<= 4) <= RAM_GB
+    # - MAX_JOBS x NVCC_THREADS(<= 3) <= NUM_THREADS
+    # - 2.8GB x MAX_JOBS x NVCC_THREADS(<= 3) <= RAM_GB
     $MaxProductCpu = $NumThreads
     $MaxProductRam = [math]::Floor($RamGB / 2.8)
     $MaxProduct = [math]::Min($MaxProductCpu, $MaxProductRam)
@@ -356,12 +356,12 @@ if (-not $env:MAX_JOBS -and -not $env:NVCC_THREADS) {
         # If RAM is 16GB or less, set NVCC_THREADS to 1 and MAX_JOBS to 2
         $env:NVCC_THREADS = "1"
         $env:MAX_JOBS = "2"
-    } elseif ($BaseThreads -le 4) {
+    } elseif ($BaseThreads -le 3) {
         $env:NVCC_THREADS = "$BaseThreads"
         $env:MAX_JOBS = "$BaseThreads"
     } else {
-        $env:NVCC_THREADS = "4"
-        $env:MAX_JOBS = "$([math]::Floor($MaxProduct / 4))"
+        $env:NVCC_THREADS = "3"
+        $env:MAX_JOBS = "$([math]::Floor($MaxProduct / 3))"
     }
 
     # Ensure minimum values of 1
