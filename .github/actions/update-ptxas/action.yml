@@ -1,0 +1,67 @@
+name: "Update ptxas for Windows"
+description: |
+  Replace the system ptxas with ptxas 12.8.93 to work around CUDA 12.6 ptxas bugs
+  that cause ACCESS_VIOLATION crashes when compiling SM90 kernels on Windows.
+  Skipped for CUDA 12.8 (already has the right version) and CUDA 13.0+.
+
+inputs:
+  cuda-version:
+    description: "CUDA version (e.g. 12.6)"
+    required: true
+  cuda-home:
+    description: "Path to CUDA installation (CUDA_HOME)"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Update ptxas to 12.8.93
+      if: >-
+        !startsWith(inputs.cuda-version, '12.8') &&
+        !startsWith(inputs.cuda-version, '13.') &&
+        !startsWith(inputs.cuda-version, '14.')
+      shell: pwsh
+      env:
+        PTXAS_VERSION: "12.8.93"
+        CUDA_HOME: ${{ inputs.cuda-home }}
+      run: |
+        $ptxasUrl = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-$env:PTXAS_VERSION-archive.zip"
+        $downloadDir = Join-Path $env:RUNNER_TEMP "ptxas-update"
+        $zipPath = Join-Path $downloadDir "cuda_nvcc.zip"
+
+        Write-Host "Downloading ptxas $env:PTXAS_VERSION from: $ptxasUrl"
+        New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
+        Invoke-WebRequest -Uri $ptxasUrl -OutFile $zipPath -UseBasicParsing
+
+        Write-Host "Extracting..."
+        Expand-Archive -Path $zipPath -DestinationPath $downloadDir -Force
+
+        $archiveDir = Join-Path $downloadDir "cuda_nvcc-windows-x86_64-$env:PTXAS_VERSION-archive"
+
+        # Replace ptxas.exe in CUDA_HOME/bin
+        $srcPtxas = Join-Path $archiveDir "bin\ptxas.exe"
+        $dstPtxas = Join-Path $env:CUDA_HOME "bin\ptxas.exe"
+        if (Test-Path $srcPtxas) {
+          Copy-Item -Path $srcPtxas -Destination $dstPtxas -Force
+          Write-Host "Replaced ptxas.exe in $env:CUDA_HOME\bin"
+        } else {
+          Write-Error "ptxas.exe not found in downloaded archive at: $srcPtxas"
+          exit 1
+        }
+
+        # Replace ptxas in CUDA_HOME/nvvm/bin if it exists
+        $srcNvvmPtxas = Join-Path $archiveDir "nvvm\bin\ptxas.exe"
+        $dstNvvmPtxas = Join-Path $env:CUDA_HOME "nvvm\bin\ptxas.exe"
+        if (Test-Path $srcNvvmPtxas) {
+          New-Item -ItemType Directory -Force -Path (Split-Path $dstNvvmPtxas) | Out-Null
+          Copy-Item -Path $srcNvvmPtxas -Destination $dstNvvmPtxas -Force
+          Write-Host "Replaced ptxas.exe in $env:CUDA_HOME\nvvm\bin"
+        }
+
+        # Verify
+        $ptxasExe = Join-Path $env:CUDA_HOME "bin\ptxas.exe"
+        & $ptxasExe --version
+
+        # Cleanup
+        Remove-Item -Path $downloadDir -Recurse -Force
+        Write-Host "ptxas update complete."

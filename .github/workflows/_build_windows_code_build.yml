@@ -73,6 +73,12 @@ jobs:
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v2
 
+      - name: Update ptxas to 12.8.93
+        uses: ./.github/actions/update-ptxas
+        with:
+          cuda-version: ${{ inputs.cuda-version }}
+          cuda-home: ${{ env.CUDA_HOME }}
+
       - name: Build wheels
         shell: pwsh
         timeout-minutes: 2160
