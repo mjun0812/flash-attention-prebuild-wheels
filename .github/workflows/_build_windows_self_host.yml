@@ -48,6 +48,14 @@ on:
         required: false
         type: boolean
         default: true
+      max-jobs:
+        description: "MAX_JOBS override (optional)"
+        required: false
+        type: string
+      nvcc-threads:
+        description: "NVCC_THREADS override (optional)"
+        required: false
+        type: string
 
 jobs:
   build_windows_wheels_self_hosted:
@@ -101,6 +109,8 @@ jobs:
         timeout-minutes: 2160
         env:
           PYTHONUTF8: "1"
+          MAX_JOBS: ${{ inputs.max-jobs }}
+          NVCC_THREADS: ${{ inputs.nvcc-threads }}
         run: |
           .\build_windows.ps1 -FlashAttnVersion "${{ inputs.flash-attn-version }}" -PythonVersion "${{ inputs.python-version }}" -TorchVersion "${{ inputs.torch-version }}" -CudaVersion "${{ inputs.cuda-version }}"
           if ($LASTEXITCODE -ne 0) {

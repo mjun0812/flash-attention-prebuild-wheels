@@ -47,6 +47,14 @@ on:
         required: true
         default: "12.8.1"
         type: string
+      max-jobs:
+        description: "MAX_JOBS (optional, overrides auto-detection)"
+        required: false
+        type: string
+      nvcc-threads:
+        description: "NVCC_THREADS (optional, overrides auto-detection)"
+        required: false
+        type: string
 
 jobs:
   # #########################################################
@@ -133,6 +141,8 @@ jobs:
       torch-version: ${{ inputs.torch-version }}
       cuda-version: ${{ inputs.cuda-version }}
       is-upload: false
+      max-jobs: ${{ inputs.max-jobs }}
+      nvcc-threads: ${{ inputs.nvcc-threads }}
 
   # #########################################################
   # Windows x86_64 GitHub-hosted runner
