@@ -344,11 +344,10 @@ Write-Host "  CPU threads: $NumThreads"
 Write-Host "  RAM: ${RamGB}GB"
 if (-not $env:MAX_JOBS -and -not $env:NVCC_THREADS) {
     # Calculate max product based on following constraints:
-    # - MAX_JOBS x NVCC_THREADS(<= 2) <= NUM_THREADS
-    # - 5GB x MAX_JOBS x NVCC_THREADS(<= 2) <= RAM_GB
-    # SM90 (FA3) kernels require significantly more memory per ptxas process on Windows.
+    # - MAX_JOBS x NVCC_THREADS(<= 3) <= NUM_THREADS
+    # - 3GB x MAX_JOBS x NVCC_THREADS(<= 3) <= RAM_GB
     $MaxProductCpu = $NumThreads
-    $MaxProductRam = [math]::Floor($RamGB / 5)
+    $MaxProductRam = [math]::Floor($RamGB / 3)
     $MaxProduct = [math]::Min($MaxProductCpu, $MaxProductRam)
 
     $BaseThreads = [math]::Floor([math]::Sqrt($MaxProduct))
@@ -361,12 +360,11 @@ if (-not $env:MAX_JOBS -and -not $env:NVCC_THREADS) {
         $env:NVCC_THREADS = "$BaseThreads"
         $env:MAX_JOBS = "$BaseThreads"
     } else {
-        $env:NVCC_THREADS = "2"
-        $env:MAX_JOBS = "$([math]::Floor($MaxProduct / 2))"
+        $env:NVCC_THREADS = "3"
+        $env:MAX_JOBS = "$([math]::Floor($MaxProduct / 3))"
     }
 
     # Clamp values
-    if ([int]$env:MAX_JOBS -gt 3) { $env:MAX_JOBS = "3" }
     if ([int]$env:MAX_JOBS -lt 1) { $env:MAX_JOBS = "1" }
     if ([int]$env:NVCC_THREADS -lt 1) { $env:NVCC_THREADS = "1" }
 }
