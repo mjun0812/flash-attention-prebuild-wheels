@@ -5,7 +5,7 @@
 <!-- COVERAGE_BADGE_START -->
 ![Linux x86_64](https://img.shields.io/badge/Linux_x86_64-93.1%25-green?style=for-the-badge)
 ![Linux ARM64](https://img.shields.io/badge/Linux_ARM64-34.3%25-red?style=for-the-badge)
-![Windows](https://img.shields.io/badge/Windows-69.6%25-red?style=for-the-badge)
+![Windows](https://img.shields.io/badge/Windows-79.4%25-yellow?style=for-the-badge)
 <!-- COVERAGE_BADGE_END -->
 
 This repository provides wheels for the pre-built [flash-attention](https://github.com/Dao-AILab/flash-attention).
@@ -53,8 +53,8 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 |----------|----------|---------|----------|
 | Linux x86_64 | 309 | 23 | 93.1% |
 | Linux ARM64 | 35 | 67 | 34.3% |
-| Windows | 71 | 31 | 69.6% |
-| **Total** | **415** | **121** | **77.4%** |
+| Windows | 81 | 21 | 79.4% |
+| **Total** | **425** | **111** | **79.3%** |
 <!-- COVERAGE_TABLE_END -->
 
 > [!NOTE]
