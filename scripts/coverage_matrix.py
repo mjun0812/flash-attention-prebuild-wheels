@@ -56,6 +56,17 @@ TORCH_EXPERIMENTAL_FREE_THREADED_PYTHON_VERSIONS = {
     "2.11": ("3.14t",),
 }
 
+# FA3 is distributed as a single ABI3 wheel per (torch, cuda) combination, so
+# it covers only non-free-threaded CPython interpreters. The entry in each
+# platform matrix therefore represents one wheel across all regular Python
+# versions; free-threaded builds (e.g., "3.14t") are not covered.
+FA3_VERSION_PREFIX = "fa3:"
+
+
+def is_fa3_version(flash_version: str) -> bool:
+    """Return whether the flash-attn version string refers to an FA3 build."""
+    return flash_version.startswith(FA3_VERSION_PREFIX)
+
 
 # CUDA_VERSIONS: CUDA version using PyTorch. e.g., ["11.7", "11.8", ...]
 # This will be generated from TORCH_SUPPORT_CUDA_VERSIONS
@@ -135,6 +146,16 @@ for torch_version, (min_py, max_py) in TORCH_SUPPORT_PYTHON_VERSIONS.items():
             EXCLUDE.append(
                 {"torch-version": torch_full_version, "python-version": python_version}
             )
+# FA3 is an ABI3 wheel that does not support free-threaded CPython builds.
+# Exclude those combinations so the expected matrix does not count them as
+# missing wheels.
+for python_version in FREE_THREADED_PYTHON_VERSIONS:
+    EXCLUDE.append(
+        {
+            "flash-attn-version": FA3_STABLE_COMMIT,
+            "python-version": python_version,
+        }
+    )
 
 
 LINUX_MATRIX = {
