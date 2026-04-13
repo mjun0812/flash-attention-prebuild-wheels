@@ -57,10 +57,10 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
   echo "Building $FLASH_ATTN_VARIANT (commit: $FA_COMMIT)"
   git clone https://github.com/Dao-AILab/flash-attention.git flash-attention
   git -C flash-attention checkout "$FA_COMMIT"
-  # Remove --resource-usage flag from upstream setup.py to suppress
+  # Remove --resource-usage flag from upstream hopper/setup.py to suppress
   # verbose ptxas info logs (register usage, stack frame, compile time)
   # that clutter CI output with thousands of lines per build.
-  sed -i '/"--resource-usage"/d' flash-attention//setup.py
+  sed -i '/"--resource-usage"/d' flash-attention/hopper/setup.py
 elif [[ "${FLASH_ATTN_VARIANT}" == "Flash Attention 2" ]]; then
   echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
   git clone https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FLASH_ATTN_VERSION"
