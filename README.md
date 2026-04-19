@@ -4,7 +4,7 @@
 [![Search Page](https://img.shields.io/badge/Search_Page-Find_Your_Wheel-blue?style=for-the-badge&logo=googlelens)](https://mjunya.com/flash-attention-prebuild-wheels/)
 <!-- COVERAGE_BADGE_START -->
 ![Linux x86_64](https://img.shields.io/badge/Linux_x86_64-94.8%25-green?style=for-the-badge)
-![Linux ARM64](https://img.shields.io/badge/Linux_ARM64-41.7%25-red?style=for-the-badge)
+![Linux ARM64](https://img.shields.io/badge/Linux_ARM64-46.9%25-red?style=for-the-badge)
 ![Windows](https://img.shields.io/badge/Windows-89.6%25-yellow?style=for-the-badge)
 <!-- COVERAGE_BADGE_END -->
 
@@ -52,9 +52,9 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 | Platform | Existing | Missing | Coverage |
 |----------|----------|---------|----------|
 | Linux x86_64 | 309 | 17 | 94.8% |
-| Linux ARM64 | 40 | 56 | 41.7% |
+| Linux ARM64 | 45 | 51 | 46.9% |
 | Windows | 86 | 10 | 89.6% |
-| **Total** | **435** | **83** | **84.0%** |
+| **Total** | **440** | **78** | **84.9%** |
 <!-- COVERAGE_TABLE_END -->
 
 > [!NOTE]
