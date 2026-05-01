@@ -113,7 +113,7 @@ jobs:
       cuda-version: ${{ inputs.cuda-version }}
       is-upload: false
       runner: '["self-hosted-arm"]'
-      container-image: "quay.io/pypa/manylinux_2_28_aarch64"
+      container-image: "quay.io/pypa/manylinux_2_34_aarch64"
 
   # #########################################################
   # Linux ARM64 self-hosted runner (no container)
