@@ -6,7 +6,7 @@ FA3_STABLE_COMMIT = "fa3:e2743ab5b3803bb672b16437ba98a3b1d4576c50"
 
 OS = ["linux_x86_64", "linux_arm64", "windows"]
 PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14"]
-FREE_THREADED_PYTHON_VERSIONS = ["3.14t"]
+FREE_THREADED_PYTHON_VERSIONS = ["3.13t", "3.14t"]
 ALL_PYTHON_VERSIONS = PYTHON_VERSIONS + FREE_THREADED_PYTHON_VERSIONS
 TORCH_FULL_VERSIONS = [
     "2.0.1",
@@ -21,6 +21,7 @@ TORCH_FULL_VERSIONS = [
     "2.9.1",
     "2.10.0",
     "2.11.0",
+    "2.12.0",
 ]
 TORCH_SUPPORT_CUDA_VERSIONS = {
     "2.0": ("11.7", "11.8"),
@@ -35,6 +36,7 @@ TORCH_SUPPORT_CUDA_VERSIONS = {
     "2.9": ("12.6", "12.8", "13.0"),
     "2.10": ("12.6", "12.8", "13.0"),
     "2.11": ("12.6", "12.8", "13.0"),
+    "2.12": ("12.6", "13.0", "13.2"),
 }
 # torch_version: minimum and maximum supported Python versions
 TORCH_SUPPORT_PYTHON_VERSIONS = {
@@ -50,10 +52,16 @@ TORCH_SUPPORT_PYTHON_VERSIONS = {
     "2.9": ("3.10", "3.14"),
     "2.10": ("3.10", "3.14"),
     "2.11": ("3.10", "3.14"),
+    "2.12": ("3.10", "3.14"),
 }
 TORCH_EXPERIMENTAL_FREE_THREADED_PYTHON_VERSIONS = {
-    "2.10": ("3.14t",),
-    "2.11": ("3.14t",),
+    "2.6": ("3.13t",),
+    "2.7": ("3.13t",),
+    "2.8": ("3.13t",),
+    "2.9": ("3.13t", "3.14t"),
+    "2.10": ("3.13t", "3.14t"),
+    "2.11": ("3.13t", "3.14t"),
+    "2.12": ("3.13t", "3.14t"),
 }
 
 # FA3 is distributed as a single ABI3 wheel per (torch, cuda) combination, so
@@ -169,8 +177,9 @@ LINUX_MATRIX = {
         "2.9.1",
         "2.10.0",
         "2.11.0",
+        "2.12.0",
     ],
-    "cuda-version": ["12.4", "12.6", "12.8", "12.9", "13.0"],
+    "cuda-version": ["12.4", "12.6", "12.8", "12.9", "13.0", "13.2"],
 }
 
 LINUX_ARM64_MATRIX = {
@@ -180,8 +189,9 @@ LINUX_ARM64_MATRIX = {
         "2.9.1",
         "2.10.0",
         "2.11.0",
+        "2.12.0",
     ],
-    "cuda-version": ["12.6", "12.8", "12.9", "13.0"],
+    "cuda-version": ["12.6", "12.8", "12.9", "13.0", "13.2"],
 }
 
 WINDOWS_MATRIX = {
@@ -191,8 +201,9 @@ WINDOWS_MATRIX = {
         "2.9.1",
         "2.10.0",
         "2.11.0",
+        "2.12.0",
     ],
-    "cuda-version": ["12.6", "12.8", "13.0"],
+    "cuda-version": ["12.6", "12.8", "13.0", "13.2"],
 }
 
 _PLATFORM_MATRICES = {
