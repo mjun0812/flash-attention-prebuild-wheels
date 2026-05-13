@@ -78,7 +78,7 @@ LINUX_SELF_HOSTED_MATRIX = {
         "2.6.3",
         "2.7.4",
         "2.8.3",
-        FA3_COMMIT,
+        # FA3_COMMIT,
     ],
     "python-version": [
         "3.10",
@@ -96,13 +96,13 @@ LINUX_SELF_HOSTED_MATRIX = {
         # "2.8.0",
         # "2.9.1",
         # "2.10.0",
-        "2.11.0",
+        # "2.11.0",
         "2.12.0",
     ],
     "cuda-version": [
         # "12.4",
         "12.6",
-        "12.8",
+        # "12.8",
         # "12.9",
         "13.0",
         "13.2",
@@ -318,11 +318,11 @@ def main():
                 "linux_arm64": False,
                 # "linux_arm64": LINUX_ARM64_MATRIX,
                 #
-                "linux_self_hosted": False,
-                # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
+                # "linux_self_hosted": False,
+                "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
                 #
-                # "linux_arm64_self_hosted": False,
-                "linux_arm64_self_hosted": LINUX_ARM64_SELF_HOSTED_MATRIX,
+                "linux_arm64_self_hosted": False,
+                # "linux_arm64_self_hosted": LINUX_ARM64_SELF_HOSTED_MATRIX,
                 #
                 "linux_no_container": False,
                 # "linux_no_container": LINUX_NO_CONTAINER_MATRIX,
