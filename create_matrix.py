@@ -75,10 +75,10 @@ LINUX_ARM64_MATRIX = {
 
 LINUX_SELF_HOSTED_MATRIX = {
     "flash-attn-version": [
-        "2.6.3",
-        "2.7.4",
-        "2.8.3",
-        # FA3_COMMIT,
+        # "2.6.3",
+        # "2.7.4",
+        # "2.8.3",
+        FA3_COMMIT,
     ],
     "python-version": [
         "3.10",
