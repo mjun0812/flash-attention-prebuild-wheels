@@ -1,5 +1,22 @@
 ## History
 
+### v0.9.20
+
+[Release](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.9.20)
+
+#### Linux arm64
+
+| Flash-Attention | Python | PyTorch | CUDA |
+| --- | --- | --- | --- |
+| 2.8.3 | 3.13 | 2.11 | 13.0 |
+
+#### Manylinux 2_34 arm64
+
+| Flash-Attention | Python | PyTorch | CUDA |
+| --- | --- | --- | --- |
+| 2.8.3 | 3.13 | 2.11 | 13.0 |
+
+
 ### v0.9.17
 
 [Release](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.9.17)
