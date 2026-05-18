@@ -315,8 +315,8 @@ def main():
                 "linux": False,
                 # "linux": LINUX_MATRIX,
                 #
-                "linux_arm64": False,
-                # "linux_arm64": LINUX_ARM64_MATRIX,
+                # "linux_arm64": False,
+                "linux_arm64": LINUX_ARM64_MATRIX,
                 #
                 "linux_self_hosted": False,
                 # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
