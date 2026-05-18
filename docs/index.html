@@ -181,6 +181,34 @@
             overflow-x: auto;
         }
 
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pagination-status {
+            min-width: 96px;
+            text-align: center;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .pagination .btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -391,6 +419,15 @@
                 flex: 1;
             }
 
+            .pagination {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .pagination-controls {
+                justify-content: space-between;
+            }
+
             th, td {
                 padding: 8px 12px;
             }
@@ -511,6 +548,14 @@
                 <div id="empty-state" class="empty-state" style="display: none;">
                     No wheels match your filters. Try adjusting your selection.
                 </div>
+                <div id="pagination" class="pagination" style="display: none;">
+                    <span id="pagination-range">0-0 of 0</span>
+                    <div class="pagination-controls">
+                        <button class="btn btn-secondary" id="prev-page-btn">Previous</button>
+                        <span class="pagination-status" id="pagination-status">Page 1 of 1</span>
+                        <button class="btn btn-secondary" id="next-page-btn">Next</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -524,6 +569,8 @@
         const API_BASE = 'https://api.github.com';
         const CACHE_KEY = 'flash-attn-wheels-cache';
         const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+        const FALLBACK_RELEASES_URL = 'data/releases.json';
+        const ITEMS_PER_PAGE = 50;
 
         // Wheel filename pattern (ported from common.py)
         // Supports both flash_attn and flash_attn_3, and both cpXXX/cpXXXt and abi3 tags
@@ -535,6 +582,7 @@
         let selectedWheel = null;
         let sortColumn = 'flash';
         let sortDirection = 'desc';
+        let currentPage = 1;
 
         // DOM Elements
         const elements = {
@@ -557,7 +605,12 @@
             commandDisplay: document.getElementById('command-display'),
             copyCommandBtn: document.getElementById('copy-command-btn'),
             copyUrlBtn: document.getElementById('copy-url-btn'),
-            cacheInfo: document.getElementById('cache-info')
+            cacheInfo: document.getElementById('cache-info'),
+            pagination: document.getElementById('pagination'),
+            paginationRange: document.getElementById('pagination-range'),
+            paginationStatus: document.getElementById('pagination-status'),
+            prevPageBtn: document.getElementById('prev-page-btn'),
+            nextPageBtn: document.getElementById('next-page-btn')
         };
 
         // Parse wheel filename (ported from common.py)
@@ -668,6 +721,25 @@
             return releases;
         }
 
+        // Fetch hosted fallback release data
+        async function fetchHostedReleases() {
+            const response = await fetch(FALLBACK_RELEASES_URL, { cache: 'no-cache' });
+            if (!response.ok) {
+                throw new Error(`Hosted fallback error: ${response.status} ${response.statusText}`);
+            }
+
+            const payload = await response.json();
+            const releases = Array.isArray(payload) ? payload : payload.releases;
+            if (!Array.isArray(releases)) {
+                throw new Error('Hosted fallback JSON does not contain a releases array');
+            }
+
+            return {
+                generatedAt: Array.isArray(payload) ? null : payload.generatedAt,
+                releases
+            };
+        }
+
         // Extract wheels from releases
         function extractWheels(releases) {
             const wheels = [];
@@ -706,6 +778,17 @@
             return Array.from(seen.values());
         }
 
+        // Build the searchable wheel list from release data
+        function buildWheelData(releases) {
+            const wheels = extractWheels(releases);
+            return deduplicateWheels(wheels);
+        }
+
+        // Format a timestamp for display
+        function formatTimestamp(timestamp) {
+            return new Date(timestamp).toLocaleString();
+        }
+
         // Load data with caching
         async function loadData(forceRefresh = false) {
             // Check cache
@@ -713,9 +796,9 @@
                 const cached = localStorage.getItem(CACHE_KEY);
                 if (cached) {
                     try {
-                        const { data, timestamp } = JSON.parse(cached);
+                        const { data, timestamp, source, fallbackGeneratedAt } = JSON.parse(cached);
                         if (Date.now() - timestamp < CACHE_DURATION) {
-                            updateCacheInfo(timestamp);
+                            updateCacheInfo(timestamp, source || 'local cache', fallbackGeneratedAt);
                             return data;
                         }
                     } catch (e) {
@@ -725,25 +808,47 @@
             }
 
             // Fetch fresh data
-            const releases = await fetchReleases();
-            const wheels = extractWheels(releases);
-            const deduplicated = deduplicateWheels(wheels);
+            let deduplicated;
+            let source = 'GitHub API';
+            let fallbackGeneratedAt = null;
+
+            try {
+                const releases = await fetchReleases();
+                deduplicated = buildWheelData(releases);
+            } catch (apiError) {
+                console.warn('GitHub API failed. Falling back to hosted release JSON:', apiError);
+                try {
+                    const fallback = await fetchHostedReleases();
+                    deduplicated = buildWheelData(fallback.releases);
+                    source = 'hosted fallback JSON';
+                    fallbackGeneratedAt = fallback.generatedAt;
+                } catch (fallbackError) {
+                    throw new Error(
+                        `GitHub API failed (${apiError.message}); hosted fallback failed (${fallbackError.message})`
+                    );
+                }
+            }
 
             // Save to cache
             const cacheData = {
                 data: deduplicated,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                source,
+                fallbackGeneratedAt
             };
             localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-            updateCacheInfo(cacheData.timestamp);
+            updateCacheInfo(cacheData.timestamp, source, fallbackGeneratedAt);
 
             return deduplicated;
         }
 
         // Update cache info display
-        function updateCacheInfo(timestamp) {
-            const date = new Date(timestamp);
-            elements.cacheInfo.textContent = `Data cached at ${date.toLocaleString()}`;
+        function updateCacheInfo(timestamp, source = 'local cache', fallbackGeneratedAt = null) {
+            let info = `Data cached at ${formatTimestamp(timestamp)} from ${source}`;
+            if (fallbackGeneratedAt) {
+                info += ` (fallback generated at ${formatTimestamp(fallbackGeneratedAt)})`;
+            }
+            elements.cacheInfo.textContent = info;
         }
 
         // Package display name mapping
@@ -807,6 +912,9 @@
 
         // Apply filters to wheels
         function applyFilters() {
+            currentPage = 1;
+            selectedWheel = null;
+
             const filters = {
                 package: elements.packageFilter.value,
                 flash: elements.flashFilter.value,
@@ -858,21 +966,57 @@
             });
         }
 
+        // Get total page count for the filtered result set
+        function getTotalPages() {
+            return Math.max(1, Math.ceil(filteredWheels.length / ITEMS_PER_PAGE));
+        }
+
+        // Keep the current page in range after filtering or sorting
+        function clampCurrentPage() {
+            currentPage = Math.min(Math.max(currentPage, 1), getTotalPages());
+        }
+
+        // Render pagination controls
+        function renderPagination(pageStart, pageEnd) {
+            if (filteredWheels.length <= ITEMS_PER_PAGE) {
+                elements.pagination.style.display = 'none';
+                return;
+            }
+
+            const totalPages = getTotalPages();
+            elements.pagination.style.display = 'flex';
+            elements.paginationRange.textContent = `${pageStart + 1}-${pageEnd} of ${filteredWheels.length}`;
+            elements.paginationStatus.textContent = `Page ${currentPage} of ${totalPages}`;
+            elements.prevPageBtn.disabled = currentPage === 1;
+            elements.nextPageBtn.disabled = currentPage === totalPages;
+        }
+
         // Render the table
         function renderTable() {
+            clampCurrentPage();
             elements.count.textContent = filteredWheels.length;
 
             if (filteredWheels.length === 0) {
                 elements.wheelsTable.innerHTML = '';
                 elements.emptyState.style.display = 'block';
                 elements.commandSection.style.display = 'none';
+                elements.pagination.style.display = 'none';
                 return;
             }
 
             elements.emptyState.style.display = 'none';
+            if (selectedWheel === null) {
+                elements.commandSection.style.display = 'none';
+            }
 
-            const html = filteredWheels.map((wheel, index) => `
-                <tr data-index="${index}" class="${selectedWheel === index ? 'selected' : ''}">
+            const pageStart = (currentPage - 1) * ITEMS_PER_PAGE;
+            const pageEnd = Math.min(pageStart + ITEMS_PER_PAGE, filteredWheels.length);
+            const visibleWheels = filteredWheels.slice(pageStart, pageEnd);
+
+            const html = visibleWheels.map((wheel, pageIndex) => {
+                const index = pageStart + pageIndex;
+                return `
+                <tr data-index="${index}" class="${selectedWheel === wheel ? 'selected' : ''}">
                     <td>${wheel.packageName === 'flash_attn_3' ? 'FA3' : 'FA2'}</td>
                     <td>${wheel.platform}</td>
                     <td>${wheel.flashVersion}</td>
@@ -898,9 +1042,11 @@
                         </button>
                     </td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
 
             elements.wheelsTable.innerHTML = html;
+            renderPagination(pageStart, pageEnd);
 
             // Add click listeners to rows
             for (const row of elements.wheelsTable.querySelectorAll('tr')) {
@@ -929,12 +1075,12 @@
 
         // Select a wheel and show install command
         function selectWheel(index) {
-            selectedWheel = index;
             const wheel = filteredWheels[index];
+            selectedWheel = wheel;
 
             // Update selected row style
-            elements.wheelsTable.querySelectorAll('tr').forEach((row, i) => {
-                row.classList.toggle('selected', i === index);
+            elements.wheelsTable.querySelectorAll('tr').forEach(row => {
+                row.classList.toggle('selected', parseInt(row.dataset.index, 10) === index);
             });
 
             // Show command section
@@ -1062,18 +1208,31 @@
             });
         });
 
+        // Pagination handlers
+        elements.prevPageBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        });
+
+        elements.nextPageBtn.addEventListener('click', () => {
+            if (currentPage < getTotalPages()) {
+                currentPage++;
+                renderTable();
+            }
+        });
+
         // Copy button handlers
         elements.copyCommandBtn.addEventListener('click', () => {
             if (selectedWheel !== null) {
-                const wheel = filteredWheels[selectedWheel];
-                copyToClipboard(`pip install ${decodeURIComponent(wheel.url)}`, elements.copyCommandBtn);
+                copyToClipboard(`pip install ${decodeURIComponent(selectedWheel.url)}`, elements.copyCommandBtn);
             }
         });
 
         elements.copyUrlBtn.addEventListener('click', () => {
             if (selectedWheel !== null) {
-                const wheel = filteredWheels[selectedWheel];
-                copyToClipboard(decodeURIComponent(wheel.url), elements.copyUrlBtn);
+                copyToClipboard(decodeURIComponent(selectedWheel.url), elements.copyUrlBtn);
             }
         });
 
