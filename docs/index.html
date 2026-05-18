@@ -569,6 +569,7 @@
         const API_BASE = 'https://api.github.com';
         const CACHE_KEY = 'flash-attn-wheels-cache';
         const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+        const FALLBACK_RELEASES_URL = 'data/releases.json';
         const ITEMS_PER_PAGE = 50;
 
         // Wheel filename pattern (ported from common.py)
@@ -720,6 +721,25 @@
             return releases;
         }
 
+        // Fetch hosted fallback release data
+        async function fetchHostedReleases() {
+            const response = await fetch(FALLBACK_RELEASES_URL, { cache: 'no-cache' });
+            if (!response.ok) {
+                throw new Error(`Hosted fallback error: ${response.status} ${response.statusText}`);
+            }
+
+            const payload = await response.json();
+            const releases = Array.isArray(payload) ? payload : payload.releases;
+            if (!Array.isArray(releases)) {
+                throw new Error('Hosted fallback JSON does not contain a releases array');
+            }
+
+            return {
+                generatedAt: Array.isArray(payload) ? null : payload.generatedAt,
+                releases
+            };
+        }
+
         // Extract wheels from releases
         function extractWheels(releases) {
             const wheels = [];
@@ -758,6 +778,17 @@
             return Array.from(seen.values());
         }
 
+        // Build the searchable wheel list from release data
+        function buildWheelData(releases) {
+            const wheels = extractWheels(releases);
+            return deduplicateWheels(wheels);
+        }
+
+        // Format a timestamp for display
+        function formatTimestamp(timestamp) {
+            return new Date(timestamp).toLocaleString();
+        }
+
         // Load data with caching
         async function loadData(forceRefresh = false) {
             // Check cache
@@ -765,9 +796,9 @@
                 const cached = localStorage.getItem(CACHE_KEY);
                 if (cached) {
                     try {
-                        const { data, timestamp } = JSON.parse(cached);
+                        const { data, timestamp, source, fallbackGeneratedAt } = JSON.parse(cached);
                         if (Date.now() - timestamp < CACHE_DURATION) {
-                            updateCacheInfo(timestamp);
+                            updateCacheInfo(timestamp, source || 'local cache', fallbackGeneratedAt);
                             return data;
                         }
                     } catch (e) {
@@ -777,25 +808,47 @@
             }
 
             // Fetch fresh data
-            const releases = await fetchReleases();
-            const wheels = extractWheels(releases);
-            const deduplicated = deduplicateWheels(wheels);
+            let deduplicated;
+            let source = 'GitHub API';
+            let fallbackGeneratedAt = null;
+
+            try {
+                const releases = await fetchReleases();
+                deduplicated = buildWheelData(releases);
+            } catch (apiError) {
+                console.warn('GitHub API failed. Falling back to hosted release JSON:', apiError);
+                try {
+                    const fallback = await fetchHostedReleases();
+                    deduplicated = buildWheelData(fallback.releases);
+                    source = 'hosted fallback JSON';
+                    fallbackGeneratedAt = fallback.generatedAt;
+                } catch (fallbackError) {
+                    throw new Error(
+                        `GitHub API failed (${apiError.message}); hosted fallback failed (${fallbackError.message})`
+                    );
+                }
+            }
 
             // Save to cache
             const cacheData = {
                 data: deduplicated,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                source,
+                fallbackGeneratedAt
             };
             localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-            updateCacheInfo(cacheData.timestamp);
+            updateCacheInfo(cacheData.timestamp, source, fallbackGeneratedAt);
 
             return deduplicated;
         }
 
         // Update cache info display
-        function updateCacheInfo(timestamp) {
-            const date = new Date(timestamp);
-            elements.cacheInfo.textContent = `Data cached at ${date.toLocaleString()}`;
+        function updateCacheInfo(timestamp, source = 'local cache', fallbackGeneratedAt = null) {
+            let info = `Data cached at ${formatTimestamp(timestamp)} from ${source}`;
+            if (fallbackGeneratedAt) {
+                info += ` (fallback generated at ${formatTimestamp(fallbackGeneratedAt)})`;
+            }
+            elements.cacheInfo.textContent = info;
         }
 
         // Package display name mapping
