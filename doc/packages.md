@@ -81,6 +81,9 @@
 | 3.9+ (abi3) | 2.11 | 12.6 | [Download1(v0.9.4)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn_3-3.0.0+cu126torch2.11gite2743ab-cp39-abi3-linux_x86_64.whl) |
 | 3.9+ (abi3) | 2.11 | 12.8 | [Download1(v0.9.4)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn_3-3.0.0+cu128torch2.11gite2743ab-cp39-abi3-linux_x86_64.whl) |
 | 3.9+ (abi3) | 2.11 | 13.0 | [Download1(v0.9.4)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn_3-3.0.0+cu130torch2.11gite2743ab-cp39-abi3-linux_x86_64.whl) |
+| 3.9+ (abi3) | 2.12 | 12.6 | [Download1(v0.9.18)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.18/flash_attn_3-3.0.0+cu126torch2.12gite2743ab-cp39-abi3-linux_x86_64.whl) |
+| 3.9+ (abi3) | 2.12 | 13.0 | [Download1(v0.9.18)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.18/flash_attn_3-3.0.0+cu130torch2.12gite2743ab-cp39-abi3-linux_x86_64.whl) |
+| 3.9+ (abi3) | 2.12 | 13.2 | [Download1(v0.9.18)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.18/flash_attn_3-3.0.0+cu132torch2.12gite2743ab-cp39-abi3-linux_x86_64.whl) |
 
 </details>
 
@@ -1402,6 +1405,9 @@
 | 3.9+ (abi3) | 2.11 | 12.6 | [Download1(v0.9.4)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn_3-3.0.0+cu126torch2.11gite2743ab-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl) |
 | 3.9+ (abi3) | 2.11 | 12.8 | [Download1(v0.9.4)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn_3-3.0.0+cu128torch2.11gite2743ab-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl) |
 | 3.9+ (abi3) | 2.11 | 13.0 | [Download1(v0.9.4)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn_3-3.0.0+cu130torch2.11gite2743ab-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl) |
+| 3.9+ (abi3) | 2.12 | 12.6 | [Download1(v0.9.18)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.18/flash_attn_3-3.0.0+cu126torch2.12gite2743ab-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl) |
+| 3.9+ (abi3) | 2.12 | 13.0 | [Download1(v0.9.18)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.18/flash_attn_3-3.0.0+cu130torch2.12gite2743ab-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl) |
+| 3.9+ (abi3) | 2.12 | 13.2 | [Download1(v0.9.18)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.18/flash_attn_3-3.0.0+cu132torch2.12gite2743ab-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl) |
 
 </details>
 
