@@ -42,16 +42,16 @@ LINUX_MATRIX = {
 
 LINUX_ARM64_MATRIX = {
     "flash-attn-version": [
-        # "2.6.3",
-        # "2.7.4",
+        "2.6.3",
+        "2.7.4",
         "2.8.3",
     ],
     "python-version": [
-        # "3.10",
-        # "3.11",
-        # "3.12",
+        "3.10",
+        "3.11",
+        "3.12",
         "3.13",
-        # "3.14",
+        "3.14",
     ],
     "torch-version": [
         # "2.5.1",
@@ -61,15 +61,15 @@ LINUX_ARM64_MATRIX = {
         # "2.9.1",
         # "2.10.0",
         "2.11.0",
-        # "2.12.0",
+        "2.12.0",
     ],
     "cuda-version": [
         # "12.4",
-        # "12.6",
-        # "12.8",
+        "12.6",
+        "12.8",
         # "12.9",
         "13.0",
-        # "13.2",
+        "13.2",
     ],
 }
 
@@ -316,10 +316,10 @@ def main():
                 # "linux": LINUX_MATRIX,
                 #
                 # "linux_arm64": False,
-                # "linux_arm64": LINUX_ARM64_MATRIX,
+                "linux_arm64": LINUX_ARM64_MATRIX,
                 #
-                # "linux_self_hosted": False,
-                "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
+                "linux_self_hosted": False,
+                # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
                 #
                 "linux_arm64_self_hosted": False,
                 # "linux_arm64_self_hosted": LINUX_ARM64_SELF_HOSTED_MATRIX,
