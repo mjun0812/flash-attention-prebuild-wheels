@@ -178,6 +178,23 @@ function Test-Cuda13OrNewer {
     }
 }
 
+function Test-Cuda132OrNewer {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Version
+    )
+
+    # CUDA 13.2 bundles a CCCL header (cuda/std/__cccl/preprocessor.h) that
+    # raises `#error C1189` when MSVC's traditional preprocessor is in use,
+    # so we need to enable /Zc:preprocessor for 13.2 and newer toolkits.
+    try {
+        return ([Version]$Version -ge [Version]"13.2")
+    } catch {
+        Write-Warning "Could not parse CUDA version '$Version' for /Zc:preprocessor check. Skipping CUDA 13.2+ workaround."
+        return $false
+    }
+}
+
 function Apply-GitPatch {
     param(
         [Parameter(Mandatory=$true)]
@@ -376,6 +393,20 @@ $env:FLASH_ATTENTION_FORCE_BUILD = "TRUE"
 $env:NVCC_FLAGS = "-w --disable-warnings"
 $env:CXXFLAGS = "/w"
 $env:CFLAGS = "/w"
+# CUDA 13.2+ ships a CCCL header that emits `#error C1189` when MSVC's
+# traditional preprocessor is in use. Force the standard-conforming
+# preprocessor for both host cl.exe and nvcc-driven cl.exe invocations.
+if (Test-Cuda132OrNewer -Version $CudaVersion) {
+    Write-Host "Enabling MSVC standard-conforming preprocessor (/Zc:preprocessor) for CUDA 13.2+"
+    $env:CXXFLAGS = "$env:CXXFLAGS /Zc:preprocessor"
+    $env:CFLAGS = "$env:CFLAGS /Zc:preprocessor"
+    $nvccZcFlag = '-Xcompiler="/Zc:preprocessor"'
+    if ($env:NVCC_APPEND_FLAGS) {
+        $env:NVCC_APPEND_FLAGS = "$env:NVCC_APPEND_FLAGS $nvccZcFlag"
+    } else {
+        $env:NVCC_APPEND_FLAGS = $nvccZcFlag
+    }
+}
 # Avoid verbose dependency-generation output from nvcc on Windows builds.
 $env:TORCH_EXTENSION_SKIP_NVCC_GEN_DEPENDENCIES = "1"
 # Suppress ninja verbose output
