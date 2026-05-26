@@ -76,7 +76,23 @@ jobs:
       - name: Install Python
         shell: pwsh
         run: |
-          uv venv -p ${{ inputs.python-version }}
+          # Pin the uv Python identifier explicitly. A bare `-p 3.14` lets uv
+          # pick up an already-installed "cpython-3.14+freethreaded" distribution
+          # left over from a previous job on the same self-hosted runner, which
+          # then causes setuptools to link against the wrong python lib
+          # (LNK1104: python314.lib). Resolving the full identifier from the
+          # matrix value ("3.14" -> non-FT, "3.14t" -> freethreaded) avoids the
+          # ambiguity.
+          $pyver = "${{ inputs.python-version }}"
+          if ($pyver.EndsWith('t')) {
+            $base = $pyver.TrimEnd('t')
+            $pyIdentifier = "cpython-$base+freethreaded-windows-x86_64-none"
+          } else {
+            $pyIdentifier = "cpython-$pyver-windows-x86_64-none"
+          }
+          Write-Host "Resolved uv Python identifier: $pyIdentifier"
+          uv python install $pyIdentifier
+          uv venv --python-preference only-managed -p $pyIdentifier
           uv pip install -U pip setuptools==75.8.0 wheel packaging psutil numpy ninja
           $current_dir = (Get-Location).Path
           echo "$current_dir\.venv\Scripts" >> $env:GITHUB_PATH
@@ -203,13 +219,28 @@ jobs:
             Write-Host "[3/6] pip cache not found, skipping"
           }
 
-          # 4. Remove uv cache
-          $uvCacheDir = Join-Path $env:LOCALAPPDATA "uv"
-          if (Test-Path $uvCacheDir) {
-            Write-Host "[4/6] Removing uv cache: $uvCacheDir"
-            Remove-Item -Path $uvCacheDir -Recurse -Force -ErrorAction SilentlyContinue
-          } else {
-            Write-Host "[4/6] uv cache not found, skipping"
+          # 4. Remove uv cache *and* managed Python installs.
+          # uv keeps its cache under %LOCALAPPDATA%\uv but the managed Python
+          # distributions (cpython-3.X[+freethreaded]-windows-x86_64-none) live
+          # under %APPDATA%\uv\python (Roaming). Without wiping the Roaming
+          # tree, a previous job's freethreaded 3.14 install lingers and the
+          # next `uv venv -p 3.14` resolves to it, producing LNK1104 against
+          # python314.lib.
+          $uvPaths = @(
+            (Join-Path $env:LOCALAPPDATA "uv"),
+            (Join-Path $env:APPDATA "uv\python"),
+            (Join-Path $env:APPDATA "uv\tools")
+          )
+          $anyRemoved = $false
+          foreach ($p in $uvPaths) {
+            if (Test-Path $p) {
+              Write-Host "[4/6] Removing uv path: $p"
+              Remove-Item -Path $p -Recurse -Force -ErrorAction SilentlyContinue
+              $anyRemoved = $true
+            }
+          }
+          if (-not $anyRemoved) {
+            Write-Host "[4/6] uv paths not found, skipping"
           }
 
           # 5. Uninstall CUDA using proper Windows uninstaller
