@@ -194,9 +194,16 @@ LINUX_ARM64_MATRIX = {
     "cuda-version": ["12.6", "12.8", "12.9", "13.0", "13.2"],
 }
 
+# Windows excludes "3.14t" because torch 2.12.0's setuptools/cpp_extension
+# cannot resolve the free-threaded import library on Windows
+# (LNK1104: python314.lib vs python314t.lib).
+# Note: "3.13t" continues to work because that distribution is shipped under a
+# different uv identifier and the resulting link name resolves correctly.
+WINDOWS_PYTHON_VERSIONS = [*PYTHON_VERSIONS, "3.13t"]
+
 WINDOWS_MATRIX = {
     "flash-attn-version": ["2.8.3", FA3_STABLE_COMMIT],
-    "python-version": ALL_PYTHON_VERSIONS,
+    "python-version": WINDOWS_PYTHON_VERSIONS,
     "torch-version": [
         "2.9.1",
         "2.10.0",

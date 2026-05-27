@@ -285,7 +285,10 @@ WINDOWS_SELF_HOSTED_MATRIX = {
         "3.13",
         "3.14",
         "3.13t",
-        "3.14t",
+        # "3.14t",  # Excluded: torch 2.12.0's setuptools/cpp_extension cannot
+        # resolve the free-threaded import library on Windows
+        # (LNK1104: python314.lib vs python314t.lib). Re-enable once PyTorch
+        # / setuptools handle this for free-threaded CPython on Windows.
     ],
     "torch-version": [
         # "2.5.1",
