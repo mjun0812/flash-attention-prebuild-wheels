@@ -273,22 +273,25 @@ WINDOWS_CODEBUILD_MATRIX = {
     ],
 }
 
+# Temporary matrix to fill missing Windows wheels.
+# Step 1 of 3 (Group 1): covers 12 combinations, of which 8 are missing
+# (3.10/3.11/3.12/3.14 × torch 2.12.0 × cuda 12.6/13.0/13.2 holes left over
+# from the v0.9.25 cancelled jobs). The other 4 jobs are existing wheels
+# that will be rebuilt and uploaded via --clobber.
+# Restore the original (full) matrix after the missing-wheel rounds are done.
 WINDOWS_SELF_HOSTED_MATRIX = {
     "flash-attn-version": [
         "2.8.3",
-        FA3_COMMIT,
+        # FA3_COMMIT,  # FA3 has no missing wheels; skipped during fill-in rounds.
     ],
     "python-version": [
         "3.10",
         "3.11",
         "3.12",
-        "3.13",
+        # "3.13",   # No missing in Group 1
         "3.14",
-        "3.13t",
-        # "3.14t",  # Excluded: torch 2.12.0's setuptools/cpp_extension cannot
-        # resolve the free-threaded import library on Windows
-        # (LNK1104: python314.lib vs python314t.lib). Re-enable once PyTorch
-        # / setuptools handle this for free-threaded CPython on Windows.
+        # "3.13t",  # No missing in Group 1
+        # "3.14t",  # Excluded entirely; see PR #102.
     ],
     "torch-version": [
         # "2.5.1",
@@ -303,7 +306,7 @@ WINDOWS_SELF_HOSTED_MATRIX = {
     "cuda-version": [
         # "12.4",
         "12.6",
-        # "12.8",
+        # "12.8",   # No missing in Group 1
         # "12.9",
         "13.0",
         "13.2",
