@@ -1,5 +1,16 @@
 ## History
 
+### v0.9.26
+
+[Release](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.9.26)
+
+#### Windows x86_64
+
+| Flash-Attention | Python | PyTorch | CUDA |
+| --- | --- | --- | --- |
+| 2.8.3 | 3.10, 3.11, 3.12, 3.14 | 2.12 | 12.6, 13.0, 13.2 |
+
+
 ### v0.9.25
 
 [Release](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v0.9.25)
