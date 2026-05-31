@@ -274,10 +274,9 @@ WINDOWS_CODEBUILD_MATRIX = {
 }
 
 # Temporary matrix to fill missing Windows wheels.
-# Step 1 of 3 (Group 1): covers 12 combinations, of which 8 are missing
-# (3.10/3.11/3.12/3.14 × torch 2.12.0 × cuda 12.6/13.0/13.2 holes left over
-# from the v0.9.25 cancelled jobs). The other 4 jobs are existing wheels
-# that will be rebuilt and uploaded via --clobber.
+# Step 2 of 3 (Group 2): covers 9 combinations, all of which are missing
+# free-threaded 3.13t wheels for torch 2.9.1/2.10.0/2.11.0 (Group 1 already
+# backfilled the torch 2.12.0 holes in v0.9.26).
 # Restore the original (full) matrix after the missing-wheel rounds are done.
 WINDOWS_SELF_HOSTED_MATRIX = {
     "flash-attn-version": [
@@ -285,12 +284,12 @@ WINDOWS_SELF_HOSTED_MATRIX = {
         # FA3_COMMIT,  # FA3 has no missing wheels; skipped during fill-in rounds.
     ],
     "python-version": [
-        "3.10",
-        "3.11",
-        "3.12",
-        # "3.13",   # No missing in Group 1
-        "3.14",
-        # "3.13t",  # No missing in Group 1
+        # "3.10",   # No missing in Group 2
+        # "3.11",   # No missing in Group 2
+        # "3.12",   # Group 3
+        # "3.13",   # No missing
+        # "3.14",   # Group 3
+        "3.13t",
         # "3.14t",  # Excluded entirely; see PR #102.
     ],
     "torch-version": [
@@ -298,18 +297,18 @@ WINDOWS_SELF_HOSTED_MATRIX = {
         # "2.6.0",
         # "2.7.1",
         # "2.8.0",
-        # "2.9.1",
-        # "2.10.0",
-        # "2.11.0",
-        "2.12.0",
+        "2.9.1",
+        "2.10.0",
+        "2.11.0",
+        # "2.12.0",  # Already covered for 3.13t (existing)
     ],
     "cuda-version": [
         # "12.4",
         "12.6",
-        # "12.8",   # No missing in Group 1
+        "12.8",
         # "12.9",
         "13.0",
-        "13.2",
+        # "13.2",  # No missing in Group 2 (torch 2.9-2.11 don't support 13.2)
     ],
 }
 
