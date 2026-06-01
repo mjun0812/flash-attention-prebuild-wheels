@@ -48,6 +48,7 @@
   - [Flash-Attention 2.7.4](#flash-attention-274)
   - [Flash-Attention 2.6.3](#flash-attention-263)
 - [Manylinux2014 x86_64](#manylinux2014-x86_64)
+  - [Flash-Attention 3.0.0](#flash-attention-300)
   - [Flash-Attention 2.8.3](#flash-attention-283)
   - [Flash-Attention 2.7.4](#flash-attention-274)
   - [Flash-Attention 2.6.3](#flash-attention-263)
@@ -69,6 +70,9 @@
 
 | Python | PyTorch | CUDA | package |
 | ------ | ------- | ---- | ------- |
+| 3.9+ (abi3) | 2.5 | 12.4 | [Download1(v0.9.29)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.29/flash_attn_3-3.0.0+cu124torch2.5gite2743ab-cp39-abi3-linux_x86_64.whl) |
+| 3.9+ (abi3) | 2.6 | 12.4 | [Download1(v0.9.29)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.29/flash_attn_3-3.0.0+cu124torch2.6gite2743ab-cp39-abi3-linux_x86_64.whl) |
+| 3.9+ (abi3) | 2.6 | 12.6 | [Download1(v0.9.29)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.29/flash_attn_3-3.0.0+cu126torch2.6gite2743ab-cp39-abi3-linux_x86_64.whl) |
 | 3.9+ (abi3) | 2.7 | 12.6 | [Download1(v0.8.2)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.8.2/flash_attn_3-3.0.0+cu126torch2.7gite2743ab-cp39-abi3-linux_x86_64.whl) |
 | 3.9+ (abi3) | 2.7 | 12.8 | [Download1(v0.8.2)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.8.2/flash_attn_3-3.0.0+cu128torch2.7gite2743ab-cp39-abi3-linux_x86_64.whl) |
 | 3.9+ (abi3) | 2.8 | 12.6 | [Download1(v0.8.2)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.8.2/flash_attn_3-3.0.0+cu126torch2.8gite2743ab-cp39-abi3-linux_x86_64.whl) |
@@ -1501,6 +1505,7 @@
 
 | Python | PyTorch | CUDA | package |
 | ------ | ------- | ---- | ------- |
+| 3.9+ (abi3) | 2.6 | 12.6 | [Download1(v0.9.29)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.29/flash_attn_3-3.0.0+cu126torch2.6gite2743ab-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl) |
 | 3.9+ (abi3) | 2.7 | 12.6 | [Download1(v0.8.2)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.8.2/flash_attn_3-3.0.0+cu126torch2.7gite2743ab-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl) |
 | 3.9+ (abi3) | 2.7 | 12.8 | [Download1(v0.8.2)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.8.2/flash_attn_3-3.0.0+cu128torch2.7gite2743ab-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl) |
 | 3.9+ (abi3) | 2.8 | 12.6 | [Download1(v0.8.2)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.8.2/flash_attn_3-3.0.0+cu126torch2.8gite2743ab-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl) |
@@ -2068,6 +2073,18 @@
 </details>
 
 ## 🐧 Manylinux2014 x86_64
+
+### Flash-Attention 3.0.0
+
+<details>
+<summary>Packages for Flash-Attention 3.0.0</summary>
+
+| Python | PyTorch | CUDA | package |
+| ------ | ------- | ---- | ------- |
+| 3.9+ (abi3) | 2.5 | 12.4 | [Download1(v0.9.29)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.29/flash_attn_3-3.0.0+cu124torch2.5gite2743ab-cp39-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl) |
+| 3.9+ (abi3) | 2.6 | 12.4 | [Download1(v0.9.29)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.29/flash_attn_3-3.0.0+cu124torch2.6gite2743ab-cp39-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl) |
+
+</details>
 
 ### Flash-Attention 2.8.3
 
