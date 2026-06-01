@@ -74,44 +74,43 @@ LINUX_ARM64_MATRIX = {
 }
 
 # Temporary matrix to fill missing Linux x86_64 wheels.
-# Step 1 of N (Group A): FA3 (flash_attn_3) holes for torch 2.5.1/2.6.0.
-# FA3 builds a single cp39-abi3 wheel per (torch, cuda) combination that
-# covers every non-free-threaded CPython, so we only need ONE python build
-# version here (3.12) to backfill all 12 missing FA3 entries
-# (fa3 × {3.10,3.11,3.12,3.13} × {2.5.1×12.4, 2.6.0×12.4, 2.6.0×12.6}).
+# Step 2 of N (Group B): FA2 free-threaded 3.14t holes for torch 2.9.1.
+# Group A (v0.9.29) already backfilled the 12 FA3 holes (95.0% coverage).
+# Group B covers 9 missing entries:
+#   {2.6.3, 2.7.4, 2.8.3} × 3.14t × 2.9.1 × {12.6, 12.8, 13.0}
 # Restore the original matrix after the Linux missing-wheel rounds are done.
 LINUX_SELF_HOSTED_MATRIX = {
     "flash-attn-version": [
-        # "2.6.3",
-        # "2.7.4",
-        # "2.8.3",
-        FA3_COMMIT,
+        "2.6.3",
+        "2.7.4",
+        "2.8.3",
+        # FA3_COMMIT,  # Done in Group A
     ],
     "python-version": [
         # "3.10",
         # "3.11",
-        "3.12",  # FA3 is abi3 (cp39-abi3); one build covers all non-FT pythons
+        # "3.12",
         # "3.13",
         # "3.14",
         # "3.13t",
-        # "3.14t",
+        "3.14t",
     ],
     "torch-version": [
-        "2.5.1",
-        "2.6.0",
+        # "2.5.1",
+        # "2.6.0",
         # "2.7.1",
         # "2.8.0",
-        # "2.9.1",
+        "2.9.1",
         # "2.10.0",
         # "2.11.0",
         # "2.12.0",
     ],
     "cuda-version": [
-        "12.4",
+        # "12.4",
         "12.6",
-        # "12.8",
+        "12.8",
         # "12.9",
-        # "13.0",
+        "13.0",
         # "13.2",
     ],
 }
