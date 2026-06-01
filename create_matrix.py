@@ -73,39 +73,46 @@ LINUX_ARM64_MATRIX = {
     ],
 }
 
+# Temporary matrix to fill missing Linux x86_64 wheels.
+# Step 1 of N (Group A): FA3 (flash_attn_3) holes for torch 2.5.1/2.6.0.
+# FA3 builds a single cp39-abi3 wheel per (torch, cuda) combination that
+# covers every non-free-threaded CPython, so we only need ONE python build
+# version here (3.12) to backfill all 12 missing FA3 entries
+# (fa3 × {3.10,3.11,3.12,3.13} × {2.5.1×12.4, 2.6.0×12.4, 2.6.0×12.6}).
+# Restore the original matrix after the Linux missing-wheel rounds are done.
 LINUX_SELF_HOSTED_MATRIX = {
     "flash-attn-version": [
-        "2.6.3",
-        "2.7.4",
-        "2.8.3",
+        # "2.6.3",
+        # "2.7.4",
+        # "2.8.3",
         FA3_COMMIT,
     ],
     "python-version": [
         # "3.10",
         # "3.11",
-        # "3.12",
+        "3.12",  # FA3 is abi3 (cp39-abi3); one build covers all non-FT pythons
         # "3.13",
         # "3.14",
-        "3.13t",
+        # "3.13t",
         # "3.14t",
     ],
     "torch-version": [
-        # "2.5.1",
+        "2.5.1",
         "2.6.0",
-        "2.7.1",
-        "2.8.0",
-        "2.9.1",
-        "2.10.0",
+        # "2.7.1",
+        # "2.8.0",
+        # "2.9.1",
+        # "2.10.0",
         # "2.11.0",
         # "2.12.0",
     ],
     "cuda-version": [
         "12.4",
         "12.6",
-        "12.8",
-        "12.9",
-        "13.0",
-        "13.2",
+        # "12.8",
+        # "12.9",
+        # "13.0",
+        # "13.2",
     ],
 }
 
@@ -321,8 +328,8 @@ def main():
                 "linux_arm64": False,
                 # "linux_arm64": LINUX_ARM64_MATRIX,
                 #
-                "linux_self_hosted": False,
-                # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
+                # "linux_self_hosted": False,
+                "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
                 #
                 "linux_arm64_self_hosted": False,
                 # "linux_arm64_self_hosted": LINUX_ARM64_SELF_HOSTED_MATRIX,
@@ -336,8 +343,8 @@ def main():
                 "windows": False,
                 # "windows": WINDOWS_MATRIX,
                 #
-                # "windows_self_hosted": False,
-                "windows_self_hosted": WINDOWS_SELF_HOSTED_MATRIX,
+                "windows_self_hosted": False,
+                # "windows_self_hosted": WINDOWS_SELF_HOSTED_MATRIX,
                 #
                 "windows_code_build": False,
                 # "windows_code_build": WINDOWS_CODEBUILD_MATRIX,
