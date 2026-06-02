@@ -110,6 +110,46 @@ echo "Build parallelism settings:"
 echo "  MAX_JOBS: $MAX_JOBS"
 echo "  NVCC_THREADS: $NVCC_THREADS"
 
+# Optional ccache setup (enabled with USE_CCACHE=1).
+# Speeds up rebuilds by caching compiled objects. Useful for retrying builds
+# that hit the GitHub-hosted 6h limit: the second run reuses cached objects.
+if [[ "${USE_CCACHE:-0}" == "1" ]]; then
+  if command -v ccache >/dev/null 2>&1; then
+    echo "ccache: enabled"
+    export CCACHE_DIR="${CCACHE_DIR:-$HOME/.ccache}"
+    export CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-5G}"
+    # Hash only file content, not mtime/path, so cache hits survive fresh clones.
+    export CCACHE_COMPILERCHECK="${CCACHE_COMPILERCHECK:-content}"
+    ccache -M "$CCACHE_MAXSIZE" >/dev/null 2>&1 || true
+
+    # Host compiler (gcc/g++): use ccache's masquerade dir on PATH so that
+    # tools resolving the compiler by name go through ccache.
+    if [ -d /usr/lib/ccache ]; then
+      export PATH="/usr/lib/ccache:$PATH"
+    fi
+
+    # nvcc: PyTorch's cpp_extension invokes $CUDA_HOME/bin/nvcc by absolute
+    # path, so PATH masquerade does not apply. Replace nvcc with a wrapper that
+    # routes through ccache. The real binary is kept under the original name
+    # "nvcc" (so ccache still detects the CUDA compiler type).
+    NVCC_BIN=$(command -v nvcc || true)
+    REAL_NVCC="$HOME/.ccache-nvcc-real/nvcc"
+    if [ -n "$NVCC_BIN" ] && [ ! -f "$REAL_NVCC" ]; then
+      mkdir -p "$(dirname "$REAL_NVCC")"
+      cp "$NVCC_BIN" "$REAL_NVCC"
+      sudo tee "$NVCC_BIN" >/dev/null <<EOF
+#!/usr/bin/env bash
+exec ccache "$REAL_NVCC" "\$@"
+EOF
+      sudo chmod +x "$NVCC_BIN"
+      echo "ccache: wrapped nvcc ($NVCC_BIN -> ccache $REAL_NVCC)"
+    fi
+    ccache -z >/dev/null 2>&1 || true
+  else
+    echo "ccache: USE_CCACHE=1 but ccache not found on PATH; building without it"
+  fi
+fi
+
 # Build wheels
 echo "Building wheels..."
 if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
@@ -126,3 +166,9 @@ NVCC_THREADS=$NVCC_THREADS MAX_JOBS=$MAX_JOBS \
   time python setup.py bdist_wheel --dist-dir=dist
 wheel_name=$(basename $(ls dist/*.whl | head -n 1))
 echo "Built wheel: $wheel_name"
+
+# Report ccache statistics (hit/miss) when enabled.
+if [[ "${USE_CCACHE:-0}" == "1" ]] && command -v ccache >/dev/null 2>&1; then
+  echo "=== ccache statistics ==="
+  ccache -s || true
+fi

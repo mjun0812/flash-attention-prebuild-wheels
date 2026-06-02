@@ -33,6 +33,11 @@ on:
         required: false
         type: boolean
         default: true
+      use-ccache:
+        description: "Whether to use ccache to speed up compilation"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build_wheels:
@@ -66,3 +71,4 @@ jobs:
           torch-version: ${{ inputs.torch-version }}
           cuda-version: ${{ inputs.cuda-version }}
           is-upload: ${{ inputs.is-upload }}
+          use-ccache: ${{ inputs.use-ccache }}

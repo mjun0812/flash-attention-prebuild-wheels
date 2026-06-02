@@ -55,6 +55,11 @@ on:
         description: "NVCC_THREADS (optional, overrides auto-detection)"
         required: false
         type: string
+      use-ccache:
+        description: "Use ccache to speed up compilation (GitHub-hosted Linux only)"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   # #########################################################
@@ -99,6 +104,7 @@ jobs:
       cuda-version: ${{ inputs.cuda-version }}
       is-upload: false
       runner: ubuntu-22.04-arm
+      use-ccache: ${{ inputs.use-ccache }}
 
   # #########################################################
   # Linux ARM64 self-hosted runner
