@@ -74,21 +74,23 @@ LINUX_ARM64_MATRIX = {
 }
 
 # Temporary matrix to fill missing Linux x86_64 wheels.
-# Step 4 of N (Group D1): FA2 3.13 holes for torch 2.5.1.
-# Groups A/B/C backfilled FA3, 3.14t/2.9.1 and 3.13t/2.11.0 (98.9%).
-# Group D1 covers 3 missing entries:
-#   {2.6.3, 2.7.4, 2.8.3} × 3.13 × 2.5.1 × 12.4
-# Restore the original matrix after the Linux missing-wheel rounds are done.
+# Step 5 of N (Group D2, FINAL): the two leftover torch 2.11.0 holes.
+# Groups A/B/C/D1 brought coverage to 99.6%; this final group covers:
+#   2.6.3 × 3.13 × 2.11.0 × 12.6  and  2.7.4 × 3.11 × 2.11.0 × 13.0
+# These two individual points are picked up via a small cross product
+# ({2.6.3,2.7.4} × {3.11,3.13} × 2.11.0 × {12.6,13.0} = 8 jobs), of which
+# 2 are missing and 6 are existing wheels rebuilt and re-uploaded via
+# --clobber. Restore the regular matrix in the follow-up PR.
 LINUX_SELF_HOSTED_MATRIX = {
     "flash-attn-version": [
         "2.6.3",
         "2.7.4",
-        "2.8.3",
+        # "2.8.3",  # No 2.11.0 leftover for 2.8.3
         # FA3_COMMIT,  # Done in Group A
     ],
     "python-version": [
         # "3.10",
-        # "3.11",
+        "3.11",
         # "3.12",
         "3.13",
         # "3.14",
@@ -96,21 +98,21 @@ LINUX_SELF_HOSTED_MATRIX = {
         # "3.14t",  # Done in Group B
     ],
     "torch-version": [
-        "2.5.1",
+        # "2.5.1",
         # "2.6.0",
         # "2.7.1",
         # "2.8.0",
         # "2.9.1",
         # "2.10.0",
-        # "2.11.0",
+        "2.11.0",
         # "2.12.0",
     ],
     "cuda-version": [
-        "12.4",
-        # "12.6",
+        # "12.4",
+        "12.6",
         # "12.8",
         # "12.9",
-        # "13.0",
+        "13.0",
         # "13.2",
     ],
 }
