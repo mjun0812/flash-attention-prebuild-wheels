@@ -22,6 +22,10 @@ inputs:
     description: "Whether to clean up Python installation"
     required: false
     default: "false"
+  use-ccache:
+    description: "Whether to use ccache to speed up compilation"
+    required: false
+    default: "false"
 
 outputs:
   wheel-path:
@@ -50,8 +54,27 @@ runs:
       with:
         version: ${{ inputs.cuda-version }}
 
+    - name: Install ccache
+      if: ${{ inputs.use-ccache == 'true' }}
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ccache
+
+    - name: Restore ccache
+      if: ${{ inputs.use-ccache == 'true' }}
+      uses: actions/cache@v4
+      with:
+        path: ~/.ccache
+        key: ccache-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          ccache-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-
+          ccache-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-
+
     - name: Build wheels
       shell: bash
+      env:
+        USE_CCACHE: ${{ inputs.use-ccache == 'true' && '1' || '0' }}
       run: |
         chmod +x build_linux.sh
         ./build_linux.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.cuda-version }}
