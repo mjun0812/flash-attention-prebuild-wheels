@@ -130,19 +130,24 @@ if [[ "${USE_CCACHE:-0}" == "1" ]]; then
 
     # nvcc: PyTorch's cpp_extension invokes $CUDA_HOME/bin/nvcc by absolute
     # path, so PATH masquerade does not apply. Replace nvcc with a wrapper that
-    # routes through ccache. The real binary is kept under the original name
-    # "nvcc" (so ccache still detects the CUDA compiler type).
+    # routes through ccache. The real binary MUST stay in the same bin dir
+    # (renamed nvcc.real), otherwise nvcc cannot locate its sibling tools
+    # (cicc, ptxas, nvvm) by relative path and fails with "cicc: not found".
     NVCC_BIN=$(command -v nvcc || true)
-    REAL_NVCC="$HOME/.ccache-nvcc-real/nvcc"
-    if [ -n "$NVCC_BIN" ] && [ ! -f "$REAL_NVCC" ]; then
-      mkdir -p "$(dirname "$REAL_NVCC")"
-      cp "$NVCC_BIN" "$REAL_NVCC"
-      sudo tee "$NVCC_BIN" >/dev/null <<EOF
+    if [ -n "$NVCC_BIN" ]; then
+      NVCC_DIR=$(dirname "$NVCC_BIN")
+      if [ ! -f "$NVCC_DIR/nvcc.real" ]; then
+        sudo mv "$NVCC_BIN" "$NVCC_DIR/nvcc.real"
+        sudo tee "$NVCC_BIN" >/dev/null <<EOF
 #!/usr/bin/env bash
-exec ccache "$REAL_NVCC" "\$@"
+exec ccache "$NVCC_DIR/nvcc.real" "\$@"
 EOF
-      sudo chmod +x "$NVCC_BIN"
-      echo "ccache: wrapped nvcc ($NVCC_BIN -> ccache $REAL_NVCC)"
+        sudo chmod +x "$NVCC_BIN"
+        echo "ccache: wrapped nvcc (real at $NVCC_DIR/nvcc.real)"
+      fi
+      # The real binary's basename is "nvcc.real", so tell ccache explicitly
+      # that this is the CUDA compiler (ccache >= 4.4 supports CCACHE_COMPILERTYPE).
+      export CCACHE_COMPILERTYPE=nvcc
     fi
     ccache -z >/dev/null 2>&1 || true
   else
