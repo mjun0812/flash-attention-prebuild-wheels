@@ -40,26 +40,37 @@ LINUX_MATRIX = {
     ],
 }
 
+# Temporary matrix to fill missing Linux ARM64 wheels on GitHub-hosted
+# runners (ubuntu-22.04-arm). FA3 is excluded for now because its ARM64
+# build runs ~12-17h on the available hardware and overruns the 6h
+# GitHub-hosted job limit; only the FA2 free-threaded holes are built here.
+# Group covers 24 missing entries (all of flash-attn 2.8.3):
+#   {3.13t, 3.14t} × {2.9.1, 2.10.0, 2.11.0, 2.12.0} × {12.6, 12.8, 13.0, 13.2}
+# (torch 2.9-2.11 drop 13.2 and torch 2.12 drops 12.8 via EXCLUDE -> 24 jobs)
+# Restore the original matrix after the ARM64 missing-wheel round is done.
 LINUX_ARM64_MATRIX = {
     "flash-attn-version": [
-        "2.6.3",
-        "2.7.4",
+        # "2.6.3",  # No ARM64 missing
+        # "2.7.4",  # No ARM64 missing
         "2.8.3",
+        # FA3_COMMIT,  # Excluded: ARM64 FA3 build overruns the 6h GH-hosted limit
     ],
     "python-version": [
-        "3.10",
-        "3.11",
-        "3.12",
-        "3.13",
-        "3.14",
+        # "3.10",
+        # "3.11",
+        # "3.12",
+        # "3.13",
+        # "3.14",
+        "3.13t",
+        "3.14t",
     ],
     "torch-version": [
         # "2.5.1",
         # "2.6.0",
         # "2.7.1",
         # "2.8.0",
-        # "2.9.1",
-        # "2.10.0",
+        "2.9.1",
+        "2.10.0",
         "2.11.0",
         "2.12.0",
     ],
@@ -318,8 +329,8 @@ def main():
                 "linux": False,
                 # "linux": LINUX_MATRIX,
                 #
-                "linux_arm64": False,
-                # "linux_arm64": LINUX_ARM64_MATRIX,
+                # "linux_arm64": False,
+                "linux_arm64": LINUX_ARM64_MATRIX,
                 #
                 "linux_self_hosted": False,
                 # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
@@ -336,8 +347,8 @@ def main():
                 "windows": False,
                 # "windows": WINDOWS_MATRIX,
                 #
-                # "windows_self_hosted": False,
-                "windows_self_hosted": WINDOWS_SELF_HOSTED_MATRIX,
+                "windows_self_hosted": False,
+                # "windows_self_hosted": WINDOWS_SELF_HOSTED_MATRIX,
                 #
                 "windows_code_build": False,
                 # "windows_code_build": WINDOWS_CODEBUILD_MATRIX,
