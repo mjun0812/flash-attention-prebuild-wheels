@@ -77,7 +77,20 @@ runs:
         USE_CCACHE: ${{ inputs.use-ccache == 'true' && '1' || '0' }}
       run: |
         chmod +x build_linux.sh
-        ./build_linux.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.cuda-version }}
+        if [ "${USE_CCACHE}" = "1" ]; then
+          # Cap the build at 5h45m. GitHub-hosted jobs are hard-cancelled at
+          # 6h, which would skip the actions/cache save (post step) and lose
+          # the warm ccache. Stopping the build ourselves before that lets the
+          # cache be saved so a subsequent retry resumes from cached objects.
+          rc=0
+          timeout --signal=TERM 345m ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}" || rc=$?
+          if [ "${rc}" = "124" ]; then
+            echo "::warning::Build hit the 5h45m cap; ccache will be saved for a warm retry. Marking this attempt as failed."
+          fi
+          exit "${rc}"
+        else
+          ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}"
+        fi
 
     - name: Locate wheel
       id: build_wheels
