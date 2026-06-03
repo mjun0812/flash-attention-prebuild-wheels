@@ -61,9 +61,12 @@ runs:
         sudo apt-get update
         sudo apt-get install -y ccache
 
+    # Restore only here. Saving is done by a separate step that runs ONLY when
+    # the build was capped at 5h45m (a completed build needs no warm cache).
     - name: Restore ccache
+      id: ccache_restore
       if: ${{ inputs.use-ccache == 'true' }}
-      uses: actions/cache@v4
+      uses: actions/cache/restore@v4
       with:
         path: ~/.ccache
         key: ccache-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -72,6 +75,7 @@ runs:
           ccache-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-
 
     - name: Build wheels
+      id: build
       shell: bash
       env:
         USE_CCACHE: ${{ inputs.use-ccache == 'true' && '1' || '0' }}
@@ -79,18 +83,30 @@ runs:
         chmod +x build_linux.sh
         if [ "${USE_CCACHE}" = "1" ]; then
           # Cap the build at 5h45m. GitHub-hosted jobs are hard-cancelled at
-          # 6h, which would skip the actions/cache save (post step) and lose
-          # the warm ccache. Stopping the build ourselves before that lets the
-          # cache be saved so a subsequent retry resumes from cached objects.
+          # 6h, which would skip the cache save and lose the warm ccache.
+          # Stopping the build ourselves before that lets the cache be saved
+          # so a subsequent retry resumes from cached objects.
           rc=0
           timeout --signal=TERM 345m ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}" || rc=$?
           if [ "${rc}" = "124" ]; then
+            # Capped: mark so the cache-save step below runs. A completed
+            # build (rc=0) leaves capped unset, so its cache is NOT saved.
+            echo "capped=true" >> "$GITHUB_OUTPUT"
             echo "::warning::Build hit the 5h45m cap; ccache will be saved for a warm retry. Marking this attempt as failed."
           fi
           exit "${rc}"
         else
           ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}"
         fi
+
+    # Save the warm ccache ONLY when the build was capped (not on success).
+    # always() lets this run even though the capped build step exited non-zero.
+    - name: Save ccache (only when capped)
+      if: ${{ always() && inputs.use-ccache == 'true' && steps.build.outputs.capped == 'true' }}
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.ccache
+        key: ${{ steps.ccache_restore.outputs.cache-primary-key }}
 
     - name: Locate wheel
       id: build_wheels
