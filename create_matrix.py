@@ -40,24 +40,18 @@ LINUX_MATRIX = {
     ],
 }
 
-# Temporary matrix to retry the single ARM64 FA2 wheel that hit the 6h
-# GitHub-hosted limit in v0.9.34 (2.8.3 × 3.13t × 2.11.0 × 12.8, cancelled at
-# 360 min with 72/73 objects compiled). Built with ccache enabled (see
-# build.yml linux_arm64 use-ccache) so a warm cache lets the build finish
-# within 6h. Restore the original matrix afterwards.
 LINUX_ARM64_MATRIX = {
     "flash-attn-version": [
-        # "2.6.3",
-        # "2.7.4",
+        "2.6.3",
+        "2.7.4",
         "2.8.3",
     ],
     "python-version": [
-        # "3.10",
-        # "3.11",
-        # "3.12",
-        # "3.13",
-        # "3.14",
-        "3.13t",
+        "3.10",
+        "3.11",
+        "3.12",
+        "3.13",
+        "3.14",
     ],
     "torch-version": [
         # "2.5.1",
@@ -67,15 +61,15 @@ LINUX_ARM64_MATRIX = {
         # "2.9.1",
         # "2.10.0",
         "2.11.0",
-        # "2.12.0",
+        "2.12.0",
     ],
     "cuda-version": [
         # "12.4",
-        # "12.6",
+        "12.6",
         "12.8",
         # "12.9",
-        # "13.0",
-        # "13.2",
+        "13.0",
+        "13.2",
     ],
 }
 
@@ -324,8 +318,8 @@ def main():
                 "linux": False,
                 # "linux": LINUX_MATRIX,
                 #
-                # "linux_arm64": False,
-                "linux_arm64": LINUX_ARM64_MATRIX,
+                "linux_arm64": False,
+                # "linux_arm64": LINUX_ARM64_MATRIX,
                 #
                 "linux_self_hosted": False,
                 # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
@@ -342,8 +336,8 @@ def main():
                 "windows": False,
                 # "windows": WINDOWS_MATRIX,
                 #
-                "windows_self_hosted": False,
-                # "windows_self_hosted": WINDOWS_SELF_HOSTED_MATRIX,
+                # "windows_self_hosted": False,
+                "windows_self_hosted": WINDOWS_SELF_HOSTED_MATRIX,
                 #
                 "windows_code_build": False,
                 # "windows_code_build": WINDOWS_CODEBUILD_MATRIX,
