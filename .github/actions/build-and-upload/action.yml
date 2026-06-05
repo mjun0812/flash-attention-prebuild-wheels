@@ -58,8 +58,51 @@ runs:
       if: ${{ inputs.use-ccache == 'true' }}
       shell: bash
       run: |
+        # Ubuntu 22.04 ships ccache 4.5.1, which mishandles nvcc's
+        # --generate-dependencies-with-compile flag — debug logs showed
+        # 82% of nvcc invocations classified as 'called_for_preprocessing'
+        # (uncacheable). 4.10+ properly handles this. No official aarch64
+        # prebuilt exists, so build from source (~2 min).
+        CCACHE_VERSION=4.10.2
         sudo apt-get update
-        sudo apt-get install -y ccache
+        # apt's ccache provides /usr/lib/ccache/{gcc,g++,...} masquerade
+        # symlinks that point to /usr/bin/ccache. build_linux.sh prepends
+        # /usr/lib/ccache to PATH to route host compiler calls through
+        # ccache, so we keep the symlinks and replace /usr/bin/ccache
+        # below with the upgraded binary.
+        sudo apt-get install -y ccache cmake libzstd-dev
+        tmp=$(mktemp -d)
+        BIN=""
+        case "$(uname -m)" in
+          x86_64)  ARCH=x86_64 ;;
+          aarch64) ARCH=aarch64 ;;
+          *)       ARCH="" ;;
+        esac
+        if [ -n "$ARCH" ]; then
+          url="https://github.com/ccache/ccache/releases/download/v${CCACHE_VERSION}/ccache-${CCACHE_VERSION}-linux-${ARCH}.tar.xz"
+          echo "trying prebuilt: $url"
+          if curl -fL "$url" -o "$tmp/ccache.tar.xz" 2>/dev/null; then
+            tar -xJf "$tmp/ccache.tar.xz" -C "$tmp"
+            BIN="$tmp/ccache-${CCACHE_VERSION}-linux-${ARCH}/ccache"
+          fi
+        fi
+        if [ -z "$BIN" ] || [ ! -x "$BIN" ]; then
+          echo "no prebuilt; building from source"
+          curl -fL "https://github.com/ccache/ccache/releases/download/v${CCACHE_VERSION}/ccache-${CCACHE_VERSION}.tar.xz" -o "$tmp/src.tar.xz"
+          tar -xJf "$tmp/src.tar.xz" -C "$tmp"
+          cmake -S "$tmp/ccache-${CCACHE_VERSION}" -B "$tmp/build" \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DENABLE_TESTING=OFF \
+                -DENABLE_DOCUMENTATION=OFF \
+                -DREDIS_STORAGE_BACKEND=OFF
+          cmake --build "$tmp/build" -j "$(nproc)"
+          BIN="$tmp/build/ccache"
+        fi
+        sudo install -m755 "$BIN" /usr/local/bin/ccache
+        sudo install -m755 "$BIN" /usr/bin/ccache
+        rm -rf "$tmp"
+        echo "=== installed ccache version ==="
+        ccache --version | head -1
 
     # Restore only here. Saving is done by a separate step that runs ONLY when
     # the build was capped at 5h45m (a completed build needs no warm cache).
