@@ -82,17 +82,15 @@ runs:
       run: |
         chmod +x build_linux.sh
         if [ "${USE_CCACHE}" = "1" ]; then
-          # Cap the build at 5h45m. GitHub-hosted jobs are hard-cancelled at
-          # 6h, which would skip the cache save and lose the warm ccache.
-          # Stopping the build ourselves before that lets the cache be saved
-          # so a subsequent retry resumes from cached objects.
+          # DEBUG: temporarily capped at 60m to inspect ccache hit/miss patterns.
+          # Original cap was 5h45m (= 345m); restore after debug.
           rc=0
-          timeout --signal=TERM 345m ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}" || rc=$?
+          timeout --signal=TERM 60m ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}" || rc=$?
           if [ "${rc}" = "124" ]; then
             # Capped: mark so the cache-save step below runs. A completed
             # build (rc=0) leaves capped unset, so its cache is NOT saved.
             echo "capped=true" >> "$GITHUB_OUTPUT"
-            echo "::warning::Build hit the 5h45m cap; ccache will be saved for a warm retry. Marking this attempt as failed."
+            echo "::warning::Build hit the 60m debug cap; ccache will be saved and the ccache debug log will be uploaded as an artifact."
           fi
           exit "${rc}"
         else
@@ -107,6 +105,29 @@ runs:
       with:
         path: ~/.ccache
         key: ${{ steps.ccache_restore.outputs.cache-primary-key }}
+
+    # DEBUG: dump ccache statistics and config, then upload the per-call debug
+    # log so we can diagnose why hit rate is low. Remove after debug.
+    - name: Dump ccache stats and config
+      if: ${{ always() && inputs.use-ccache == 'true' }}
+      shell: bash
+      run: |
+        echo "=== ccache -s (statistics) ==="
+        ccache -s || true
+        echo "=== ccache -p (config) ==="
+        ccache -p || true
+        echo "=== ccache debug log size ==="
+        ls -lh "$HOME/ccache-debug.log" 2>/dev/null || echo "no debug log"
+
+    - name: Upload ccache debug artifacts
+      if: ${{ always() && inputs.use-ccache == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ccache-debug-${{ inputs.flash-attn-version }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}
+        path: |
+          ~/ccache-debug.log
+        if-no-files-found: warn
+        retention-days: 7
 
     - name: Locate wheel
       id: build_wheels

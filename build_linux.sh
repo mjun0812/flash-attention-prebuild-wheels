@@ -120,7 +120,18 @@ if [[ "${USE_CCACHE:-0}" == "1" ]]; then
     export CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-5G}"
     # Hash only file content, not mtime/path, so cache hits survive fresh clones.
     export CCACHE_COMPILERCHECK="${CCACHE_COMPILERCHECK:-content}"
+    # Normalize absolute paths under the build tree to relative paths so cache
+    # entries survive across GitHub-hosted runners (different VM hostnames,
+    # paths, etc.). Without this, nvcc command lines embed absolute paths and
+    # ccache treats every invocation as a miss.
+    export CCACHE_BASEDIR="${CCACHE_BASEDIR:-$(pwd)}"
+    export CCACHE_NOHASHDIR=1
+    # Debug log for ccache hit/miss analysis. Written to a path the CI step
+    # can upload as an artifact.
+    export CCACHE_LOGFILE="${CCACHE_LOGFILE:-$HOME/ccache-debug.log}"
     ccache -M "$CCACHE_MAXSIZE" >/dev/null 2>&1 || true
+    echo "ccache: CCACHE_BASEDIR=$CCACHE_BASEDIR CCACHE_NOHASHDIR=$CCACHE_NOHASHDIR"
+    echo "ccache: CCACHE_LOGFILE=$CCACHE_LOGFILE"
 
     # Host compiler (gcc/g++): use ccache's masquerade dir on PATH so that
     # tools resolving the compiler by name go through ccache.
