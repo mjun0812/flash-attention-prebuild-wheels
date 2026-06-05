@@ -61,6 +61,19 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
   # The patch suppresses --resource-usage ptxas logs and adds ccache support
   # for the bundled nvcc that FA3 downloads and injects via PYTORCH_NVCC.
   cp "$(dirname "$0")/patches/fa3/setup.py" flash-attention/hopper/setup.py
+  # If a previous attempt's ninja build directory was cached by the CI step
+  # (Restore FA3 build directory cache), move it into place so ninja sees
+  # the existing .o files and skips already-compiled translation units.
+  # Touch every file so ninja considers them newer than the freshly cloned
+  # .cu sources (otherwise mtime would force recompilation).
+  if [ -d "$HOME/.fa-build-cache/build" ]; then
+    echo "fa-build-cache: restoring previous ninja build directory"
+    du -sh "$HOME/.fa-build-cache/build" || true
+    mkdir -p flash-attention/hopper
+    rm -rf flash-attention/hopper/build
+    mv "$HOME/.fa-build-cache/build" flash-attention/hopper/build
+    find flash-attention/hopper/build -exec touch {} + 2>/dev/null || true
+  fi
 elif [[ "${FLASH_ATTN_VARIANT}" == "Flash Attention 2" ]]; then
   echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
   git clone https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FLASH_ATTN_VERSION"
@@ -126,12 +139,7 @@ if [[ "${USE_CCACHE:-0}" == "1" ]]; then
     # ccache treats every invocation as a miss.
     export CCACHE_BASEDIR="${CCACHE_BASEDIR:-$(pwd)}"
     export CCACHE_NOHASHDIR=1
-    # Debug log for ccache hit/miss analysis. Written to a path the CI step
-    # can upload as an artifact.
-    export CCACHE_LOGFILE="${CCACHE_LOGFILE:-$HOME/ccache-debug.log}"
     ccache -M "$CCACHE_MAXSIZE" >/dev/null 2>&1 || true
-    echo "ccache: CCACHE_BASEDIR=$CCACHE_BASEDIR CCACHE_NOHASHDIR=$CCACHE_NOHASHDIR"
-    echo "ccache: CCACHE_LOGFILE=$CCACHE_LOGFILE"
 
     # Host compiler (gcc/g++): use ccache's masquerade dir on PATH so that
     # tools resolving the compiler by name go through ccache.
