@@ -58,51 +58,8 @@ runs:
       if: ${{ inputs.use-ccache == 'true' }}
       shell: bash
       run: |
-        # Ubuntu 22.04 ships ccache 4.5.1, which mishandles nvcc's
-        # --generate-dependencies-with-compile flag — debug logs showed
-        # 82% of nvcc invocations classified as 'called_for_preprocessing'
-        # (uncacheable). 4.10+ properly handles this. No official aarch64
-        # prebuilt exists, so build from source (~2 min).
-        CCACHE_VERSION=4.10.2
         sudo apt-get update
-        # apt's ccache provides /usr/lib/ccache/{gcc,g++,...} masquerade
-        # symlinks that point to /usr/bin/ccache. build_linux.sh prepends
-        # /usr/lib/ccache to PATH to route host compiler calls through
-        # ccache, so we keep the symlinks and replace /usr/bin/ccache
-        # below with the upgraded binary.
-        sudo apt-get install -y ccache cmake libzstd-dev
-        tmp=$(mktemp -d)
-        BIN=""
-        case "$(uname -m)" in
-          x86_64)  ARCH=x86_64 ;;
-          aarch64) ARCH=aarch64 ;;
-          *)       ARCH="" ;;
-        esac
-        if [ -n "$ARCH" ]; then
-          url="https://github.com/ccache/ccache/releases/download/v${CCACHE_VERSION}/ccache-${CCACHE_VERSION}-linux-${ARCH}.tar.xz"
-          echo "trying prebuilt: $url"
-          if curl -fL "$url" -o "$tmp/ccache.tar.xz" 2>/dev/null; then
-            tar -xJf "$tmp/ccache.tar.xz" -C "$tmp"
-            BIN="$tmp/ccache-${CCACHE_VERSION}-linux-${ARCH}/ccache"
-          fi
-        fi
-        if [ -z "$BIN" ] || [ ! -x "$BIN" ]; then
-          echo "no prebuilt; building from source"
-          curl -fL "https://github.com/ccache/ccache/releases/download/v${CCACHE_VERSION}/ccache-${CCACHE_VERSION}.tar.xz" -o "$tmp/src.tar.xz"
-          tar -xJf "$tmp/src.tar.xz" -C "$tmp"
-          cmake -S "$tmp/ccache-${CCACHE_VERSION}" -B "$tmp/build" \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DENABLE_TESTING=OFF \
-                -DENABLE_DOCUMENTATION=OFF \
-                -DREDIS_STORAGE_BACKEND=OFF
-          cmake --build "$tmp/build" -j "$(nproc)"
-          BIN="$tmp/build/ccache"
-        fi
-        sudo install -m755 "$BIN" /usr/local/bin/ccache
-        sudo install -m755 "$BIN" /usr/bin/ccache
-        rm -rf "$tmp"
-        echo "=== installed ccache version ==="
-        ccache --version | head -1
+        sudo apt-get install -y ccache
 
     # Restore only here. Saving is done by a separate step that runs ONLY when
     # the build was capped at 5h45m (a completed build needs no warm cache).
@@ -117,6 +74,22 @@ runs:
           ccache-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-
           ccache-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-
 
+    # ninja build directory cache. Unlike ccache (which keys on per-call
+    # hashes), this cache stores the entire flash-attention/hopper/build/
+    # tree under ~/.fa-build-cache/ so ninja sees the .o files on the next
+    # attempt and skips already-compiled translation units. ccache 4.5.1
+    # marks 97% of FA3 nvcc calls 'uncacheable' (--generate-dependencies-with-compile),
+    # so build-dir caching is the only reliable way to make retries faster.
+    - name: Restore FA3 build directory cache
+      id: build_cache_restore
+      if: ${{ inputs.use-ccache == 'true' }}
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.fa-build-cache
+        key: fabuild-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          fabuild-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-
+
     - name: Build wheels
       id: build
       shell: bash
@@ -125,20 +98,54 @@ runs:
       run: |
         chmod +x build_linux.sh
         if [ "${USE_CCACHE}" = "1" ]; then
-          # DEBUG: temporarily capped at 60m to inspect ccache hit/miss patterns.
-          # Original cap was 5h45m (= 345m); restore after debug.
+          # Cap the build at 5h45m. GitHub-hosted jobs are hard-cancelled at
+          # 6h, which would skip the cache save and lose the warm caches.
+          # Stopping the build ourselves before that lets the caches be saved
+          # so a subsequent retry resumes from the warm build directory.
           rc=0
-          timeout --signal=TERM 60m ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}" || rc=$?
+          timeout --signal=TERM 345m ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}" || rc=$?
           if [ "${rc}" = "124" ]; then
-            # Capped: mark so the cache-save step below runs. A completed
+            # Capped: mark so the cache-save steps below run. A completed
             # build (rc=0) leaves capped unset, so its cache is NOT saved.
             echo "capped=true" >> "$GITHUB_OUTPUT"
-            echo "::warning::Build hit the 60m debug cap; ccache will be saved and the ccache debug log will be uploaded as an artifact."
+            echo "::warning::Build hit the 5h45m cap; build directory and ccache will be saved for a warm retry. Marking this attempt as failed."
           fi
           exit "${rc}"
         else
           ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}"
         fi
+
+    # Move the partially-built ninja directory under ~/.fa-build-cache/ so
+    # actions/cache/save can pick it up at a stable path.
+    - name: Stage FA3 build directory for cache save
+      id: stage_build
+      if: ${{ always() && inputs.use-ccache == 'true' && steps.build.outputs.capped == 'true' }}
+      shell: bash
+      run: |
+        src=""
+        if [ -d flash-attention/hopper/build ]; then
+          src=flash-attention/hopper/build
+        elif [ -d flash-attention/build ]; then
+          src=flash-attention/build
+        fi
+        if [ -n "$src" ]; then
+          mkdir -p "$HOME/.fa-build-cache"
+          rm -rf "$HOME/.fa-build-cache/build"
+          mv "$src" "$HOME/.fa-build-cache/build"
+          echo "Staged $src -> ~/.fa-build-cache/build"
+          du -sh "$HOME/.fa-build-cache/build" || true
+          echo "staged=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "No build directory found to stage; skipping cache save."
+          echo "staged=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Save FA3 build directory cache (only when capped)
+      if: ${{ always() && inputs.use-ccache == 'true' && steps.build.outputs.capped == 'true' && steps.stage_build.outputs.staged == 'true' }}
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.fa-build-cache
+        key: ${{ steps.build_cache_restore.outputs.cache-primary-key }}
 
     # Save the warm ccache ONLY when the build was capped (not on success).
     # always() lets this run even though the capped build step exited non-zero.
@@ -148,40 +155,6 @@ runs:
       with:
         path: ~/.ccache
         key: ${{ steps.ccache_restore.outputs.cache-primary-key }}
-
-    # DEBUG: dump ccache statistics, config, and log summary directly to stdout
-    # so we can diagnose why hit rate is low without needing the artifact.
-    - name: Dump ccache stats, config, and log summary
-      if: ${{ always() && inputs.use-ccache == 'true' }}
-      shell: bash
-      run: |
-        echo "=== ccache -s (statistics) ==="
-        ccache -s || true
-        echo "=== ccache -p (config) ==="
-        ccache -p || true
-        LOG="$HOME/ccache-debug.log"
-        echo "=== ccache log: file ==="
-        ls -lh "$LOG" 2>/dev/null || { echo "no log"; exit 0; }
-        echo "=== ccache log: top uncacheable / disable reasons ==="
-        grep -oE "(Disabling direct mode|Disabling preprocessor mode|Uncacheable|Result: [a-z_]+|not cacheable|unsupported (compiler )?option).*" "$LOG" \
-          | sed -E 's/0x[0-9a-f]+//g; s/[0-9]+/N/g' \
-          | sort | uniq -c | sort -rn | head -40 || true
-        echo "=== ccache log: sample 20 'Result:' lines ==="
-        grep -E "Result: " "$LOG" | head -20 || true
-        echo "=== ccache log: sample 20 lines with 'not cacheable' or 'unsupported' ==="
-        grep -iE "not cacheable|unsupported|disable" "$LOG" | head -20 || true
-
-    # Sanitize the artifact name: flash-attn-version may include ':' which is
-    # not a legal filename character (actions/upload-artifact rejects it).
-    - name: Upload ccache debug artifacts
-      if: ${{ always() && inputs.use-ccache == 'true' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: ccache-debug-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}
-        path: |
-          ~/ccache-debug.log
-        if-no-files-found: warn
-        retention-days: 7
 
     - name: Locate wheel
       id: build_wheels
