@@ -106,9 +106,9 @@ runs:
         path: ~/.ccache
         key: ${{ steps.ccache_restore.outputs.cache-primary-key }}
 
-    # DEBUG: dump ccache statistics and config, then upload the per-call debug
-    # log so we can diagnose why hit rate is low. Remove after debug.
-    - name: Dump ccache stats and config
+    # DEBUG: dump ccache statistics, config, and log summary directly to stdout
+    # so we can diagnose why hit rate is low without needing the artifact.
+    - name: Dump ccache stats, config, and log summary
       if: ${{ always() && inputs.use-ccache == 'true' }}
       shell: bash
       run: |
@@ -116,14 +116,25 @@ runs:
         ccache -s || true
         echo "=== ccache -p (config) ==="
         ccache -p || true
-        echo "=== ccache debug log size ==="
-        ls -lh "$HOME/ccache-debug.log" 2>/dev/null || echo "no debug log"
+        LOG="$HOME/ccache-debug.log"
+        echo "=== ccache log: file ==="
+        ls -lh "$LOG" 2>/dev/null || { echo "no log"; exit 0; }
+        echo "=== ccache log: top uncacheable / disable reasons ==="
+        grep -oE "(Disabling direct mode|Disabling preprocessor mode|Uncacheable|Result: [a-z_]+|not cacheable|unsupported (compiler )?option).*" "$LOG" \
+          | sed -E 's/0x[0-9a-f]+//g; s/[0-9]+/N/g' \
+          | sort | uniq -c | sort -rn | head -40 || true
+        echo "=== ccache log: sample 20 'Result:' lines ==="
+        grep -E "Result: " "$LOG" | head -20 || true
+        echo "=== ccache log: sample 20 lines with 'not cacheable' or 'unsupported' ==="
+        grep -iE "not cacheable|unsupported|disable" "$LOG" | head -20 || true
 
+    # Sanitize the artifact name: flash-attn-version may include ':' which is
+    # not a legal filename character (actions/upload-artifact rejects it).
     - name: Upload ccache debug artifacts
       if: ${{ always() && inputs.use-ccache == 'true' }}
       uses: actions/upload-artifact@v4
       with:
-        name: ccache-debug-${{ inputs.flash-attn-version }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}
+        name: ccache-debug-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}
         path: |
           ~/ccache-debug.log
         if-no-files-found: warn
