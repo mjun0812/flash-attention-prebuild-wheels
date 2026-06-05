@@ -78,7 +78,7 @@ jobs:
       torch-version: ${{ matrix.torch-version }}
       cuda-version: ${{ matrix.cuda-version }}
       runner: "ubuntu-22.04-arm"
-      use-ccache: true
+      use-build-cache: true
     secrets: inherit
 
   # ################ Self-hosted runner ################
