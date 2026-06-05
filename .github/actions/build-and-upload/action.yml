@@ -22,8 +22,8 @@ inputs:
     description: "Whether to clean up Python installation"
     required: false
     default: "false"
-  use-ccache:
-    description: "Whether to use ccache to speed up compilation"
+  use-build-cache:
+    description: "Whether to cache the ninja build directory across retries and cap builds at 5h45m so the warm cache survives a hard 6h cancel."
     required: false
     default: "false"
 
@@ -54,35 +54,15 @@ runs:
       with:
         version: ${{ inputs.cuda-version }}
 
-    - name: Install ccache
-      if: ${{ inputs.use-ccache == 'true' }}
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ccache
-
-    # Restore only here. Saving is done by a separate step that runs ONLY when
-    # the build was capped at 5h45m (a completed build needs no warm cache).
-    - name: Restore ccache
-      id: ccache_restore
-      if: ${{ inputs.use-ccache == 'true' }}
-      uses: actions/cache/restore@v4
-      with:
-        path: ~/.ccache
-        key: ccache-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-${{ github.run_id }}-${{ github.run_attempt }}
-        restore-keys: |
-          ccache-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-
-          ccache-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-
-
-    # ninja build directory cache. Unlike ccache (which keys on per-call
-    # hashes), this cache stores the entire flash-attention/hopper/build/
-    # tree under ~/.fa-build-cache/ so ninja sees the .o files on the next
-    # attempt and skips already-compiled translation units. ccache 4.5.1
-    # marks 97% of FA3 nvcc calls 'uncacheable' (--generate-dependencies-with-compile),
-    # so build-dir caching is the only reliable way to make retries faster.
+    # ninja build directory cache. Stores the entire
+    # flash-attention/hopper/build/ tree under ~/.fa-build-cache/ so ninja
+    # sees the .o files on the next attempt and skips already-compiled
+    # translation units. (ccache was attempted previously but FA3's nvcc
+    # invocations are 97% 'uncacheable' from ccache's perspective due to
+    # --generate-dependencies-with-compile.)
     - name: Restore FA3 build directory cache
       id: build_cache_restore
-      if: ${{ inputs.use-ccache == 'true' }}
+      if: ${{ inputs.use-build-cache == 'true' }}
       uses: actions/cache/restore@v4
       with:
         path: ~/.fa-build-cache
@@ -94,13 +74,13 @@ runs:
       id: build
       shell: bash
       env:
-        USE_CCACHE: ${{ inputs.use-ccache == 'true' && '1' || '0' }}
+        USE_BUILD_CACHE: ${{ inputs.use-build-cache == 'true' && '1' || '0' }}
       run: |
         chmod +x build_linux.sh
-        if [ "${USE_CCACHE}" = "1" ]; then
+        if [ "${USE_BUILD_CACHE}" = "1" ]; then
           # Cap the build at 5h45m. GitHub-hosted jobs are hard-cancelled at
-          # 6h, which would skip the cache save and lose the warm caches.
-          # Stopping the build ourselves before that lets the caches be saved
+          # 6h, which would skip the cache save and lose the warm build dir.
+          # Stopping the build ourselves before that lets the cache be saved
           # so a subsequent retry resumes from the warm build directory.
           rc=0
           timeout --signal=TERM 345m ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}" || rc=$?
@@ -108,7 +88,7 @@ runs:
             # Capped: mark so the cache-save steps below run. A completed
             # build (rc=0) leaves capped unset, so its cache is NOT saved.
             echo "capped=true" >> "$GITHUB_OUTPUT"
-            echo "::warning::Build hit the 5h45m cap; build directory and ccache will be saved for a warm retry. Marking this attempt as failed."
+            echo "::warning::Build hit the 5h45m cap; build directory will be saved for a warm retry. Marking this attempt as failed."
           fi
           exit "${rc}"
         else
@@ -119,7 +99,7 @@ runs:
     # actions/cache/save can pick it up at a stable path.
     - name: Stage FA3 build directory for cache save
       id: stage_build
-      if: ${{ always() && inputs.use-ccache == 'true' && steps.build.outputs.capped == 'true' }}
+      if: ${{ always() && inputs.use-build-cache == 'true' && steps.build.outputs.capped == 'true' }}
       shell: bash
       run: |
         src=""
@@ -141,20 +121,11 @@ runs:
         fi
 
     - name: Save FA3 build directory cache (only when capped)
-      if: ${{ always() && inputs.use-ccache == 'true' && steps.build.outputs.capped == 'true' && steps.stage_build.outputs.staged == 'true' }}
+      if: ${{ always() && inputs.use-build-cache == 'true' && steps.build.outputs.capped == 'true' && steps.stage_build.outputs.staged == 'true' }}
       uses: actions/cache/save@v4
       with:
         path: ~/.fa-build-cache
         key: ${{ steps.build_cache_restore.outputs.cache-primary-key }}
-
-    # Save the warm ccache ONLY when the build was capped (not on success).
-    # always() lets this run even though the capped build step exited non-zero.
-    - name: Save ccache (only when capped)
-      if: ${{ always() && inputs.use-ccache == 'true' && steps.build.outputs.capped == 'true' }}
-      uses: actions/cache/save@v4
-      with:
-        path: ~/.ccache
-        key: ${{ steps.ccache_restore.outputs.cache-primary-key }}
 
     - name: Locate wheel
       id: build_wheels

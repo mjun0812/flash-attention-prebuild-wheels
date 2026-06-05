@@ -558,27 +558,9 @@ if not SKIP_CUDA_BUILD:
         # Need to append to path otherwise nvcc can't find cicc in nvvm/bin/cicc
         # nvcc 12.8 seems to hard-code looking for cicc in ../nvvm/bin/cicc
         os.environ["PATH"] = ctk_path_new + os.pathsep + os.environ["PATH"]
+        os.environ["PYTORCH_NVCC"] = nvcc_path_new
         # Make nvcc executable, sometimes after the copy it loses its permissions
         os.chmod(nvcc_path_new, os.stat(nvcc_path_new).st_mode | stat.S_IEXEC)
-        # Wrap bundled nvcc with ccache when USE_CCACHE=1 so that ccache hits
-        # apply to FA3 builds. Without this, setup.py sets PYTORCH_NVCC to the
-        # bundled binary directly, bypassing the system-nvcc ccache wrapper that
-        # build_linux.sh installs at /usr/local/cuda/bin/nvcc.
-        nvcc_real = nvcc_path_new + ".real"
-        if (
-            os.environ.get("USE_CCACHE") == "1"
-            and shutil.which("ccache")
-            and not os.path.exists(nvcc_real)
-        ):
-            os.rename(nvcc_path_new, nvcc_real)
-            with open(nvcc_path_new, "w") as f:
-                f.write(f'#!/usr/bin/env bash\nexec ccache "{nvcc_real}" "$@"\n')
-            os.chmod(nvcc_path_new, os.stat(nvcc_real).st_mode | stat.S_IEXEC)
-            os.environ["CCACHE_COMPILERTYPE"] = "nvcc"
-            print(f"ccache: wrapped bundled nvcc (real at {nvcc_real})")
-            os.environ["PYTORCH_NVCC"] = nvcc_path_new
-        else:
-            os.environ["PYTORCH_NVCC"] = nvcc_path_new
 
     cc_flag = []
     cc_flag.append("-gencode")

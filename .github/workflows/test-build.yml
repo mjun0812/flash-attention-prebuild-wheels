@@ -55,8 +55,8 @@ on:
         description: "NVCC_THREADS (optional, overrides auto-detection)"
         required: false
         type: string
-      use-ccache:
-        description: "Use ccache to speed up compilation (GitHub-hosted Linux only)"
+      use-build-cache:
+        description: "Cache the ninja build directory across retries and cap builds at 5h45m (GitHub-hosted Linux only)"
         required: false
         type: boolean
         default: false
@@ -104,7 +104,7 @@ jobs:
       cuda-version: ${{ inputs.cuda-version }}
       is-upload: false
       runner: ubuntu-22.04-arm
-      use-ccache: ${{ inputs.use-ccache }}
+      use-build-cache: ${{ inputs.use-build-cache }}
 
   # #########################################################
   # Linux ARM64 self-hosted runner
