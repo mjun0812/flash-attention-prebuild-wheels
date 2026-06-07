@@ -87,6 +87,27 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
       rm -rf flash-attention/csrc/cutlass
       mv "$HOME/.fa-build-cache/cutlass" flash-attention/csrc/cutlass
     fi
+    # The cached .o files have whole-second mtimes from the previous cap
+    # (e.g. 2026-06-07 07:34:56). The freshly cloned FA3 sources, the
+    # uv-installed torch headers and the setup-cuda CUDA headers all have
+    # mtime "now". ninja compares output.o vs each input mtime, so without
+    # this step every restored .o looks older than its .cu source and ninja
+    # rebuilds. Push every non-cached input far into the past so the .o
+    # remains strictly newer than its sources/headers.
+    PAST=197001020000
+    find flash-attention -path flash-attention/hopper/build -prune \
+                          -o -path flash-attention/csrc/cutlass -prune \
+                          -o -type f -print 2>/dev/null \
+      | xargs -r touch -t "$PAST" 2>/dev/null || true
+    if [ -d .venv ]; then
+      find .venv/lib -path '*/site-packages/torch/include*' -type f \
+        -exec touch -t "$PAST" {} + 2>/dev/null || true
+    fi
+    if [ -d /usr/local/cuda/include ]; then
+      sudo find /usr/local/cuda/include -type f \
+        -exec touch -t "$PAST" {} + 2>/dev/null || true
+    fi
+    echo "fa-build-cache: backdated FA3 sources + torch/CUDA headers to $PAST"
     # Reconcile ninja's stat-based view with the restored tree:
     # - the staging step truncated every mtime (including the per-target
     #   mtimes inside .ninja_deps) to whole seconds before save, so the .o
