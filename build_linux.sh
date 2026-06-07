@@ -107,25 +107,6 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
     # 'output.o > input.h' mtime check now correctly says 'up to date'.
     rm -f "flash-attention/hopper/build/temp.linux-aarch64-cpython-312/.ninja_deps"
     echo "fa-build-cache: mtime fixup done (sources/headers -> $PAST, .o tree untouched, .ninja_deps dropped)"
-    # DEBUG: dump ninja state + ask ninja itself why it would rebuild.
-    # Remove this block once we confirm the fix.
-    BUILD_TEMP=flash-attention/hopper/build/temp.linux-aarch64-cpython-312
-    echo "=== DEBUG: ninja state under $BUILD_TEMP ==="
-    if [ -d "$BUILD_TEMP" ]; then
-      echo "--- representative mtimes (.o, .cpp, torch.h, cuda.h):"
-      stat -c '%y %n' "$BUILD_TEMP/flash_api_stable.o" 2>/dev/null || echo "  no .o"
-      stat -c '%y %n' flash-attention/hopper/flash_api_stable.cpp 2>/dev/null || echo "  no .cpp"
-      ls .venv/lib/python*/site-packages/torch/include/torch/torch.h 2>/dev/null \
-        | head -1 | xargs -r stat -c '%y %n' || echo "  no torch.h"
-      stat -c '%y %n' /usr/local/cuda/include/cuda.h 2>/dev/null || echo "  no cuda.h"
-      uv pip install --quiet ninja 2>/dev/null || true
-      if command -v ninja >/dev/null && [ -f "$BUILD_TEMP/build.ninja" ]; then
-        echo "--- ninja --version: $(ninja --version 2>/dev/null || true)"
-        echo "--- ninja -d explain -n (first 40 lines):"
-        (cd "$BUILD_TEMP" && ninja -d explain -n 2>&1) | head -40 || true
-      fi
-    fi
-    echo "=== END DEBUG ==="
   fi
 elif [[ "${FLASH_ATTN_VARIANT}" == "Flash Attention 2" ]]; then
   echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
