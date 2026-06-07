@@ -54,22 +54,15 @@ runs:
       with:
         version: ${{ inputs.cuda-version }}
 
-    # ninja build directory cache. Stores the entire
-    # flash-attention/hopper/build/ tree under ~/.fa-build-cache/ so ninja
-    # sees the .o files on the next attempt and skips already-compiled
-    # translation units. (ccache was attempted previously but FA3's nvcc
-    # invocations are 97% 'uncacheable' from ccache's perspective due to
-    # --generate-dependencies-with-compile.)
+    # ninja build directory cache so the next attempt resumes from the
+    # already-compiled .o files. See memory/project_build_cache_ninja_mtime.md
+    # for why ccache was unsuitable and how the mtime juggling works.
     - name: Restore FA3 build directory cache
       id: build_cache_restore
       if: ${{ inputs.use-build-cache == 'true' }}
       uses: actions/cache/restore@v4
       with:
         path: ~/.fa-build-cache
-        # fabuild3- prefix: cache layout changed again (mtimes are now
-        # truncated to whole seconds before save so they survive GNU tar's
-        # ustar precision loss in actions/cache@v4). Older fabuild2- caches
-        # carry nanosecond mtimes that no longer match ninja's expectations.
         key: fabuild3-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
           fabuild3-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-
@@ -99,10 +92,8 @@ runs:
           ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}"
         fi
 
-    # Move the partially-built ninja directory under ~/.fa-build-cache/ so
-    # actions/cache/save can pick it up at a stable path. Also stash the
-    # cutlass/cute header tree so its mtimes survive a restore — ninja
-    # records header mtimes in .ninja_deps and matches them on the next run.
+    # Stage the build dir + cutlass tree under ~/.fa-build-cache/ so
+    # actions/cache/save picks them up at a stable path.
     - name: Stage FA3 build directory for cache save
       id: stage_build
       if: ${{ always() && inputs.use-build-cache == 'true' && steps.build.outputs.capped == 'true' }}
@@ -121,17 +112,13 @@ runs:
           echo "Staged $src -> ~/.fa-build-cache/build"
           du -sh "$HOME/.fa-build-cache/build" || true
           if [ -d flash-attention/csrc/cutlass ]; then
-            # cp -a preserves mtime; mv would be faster but git checkout
-            # would have to recreate the tree for any post-build step.
+            # cp -a (not mv) so flash-attention/ stays intact for post-build steps.
             cp -a flash-attention/csrc/cutlass "$HOME/.fa-build-cache/cutlass"
             echo "Staged cutlass -> ~/.fa-build-cache/cutlass"
             du -sh "$HOME/.fa-build-cache/cutlass" || true
           fi
-          # actions/cache@v4 archives via GNU tar (ustar), which truncates
-          # mtimes to whole seconds. ninja .ninja_deps records mtimes at
-          # nanosecond precision, so after restore the stat() values (sec.0)
-          # mismatch what was recorded (sec.NNN) and ninja rebuilds every
-          # .o. Truncate both sides now so the comparison still holds.
+          # Truncate mtimes to whole seconds so they survive GNU tar in
+          # actions/cache@v4 (ustar drops sub-second precision).
           python3 "$GITHUB_WORKSPACE/scripts/tools/truncate_build_cache_mtimes.py" \
             "$HOME/.fa-build-cache" || true
           echo "staged=true" >> "$GITHUB_OUTPUT"
