@@ -87,7 +87,27 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
       rm -rf flash-attention/csrc/cutlass
       mv "$HOME/.fa-build-cache/cutlass" flash-attention/csrc/cutlass
     fi
-    echo "fa-build-cache: restore done (build + cutlass)"
+    # Reconcile ninja's stat-based view with the restored tree:
+    # - the staging step truncated every mtime (including the per-target
+    #   mtimes inside .ninja_deps) to whole seconds before save, so the .o
+    #   stat values after tar/restore are bit-exact with what .ninja_deps
+    #   records;
+    # - run `ninja -t restat` over every .o so .ninja_log is also synced to
+    #   the restored mtimes. Without this, ninja would treat each .o as if
+    #   it had been touched out-of-band and rerun the build edge.
+    BUILD_TEMP=flash-attention/hopper/build/temp.linux-aarch64-cpython-312
+    if [ -f "$BUILD_TEMP/build.ninja" ]; then
+      uv pip install --quiet ninja 2>/dev/null || true
+      if command -v ninja >/dev/null; then
+        # Pass relative .o paths so `ninja -C $BUILD_TEMP -t restat` finds them
+        # via its build graph instead of misinterpreting absolute paths.
+        ( cd "$BUILD_TEMP" \
+          && find . -name '*.o' -type f -printf '%P\n' \
+            | xargs -r -n 500 ninja -t restat \
+        ) 2>/dev/null || true
+      fi
+    fi
+    echo "fa-build-cache: restore done (build + cutlass + ninja restat)"
   fi
 elif [[ "${FLASH_ATTN_VARIANT}" == "Flash Attention 2" ]]; then
   echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
