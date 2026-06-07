@@ -66,9 +66,12 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: ~/.fa-build-cache
-        key: fabuild-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-${{ github.run_id }}-${{ github.run_attempt }}
+        # fabuild2- prefix: cache layout changed (now includes cutlass/cute
+        # headers alongside the ninja build dir to preserve mtimes). Older
+        # fabuild- caches are intentionally not restored.
+        key: fabuild2-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
-          fabuild-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-
+          fabuild2-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-
 
     - name: Build wheels
       id: build
@@ -92,7 +95,9 @@ runs:
         fi
 
     # Move the partially-built ninja directory under ~/.fa-build-cache/ so
-    # actions/cache/save can pick it up at a stable path.
+    # actions/cache/save can pick it up at a stable path. Also stash the
+    # cutlass/cute header tree so its mtimes survive a restore — ninja
+    # records header mtimes in .ninja_deps and matches them on the next run.
     - name: Stage FA3 build directory for cache save
       id: stage_build
       if: ${{ always() && inputs.use-build-cache == 'true' && steps.build.outputs.capped == 'true' }}
@@ -106,10 +111,17 @@ runs:
         fi
         if [ -n "$src" ]; then
           mkdir -p "$HOME/.fa-build-cache"
-          rm -rf "$HOME/.fa-build-cache/build"
+          rm -rf "$HOME/.fa-build-cache/build" "$HOME/.fa-build-cache/cutlass"
           mv "$src" "$HOME/.fa-build-cache/build"
           echo "Staged $src -> ~/.fa-build-cache/build"
           du -sh "$HOME/.fa-build-cache/build" || true
+          if [ -d flash-attention/csrc/cutlass ]; then
+            # cp -a preserves mtime; mv would be faster but git checkout
+            # would have to recreate the tree for any post-build step.
+            cp -a flash-attention/csrc/cutlass "$HOME/.fa-build-cache/cutlass"
+            echo "Staged cutlass -> ~/.fa-build-cache/cutlass"
+            du -sh "$HOME/.fa-build-cache/cutlass" || true
+          fi
           echo "staged=true" >> "$GITHUB_OUTPUT"
         else
           echo "No build directory found to stage; skipping cache save."

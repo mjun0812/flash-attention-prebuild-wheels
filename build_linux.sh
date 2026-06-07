@@ -65,74 +65,29 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
   # (Restore FA3 build directory cache), move it into place so ninja sees
   # the existing .o files and skips already-compiled translation units.
   #
-  # mtime fixup: ninja decides to rebuild a .o when ANY header/source it
-  # depends on (recorded in the .o.d depfile) has a newer mtime than the .o.
-  # In CI, the venv (torch headers), CUDA toolkit and the freshly cloned
-  # flash-attention sources all have mtime = "now", which would force ninja
-  # to rebuild everything. Push every relevant input far into the past, then
-  # re-touch the restored .o files to "now", so the comparison favors skip.
+  # ninja's .ninja_deps records each .o's input header mtimes at nanosecond
+  # precision. The cached .o tree keeps its mtimes (tar via actions/cache),
+  # but cutlass / cute headers are freshly cloned every CI run and therefore
+  # mismatch what .ninja_deps recorded — ninja would mark every dependent .o
+  # 'dirty' and rebuild from scratch. To make the recorded mtimes valid
+  # again, we also cache the cutlass/cute headers and restore them next to
+  # the build dir with their original mtimes preserved (cp/mv keep mtimes,
+  # tar in actions/cache preserves them too). The same problem exists for
+  # torch and CUDA headers, but the deps info appears to be matchable for
+  # them under our setup; if not, add them to the cache stash too.
   if [ -d "$HOME/.fa-build-cache/build" ]; then
     echo "fa-build-cache: restoring previous ninja build directory"
     du -sh "$HOME/.fa-build-cache/build" || true
     mkdir -p flash-attention/hopper
     rm -rf flash-attention/hopper/build
     mv "$HOME/.fa-build-cache/build" flash-attention/hopper/build
-    PAST=197001020000
-    # FA3 sources + vendored cutlass / cute / etc. Exclude the build dir so
-    # we don't downgrade the .o files we are about to re-touch.
-    find flash-attention -path flash-attention/hopper/build -prune -o -type f -print 2>/dev/null \
-      | xargs -r touch -t "$PAST" 2>/dev/null || true
-    # torch + python headers inside the venv
-    if [ -d .venv ]; then
-      find .venv/lib -path '*/site-packages/torch/include*' -type f \
-        -exec touch -t "$PAST" {} + 2>/dev/null || true
+    if [ -d "$HOME/.fa-build-cache/cutlass" ]; then
+      echo "fa-build-cache: restoring cutlass/cute headers with preserved mtimes"
+      du -sh "$HOME/.fa-build-cache/cutlass" || true
+      rm -rf flash-attention/csrc/cutlass
+      mv "$HOME/.fa-build-cache/cutlass" flash-attention/csrc/cutlass
     fi
-    # CUDA toolkit headers (sudo since /usr/local/cuda is root-owned)
-    if [ -d /usr/local/cuda/include ]; then
-      sudo find /usr/local/cuda/include -type f \
-        -exec touch -t "$PAST" {} + 2>/dev/null || true
-    fi
-    # Critically, do NOT touch the .o tree itself. ninja stores each .o's
-    # mtime in .ninja_deps at nanosecond precision; changing it invalidates
-    # ninja's restat check ("stored deps info out of date for ...") and
-    # forces a full rebuild. actions/cache@v4 uses tar, which preserves
-    # mtime, so the restored .o files already have the timestamps that
-    # match the deps info recorded by the previous attempt.
-    #
-    # Drop .ninja_deps too: it stores per-header mtimes from the previous
-    # build, and our 1970 touch of cutlass/torch/CUDA headers makes every
-    # entry mismatch ("ninja explain: header is dirty"). ninja can recover
-    # the same dep graph from the per-target .o.d files (gcc-style depfiles
-    # that are part of the build directory) on its next pass, while the
-    # 'output.o > input.h' mtime check now correctly says 'up to date'.
-    rm -f "flash-attention/hopper/build/temp.linux-aarch64-cpython-312/.ninja_deps"
-    # Belt and braces: if ninja still finds a dep mismatch via per-target .o.d
-    # (gcc-style text depfiles), it would read header mtimes from them too.
-    # Drop the .o.d files so ninja regenerates dep info from scratch and falls
-    # back to a shallow 'output.o > build.ninja-listed input' check, which
-    # always passes because every source under flash-attention/ was touched
-    # to 1970 above.
-    find "flash-attention/hopper/build/temp.linux-aarch64-cpython-312" -name '*.o.d' -delete 2>/dev/null || true
-    echo "fa-build-cache: mtime fixup done (sources/headers -> $PAST, .o tree untouched, .ninja_deps + *.o.d dropped)"
-    # DEBUG: dump ninja state + ask ninja itself why it would rebuild.
-    # Remove this block once we confirm the fix.
-    BUILD_TEMP=flash-attention/hopper/build/temp.linux-aarch64-cpython-312
-    echo "=== DEBUG: ninja state under $BUILD_TEMP ==="
-    if [ -d "$BUILD_TEMP" ]; then
-      echo "--- representative mtimes (.o, .cpp, torch.h, cuda.h):"
-      stat -c '%y %n' "$BUILD_TEMP/flash_api_stable.o" 2>/dev/null || echo "  no .o"
-      stat -c '%y %n' flash-attention/hopper/flash_api_stable.cpp 2>/dev/null || echo "  no .cpp"
-      ls .venv/lib/python*/site-packages/torch/include/torch/torch.h 2>/dev/null \
-        | head -1 | xargs -r stat -c '%y %n' || echo "  no torch.h"
-      stat -c '%y %n' /usr/local/cuda/include/cuda.h 2>/dev/null || echo "  no cuda.h"
-      uv pip install --quiet ninja 2>/dev/null || true
-      if command -v ninja >/dev/null && [ -f "$BUILD_TEMP/build.ninja" ]; then
-        echo "--- ninja --version: $(ninja --version 2>/dev/null || true)"
-        echo "--- ninja -d explain -n (first 40 lines):"
-        (cd "$BUILD_TEMP" && ninja -d explain -n 2>&1) | head -40 || true
-      fi
-    fi
-    echo "=== END DEBUG ==="
+    echo "fa-build-cache: restore done (build + cutlass)"
   fi
 elif [[ "${FLASH_ATTN_VARIANT}" == "Flash Attention 2" ]]; then
   echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
