@@ -64,15 +64,37 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
   # If a previous attempt's ninja build directory was cached by the CI step
   # (Restore FA3 build directory cache), move it into place so ninja sees
   # the existing .o files and skips already-compiled translation units.
-  # Touch every file so ninja considers them newer than the freshly cloned
-  # .cu sources (otherwise mtime would force recompilation).
+  #
+  # mtime fixup: ninja decides to rebuild a .o when ANY header/source it
+  # depends on (recorded in the .o.d depfile) has a newer mtime than the .o.
+  # In CI, the venv (torch headers), CUDA toolkit and the freshly cloned
+  # flash-attention sources all have mtime = "now", which would force ninja
+  # to rebuild everything. Push every relevant input far into the past, then
+  # re-touch the restored .o files to "now", so the comparison favors skip.
   if [ -d "$HOME/.fa-build-cache/build" ]; then
     echo "fa-build-cache: restoring previous ninja build directory"
     du -sh "$HOME/.fa-build-cache/build" || true
     mkdir -p flash-attention/hopper
     rm -rf flash-attention/hopper/build
     mv "$HOME/.fa-build-cache/build" flash-attention/hopper/build
+    PAST=197001020000
+    # FA3 sources + vendored cutlass / cute / etc. Exclude the build dir so
+    # we don't downgrade the .o files we are about to re-touch.
+    find flash-attention -path flash-attention/hopper/build -prune -o -type f -print 2>/dev/null \
+      | xargs -r touch -t "$PAST" 2>/dev/null || true
+    # torch + python headers inside the venv
+    if [ -d .venv ]; then
+      find .venv/lib -path '*/site-packages/torch/include*' -type f \
+        -exec touch -t "$PAST" {} + 2>/dev/null || true
+    fi
+    # CUDA toolkit headers (sudo since /usr/local/cuda is root-owned)
+    if [ -d /usr/local/cuda/include ]; then
+      sudo find /usr/local/cuda/include -type f \
+        -exec touch -t "$PAST" {} + 2>/dev/null || true
+    fi
+    # Mark the .o tree as "now" — newer than every header/source above.
     find flash-attention/hopper/build -exec touch {} + 2>/dev/null || true
+    echo "fa-build-cache: mtime fixup done (sources/headers -> $PAST, .o -> now)"
   fi
 elif [[ "${FLASH_ATTN_VARIANT}" == "Flash Attention 2" ]]; then
   echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
