@@ -82,13 +82,16 @@ runs:
       run: |
         chmod +x build_linux.sh
         if [ "${USE_BUILD_CACHE}" = "1" ]; then
-          # DEBUG: temporarily capped at 60m to diagnose ninja rebuild reasons.
-          # Original cap is 5h45m (= 345m). Restore after debug.
+          # DEBUG: temporarily capped at 10m to verify ninja skip behaviour
+          # on cache restore. Just enough time for the restore step and the
+          # first compile lines (ninja's [N/total] prefix) to appear; the
+          # full build still takes ~6h. Restore the 5h45m cap after the
+          # cache mechanism is confirmed working.
           rc=0
-          timeout --signal=TERM 60m ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}" || rc=$?
+          timeout --signal=TERM 10m ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}" || rc=$?
           if [ "${rc}" = "124" ]; then
             echo "capped=true" >> "$GITHUB_OUTPUT"
-            echo "::warning::Build hit the 60m debug cap."
+            echo "::warning::Build hit the 10m verify cap."
           fi
           exit "${rc}"
         else
