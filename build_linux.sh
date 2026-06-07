@@ -98,7 +98,15 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
     # forces a full rebuild. actions/cache@v4 uses tar, which preserves
     # mtime, so the restored .o files already have the timestamps that
     # match the deps info recorded by the previous attempt.
-    echo "fa-build-cache: mtime fixup done (sources/headers -> $PAST, .o tree untouched)"
+    #
+    # Drop .ninja_deps too: it stores per-header mtimes from the previous
+    # build, and our 1970 touch of cutlass/torch/CUDA headers makes every
+    # entry mismatch ("ninja explain: header is dirty"). ninja can recover
+    # the same dep graph from the per-target .o.d files (gcc-style depfiles
+    # that are part of the build directory) on its next pass, while the
+    # 'output.o > input.h' mtime check now correctly says 'up to date'.
+    rm -f "flash-attention/hopper/build/temp.linux-aarch64-cpython-312/.ninja_deps"
+    echo "fa-build-cache: mtime fixup done (sources/headers -> $PAST, .o tree untouched, .ninja_deps dropped)"
     # DEBUG: dump ninja state + ask ninja itself why it would rebuild.
     # Remove this block once we confirm the fix.
     BUILD_TEMP=flash-attention/hopper/build/temp.linux-aarch64-cpython-312
