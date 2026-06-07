@@ -92,41 +92,30 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
       sudo find /usr/local/cuda/include -type f \
         -exec touch -t "$PAST" {} + 2>/dev/null || true
     fi
-    # Mark the .o tree as "now" — newer than every header/source above.
-    find flash-attention/hopper/build -exec touch {} + 2>/dev/null || true
-    echo "fa-build-cache: mtime fixup done (sources/headers -> $PAST, .o -> now)"
-    # DEBUG: dump ninja state and ask ninja itself why it would rebuild.
+    # Critically, do NOT touch the .o tree itself. ninja stores each .o's
+    # mtime in .ninja_deps at nanosecond precision; changing it invalidates
+    # ninja's restat check ("stored deps info out of date for ...") and
+    # forces a full rebuild. actions/cache@v4 uses tar, which preserves
+    # mtime, so the restored .o files already have the timestamps that
+    # match the deps info recorded by the previous attempt.
+    echo "fa-build-cache: mtime fixup done (sources/headers -> $PAST, .o tree untouched)"
+    # DEBUG: dump ninja state + ask ninja itself why it would rebuild.
+    # Remove this block once we confirm the fix.
     BUILD_TEMP=flash-attention/hopper/build/temp.linux-aarch64-cpython-312
     echo "=== DEBUG: ninja state under $BUILD_TEMP ==="
     if [ -d "$BUILD_TEMP" ]; then
-      echo "--- ls -la (top-level):"
-      ls -la "$BUILD_TEMP" | head -20 || true
-      echo "--- ls -la (instantiations/) sample:"
-      ls -la "$BUILD_TEMP/instantiations" 2>/dev/null | head -10 || true
-      echo "--- build.ninja:"
-      ls -la "$BUILD_TEMP/build.ninja" 2>/dev/null || echo "  missing"
-      echo "--- .ninja_log:"
-      ls -la "$BUILD_TEMP/.ninja_log" 2>/dev/null || echo "  missing"
-      [ -f "$BUILD_TEMP/.ninja_log" ] && head -20 "$BUILD_TEMP/.ninja_log"
-      echo "--- .ninja_deps:"
-      ls -la "$BUILD_TEMP/.ninja_deps" 2>/dev/null || echo "  missing"
       echo "--- representative mtimes (.o, .cpp, torch.h, cuda.h):"
       stat -c '%y %n' "$BUILD_TEMP/flash_api_stable.o" 2>/dev/null || echo "  no .o"
       stat -c '%y %n' flash-attention/hopper/flash_api_stable.cpp 2>/dev/null || echo "  no .cpp"
       ls .venv/lib/python*/site-packages/torch/include/torch/torch.h 2>/dev/null \
         | head -1 | xargs -r stat -c '%y %n' || echo "  no torch.h"
       stat -c '%y %n' /usr/local/cuda/include/cuda.h 2>/dev/null || echo "  no cuda.h"
-      # Ask ninja to dry-run and explain.
       uv pip install --quiet ninja 2>/dev/null || true
       if command -v ninja >/dev/null && [ -f "$BUILD_TEMP/build.ninja" ]; then
         echo "--- ninja --version: $(ninja --version 2>/dev/null || true)"
-        echo "--- ninja -d explain -n (first 80 lines):"
-        (cd "$BUILD_TEMP" && ninja -d explain -n 2>&1) | head -80 || true
-      else
-        echo "--- ninja not available or build.ninja missing"
+        echo "--- ninja -d explain -n (first 40 lines):"
+        (cd "$BUILD_TEMP" && ninja -d explain -n 2>&1) | head -40 || true
       fi
-    else
-      echo "  $BUILD_TEMP does not exist"
     fi
     echo "=== END DEBUG ==="
   fi
