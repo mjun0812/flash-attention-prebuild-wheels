@@ -66,12 +66,13 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: ~/.fa-build-cache
-        # fabuild2- prefix: cache layout changed (now includes cutlass/cute
-        # headers alongside the ninja build dir to preserve mtimes). Older
-        # fabuild- caches are intentionally not restored.
-        key: fabuild2-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-${{ github.run_id }}-${{ github.run_attempt }}
+        # fabuild3- prefix: cache layout changed again (mtimes are now
+        # truncated to whole seconds before save so they survive GNU tar's
+        # ustar precision loss in actions/cache@v4). Older fabuild2- caches
+        # carry nanosecond mtimes that no longer match ninja's expectations.
+        key: fabuild3-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
-          fabuild2-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-
+          fabuild3-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-
 
     - name: Build wheels
       id: build
@@ -122,6 +123,13 @@ runs:
             echo "Staged cutlass -> ~/.fa-build-cache/cutlass"
             du -sh "$HOME/.fa-build-cache/cutlass" || true
           fi
+          # actions/cache@v4 archives via GNU tar (ustar), which truncates
+          # mtimes to whole seconds. ninja .ninja_deps records mtimes at
+          # nanosecond precision, so after restore the stat() values (sec.0)
+          # mismatch what was recorded (sec.NNN) and ninja rebuilds every
+          # .o. Truncate both sides now so the comparison still holds.
+          python3 "$GITHUB_WORKSPACE/scripts/tools/truncate_build_cache_mtimes.py" \
+            "$HOME/.fa-build-cache" || true
           echo "staged=true" >> "$GITHUB_OUTPUT"
         else
           echo "No build directory found to stage; skipping cache save."
