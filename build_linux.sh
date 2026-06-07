@@ -61,39 +61,23 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
   # suppresses verbose --resource-usage ptxas logs that would otherwise
   # clutter CI output with thousands of lines per build.
   cp "$(dirname "$0")/patches/fa3/setup.py" flash-attention/hopper/setup.py
-  # If a previous attempt's ninja build directory was cached by the CI step
-  # (Restore FA3 build directory cache), move it into place so ninja sees
-  # the existing .o files and skips already-compiled translation units.
-  #
-  # ninja's .ninja_deps records each .o's input header mtimes at nanosecond
-  # precision. The cached .o tree keeps its mtimes (tar via actions/cache),
-  # but cutlass / cute headers are freshly cloned every CI run and therefore
-  # mismatch what .ninja_deps recorded — ninja would mark every dependent .o
-  # 'dirty' and rebuild from scratch. To make the recorded mtimes valid
-  # again, we also cache the cutlass/cute headers and restore them next to
-  # the build dir with their original mtimes preserved (cp/mv keep mtimes,
-  # tar in actions/cache preserves them too). The same problem exists for
-  # torch and CUDA headers, but the deps info appears to be matchable for
-  # them under our setup; if not, add them to the cache stash too.
+  # Restore the ninja build directory + cutlass headers cached by the CI
+  # action. We also push every non-cached input (FA3 sources, torch/CUDA
+  # headers) into the past so the restored .o files stay strictly newer
+  # than their inputs, then run `ninja -t restat` to sync .ninja_log with
+  # the restored mtimes. See memory/project_build_cache_ninja_mtime.md.
   if [ -d "$HOME/.fa-build-cache/build" ]; then
-    echo "fa-build-cache: restoring previous ninja build directory"
+    echo "fa-build-cache: restoring build dir"
     du -sh "$HOME/.fa-build-cache/build" || true
     mkdir -p flash-attention/hopper
     rm -rf flash-attention/hopper/build
     mv "$HOME/.fa-build-cache/build" flash-attention/hopper/build
     if [ -d "$HOME/.fa-build-cache/cutlass" ]; then
-      echo "fa-build-cache: restoring cutlass/cute headers with preserved mtimes"
+      echo "fa-build-cache: restoring cutlass"
       du -sh "$HOME/.fa-build-cache/cutlass" || true
       rm -rf flash-attention/csrc/cutlass
       mv "$HOME/.fa-build-cache/cutlass" flash-attention/csrc/cutlass
     fi
-    # The cached .o files have whole-second mtimes from the previous cap
-    # (e.g. 2026-06-07 07:34:56). The freshly cloned FA3 sources, the
-    # uv-installed torch headers and the setup-cuda CUDA headers all have
-    # mtime "now". ninja compares output.o vs each input mtime, so without
-    # this step every restored .o looks older than its .cu source and ninja
-    # rebuilds. Push every non-cached input far into the past so the .o
-    # remains strictly newer than its sources/headers.
     PAST=197001020000
     find flash-attention -path flash-attention/hopper/build -prune \
                           -o -path flash-attention/csrc/cutlass -prune \
@@ -107,28 +91,17 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
       sudo find /usr/local/cuda/include -type f \
         -exec touch -t "$PAST" {} + 2>/dev/null || true
     fi
-    echo "fa-build-cache: backdated FA3 sources + torch/CUDA headers to $PAST"
-    # Reconcile ninja's stat-based view with the restored tree:
-    # - the staging step truncated every mtime (including the per-target
-    #   mtimes inside .ninja_deps) to whole seconds before save, so the .o
-    #   stat values after tar/restore are bit-exact with what .ninja_deps
-    #   records;
-    # - run `ninja -t restat` over every .o so .ninja_log is also synced to
-    #   the restored mtimes. Without this, ninja would treat each .o as if
-    #   it had been touched out-of-band and rerun the build edge.
     BUILD_TEMP=flash-attention/hopper/build/temp.linux-aarch64-cpython-312
     if [ -f "$BUILD_TEMP/build.ninja" ]; then
       uv pip install --quiet ninja 2>/dev/null || true
       if command -v ninja >/dev/null; then
-        # Pass relative .o paths so `ninja -C $BUILD_TEMP -t restat` finds them
-        # via its build graph instead of misinterpreting absolute paths.
         ( cd "$BUILD_TEMP" \
           && find . -name '*.o' -type f -printf '%P\n' \
             | xargs -r -n 500 ninja -t restat \
         ) 2>/dev/null || true
       fi
     fi
-    echo "fa-build-cache: restore done (build + cutlass + ninja restat)"
+    echo "fa-build-cache: restore done"
   fi
 elif [[ "${FLASH_ATTN_VARIANT}" == "Flash Attention 2" ]]; then
   echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
