@@ -106,7 +106,14 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
     # that are part of the build directory) on its next pass, while the
     # 'output.o > input.h' mtime check now correctly says 'up to date'.
     rm -f "flash-attention/hopper/build/temp.linux-aarch64-cpython-312/.ninja_deps"
-    echo "fa-build-cache: mtime fixup done (sources/headers -> $PAST, .o tree untouched, .ninja_deps dropped)"
+    # Belt and braces: if ninja still finds a dep mismatch via per-target .o.d
+    # (gcc-style text depfiles), it would read header mtimes from them too.
+    # Drop the .o.d files so ninja regenerates dep info from scratch and falls
+    # back to a shallow 'output.o > build.ninja-listed input' check, which
+    # always passes because every source under flash-attention/ was touched
+    # to 1970 above.
+    find "flash-attention/hopper/build/temp.linux-aarch64-cpython-312" -name '*.o.d' -delete 2>/dev/null || true
+    echo "fa-build-cache: mtime fixup done (sources/headers -> $PAST, .o tree untouched, .ninja_deps + *.o.d dropped)"
     # DEBUG: dump ninja state + ask ninja itself why it would rebuild.
     # Remove this block once we confirm the fix.
     BUILD_TEMP=flash-attention/hopper/build/temp.linux-aarch64-cpython-312
