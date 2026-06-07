@@ -40,43 +40,36 @@ LINUX_MATRIX = {
     ],
 }
 
-# Trial matrix: one FA3 ARM64 build with ccache + a 5h45m build cap, to
-# measure how far one GitHub-hosted run gets and whether the warm ccache is
-# saved for retries. FA3 is abi3, so a single build python (3.12) suffices.
-# Restore the original matrix after the trial.
+# Fill the remaining FA3 ARM64 missing wheels (torch 2.9.1+cu13.0 and
+# torch 2.10.0+cu12.6). FA3 is abi3, so one build python (3.12) covers all
+# non-FT pythons. The base matrix expands to 2x2 = 4 (torch x cuda); the
+# two already-released pairs are dropped via ARM64_FA3_ALREADY_RELEASED in
+# main() below, leaving exactly the two missing builds.
 LINUX_ARM64_MATRIX = {
     "flash-attn-version": [
-        # "2.6.3",
-        # "2.7.4",
-        # "2.8.3",
         FA3_COMMIT,
     ],
     "python-version": [
-        # "3.10",
-        # "3.11",
         "3.12",  # FA3 is abi3 (cp39-abi3); one build covers all non-FT pythons
-        # "3.13",
-        # "3.14",
     ],
     "torch-version": [
-        # "2.5.1",
-        # "2.6.0",
-        # "2.7.1",
-        # "2.8.0",
         "2.9.1",
-        # "2.10.0",
-        # "2.11.0",
-        # "2.12.0",
+        "2.10.0",
     ],
     "cuda-version": [
-        # "12.4",
         "12.6",
-        # "12.8",
-        # "12.9",
-        # "13.0",
-        # "13.2",
+        "13.0",
     ],
 }
+
+# torch x cuda pairs already shipped in earlier releases. Added to the
+# build matrix's exclude list so v0.9.40 only rebuilds the missing pair
+# (2.9.1+13.0, 2.10.0+12.6). Reset alongside LINUX_ARM64_MATRIX after the
+# missing wheels land.
+ARM64_FA3_ALREADY_RELEASED = [
+    {"torch-version": "2.9.1", "cuda-version": "12.6"},
+    {"torch-version": "2.10.0", "cuda-version": "13.0"},
+]
 
 LINUX_SELF_HOSTED_MATRIX = {
     "flash-attn-version": [
@@ -347,7 +340,7 @@ def main():
                 "windows_code_build": False,
                 # "windows_code_build": WINDOWS_CODEBUILD_MATRIX,
                 #
-                "exclude": EXCLUDE,
+                "exclude": EXCLUDE + ARM64_FA3_ALREADY_RELEASED,
             }
         )
     )
