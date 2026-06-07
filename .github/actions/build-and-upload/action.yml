@@ -78,17 +78,13 @@ runs:
       run: |
         chmod +x build_linux.sh
         if [ "${USE_BUILD_CACHE}" = "1" ]; then
-          # Cap the build at 5h45m. GitHub-hosted jobs are hard-cancelled at
-          # 6h, which would skip the cache save and lose the warm build dir.
-          # Stopping the build ourselves before that lets the cache be saved
-          # so a subsequent retry resumes from the warm build directory.
+          # DEBUG: temporarily capped at 60m to diagnose ninja rebuild reasons.
+          # Original cap is 5h45m (= 345m). Restore after debug.
           rc=0
-          timeout --signal=TERM 345m ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}" || rc=$?
+          timeout --signal=TERM 60m ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}" || rc=$?
           if [ "${rc}" = "124" ]; then
-            # Capped: mark so the cache-save steps below run. A completed
-            # build (rc=0) leaves capped unset, so its cache is NOT saved.
             echo "capped=true" >> "$GITHUB_OUTPUT"
-            echo "::warning::Build hit the 5h45m cap; build directory will be saved for a warm retry. Marking this attempt as failed."
+            echo "::warning::Build hit the 60m debug cap."
           fi
           exit "${rc}"
         else
