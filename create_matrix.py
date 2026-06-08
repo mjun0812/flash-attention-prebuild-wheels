@@ -40,11 +40,10 @@ LINUX_MATRIX = {
     ],
 }
 
-# Fill the remaining FA3 ARM64 missing wheels (torch 2.9.1+cu13.0 and
-# torch 2.10.0+cu12.6). FA3 is abi3, so one build python (3.12) covers all
-# non-FT pythons. The base matrix expands to 2x2 = 4 (torch x cuda); the
-# two already-released pairs are dropped via ARM64_FA3_ALREADY_RELEASED in
-# main() below, leaving exactly the two missing builds.
+# Fill the remaining FA3 ARM64 missing wheels (torch 2.12.0 x cu12.6/13.0/13.2).
+# FA3 is abi3, so one build python (3.12) covers all non-FT pythons. The base
+# matrix expands to 1x3 = 3 builds (no further pruning needed). Reset to the
+# broader matrix once these wheels land.
 LINUX_ARM64_MATRIX = {
     "flash-attn-version": [
         FA3_COMMIT,
@@ -53,23 +52,18 @@ LINUX_ARM64_MATRIX = {
         "3.12",  # FA3 is abi3 (cp39-abi3); one build covers all non-FT pythons
     ],
     "torch-version": [
-        "2.9.1",
-        "2.10.0",
+        "2.12.0",
     ],
     "cuda-version": [
         "12.6",
         "13.0",
+        "13.2",
     ],
 }
 
-# torch x cuda pairs already shipped in earlier releases. Added to the
-# build matrix's exclude list so v0.9.40 only rebuilds the missing pair
-# (2.9.1+13.0, 2.10.0+12.6). Reset alongside LINUX_ARM64_MATRIX after the
-# missing wheels land.
-ARM64_FA3_ALREADY_RELEASED = [
-    {"torch-version": "2.9.1", "cuda-version": "12.6"},
-    {"torch-version": "2.10.0", "cuda-version": "13.0"},
-]
+# No additional excludes beyond EXCLUDE for this release: the matrix above
+# already expands to exactly the missing torch 2.12.0 x cuda triple.
+ARM64_FA3_ALREADY_RELEASED = []
 
 LINUX_SELF_HOSTED_MATRIX = {
     "flash-attn-version": [
