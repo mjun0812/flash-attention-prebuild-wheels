@@ -21,7 +21,7 @@ TORCH_FULL_VERSIONS = [
     "2.9.1",
     "2.10.0",
     "2.11.0",
-    "2.12.0",
+    "2.12.1",
 ]
 TORCH_SUPPORT_CUDA_VERSIONS = {
     "2.0": ("11.7", "11.8"),
@@ -177,7 +177,7 @@ LINUX_MATRIX = {
         "2.9.1",
         "2.10.0",
         "2.11.0",
-        "2.12.0",
+        "2.12.1",
     ],
     "cuda-version": ["12.4", "12.6", "12.8", "12.9", "13.0", "13.2"],
 }
@@ -189,12 +189,12 @@ LINUX_ARM64_MATRIX = {
         "2.9.1",
         "2.10.0",
         "2.11.0",
-        "2.12.0",
+        "2.12.1",
     ],
     "cuda-version": ["12.6", "12.8", "12.9", "13.0", "13.2"],
 }
 
-# Windows excludes "3.14t" because torch 2.12.0's setuptools/cpp_extension
+# Windows excludes "3.14t" because torch 2.12.x's setuptools/cpp_extension
 # cannot resolve the free-threaded import library on Windows
 # (LNK1104: python314.lib vs python314t.lib).
 # Note: "3.13t" continues to work because that distribution is shipped under a
@@ -208,7 +208,7 @@ WINDOWS_MATRIX = {
         "2.9.1",
         "2.10.0",
         "2.11.0",
-        "2.12.0",
+        "2.12.1",
     ],
     "cuda-version": ["12.6", "12.8", "13.0", "13.2"],
 }
