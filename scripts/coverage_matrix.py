@@ -61,7 +61,7 @@ TORCH_EXPERIMENTAL_FREE_THREADED_PYTHON_VERSIONS = {
     "2.9": ("3.13t", "3.14t"),
     "2.10": ("3.13t", "3.14t"),
     "2.11": ("3.13t", "3.14t"),
-    "2.12": ("3.13t", "3.14t"),
+    "2.12": ("3.14t",),
 }
 
 # FA3 is distributed as a single ABI3 wheel per (torch, cuda) combination, so
@@ -194,11 +194,11 @@ LINUX_ARM64_MATRIX = {
     "cuda-version": ["12.6", "12.8", "12.9", "13.0", "13.2"],
 }
 
-# Windows excludes "3.14t" because torch 2.12.x's setuptools/cpp_extension
-# cannot resolve the free-threaded import library on Windows
-# (LNK1104: python314.lib vs python314t.lib).
-# Note: "3.13t" continues to work because that distribution is shipped under a
-# different uv identifier and the resulting link name resolves correctly.
+# Windows excludes "3.14t" because torch 2.12.x's setuptools/cpp_extension cannot
+# resolve the free-threaded import library on Windows
+# (LNK1104: python314.lib vs python314t.lib). 3.13t is pruned for torch 2.12.x
+# by TORCH_EXPERIMENTAL_FREE_THREADED_PYTHON_VERSIONS because torch 2.12.1 does
+# not publish cp313t wheels.
 WINDOWS_PYTHON_VERSIONS = [*PYTHON_VERSIONS, "3.13t"]
 
 WINDOWS_MATRIX = {
