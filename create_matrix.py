@@ -276,7 +276,7 @@ WINDOWS_SELF_HOSTED_MATRIX = {
         "3.12",
         "3.13",
         "3.14",
-        "3.13t",
+        # "3.13t",  # torch 2.12.1 no longer publishes cp313t wheels
         # "3.14t",  # Excluded: torch 2.12.x's setuptools/cpp_extension cannot
         # resolve the free-threaded import library on Windows
         # (LNK1104: python314.lib vs python314t.lib). Re-enable once PyTorch
