@@ -51,10 +51,10 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 
 | Platform | Existing | Missing | Coverage |
 |----------|----------|---------|----------|
-| Linux x86_64 | 461 | 0 | 100.0% |
-| Linux ARM64 | 144 | 0 | 100.0% |
-| Windows | 132 | 0 | 100.0% |
-| **Total** | **737** | **0** | **100.0%** |
+| Linux x86_64 | 452 | 0 | 100.0% |
+| Linux ARM64 | 141 | 0 | 100.0% |
+| Windows | 129 | 0 | 100.0% |
+| **Total** | **722** | **0** | **100.0%** |
 <!-- COVERAGE_TABLE_END -->
 
 > [!NOTE]
