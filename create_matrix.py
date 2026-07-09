@@ -29,6 +29,7 @@ LINUX_MATRIX = {
         "2.10.0",
         # "2.11.0",
         # "2.12.1",
+        # "2.13.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -40,9 +41,9 @@ LINUX_MATRIX = {
     ],
 }
 
-# Fill the remaining FA3 ARM64 missing wheels (torch 2.12.1 x cu12.6/13.0/13.2).
+# Fill the remaining FA3 ARM64 missing wheels (torch 2.12.1/2.13.0 x cu12.6/13.0/13.2).
 # FA3 is abi3, so one build python (3.12) covers all non-FT pythons. The base
-# matrix expands to 1x3 = 3 builds (no further pruning needed). Reset to the
+# matrix expands to 2x3 = 6 builds (no further pruning needed). Reset to the
 # broader matrix once these wheels land.
 LINUX_ARM64_MATRIX = {
     "flash-attn-version": [
@@ -53,6 +54,7 @@ LINUX_ARM64_MATRIX = {
     ],
     "torch-version": [
         "2.12.1",
+        "2.13.0",
     ],
     "cuda-version": [
         "12.6",
@@ -62,7 +64,7 @@ LINUX_ARM64_MATRIX = {
 }
 
 # No additional excludes beyond EXCLUDE for this release: the matrix above
-# already expands to exactly the missing torch 2.12.1 x cuda triple.
+# already expands to exactly the missing torch 2.12.1/2.13.0 x cuda triples.
 ARM64_FA3_ALREADY_RELEASED = []
 
 LINUX_SELF_HOSTED_MATRIX = {
@@ -90,6 +92,7 @@ LINUX_SELF_HOSTED_MATRIX = {
         "2.10.0",
         # "2.11.0",
         # "2.12.1",
+        # "2.13.0",
     ],
     "cuda-version": [
         "12.4",
@@ -126,6 +129,7 @@ LINUX_ARM64_SELF_HOSTED_MATRIX = {
         # "2.10.0",
         "2.11.0",
         "2.12.1",
+        "2.13.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -162,6 +166,7 @@ LINUX_NO_CONTAINER_MATRIX = {
         # "2.10.0",
         "2.11.0",
         "2.12.1",
+        "2.13.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -198,6 +203,7 @@ LINUX_ARM64_NO_CONTAINER_MATRIX = {
         "2.10.0",
         "2.11.0",
         "2.12.1",
+        "2.13.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -229,6 +235,7 @@ WINDOWS_MATRIX = {
         "2.10.0",
         "2.11.0",
         "2.12.1",
+        "2.13.0",
     ],
     "cuda-version": [
         "12.4",
@@ -257,6 +264,7 @@ WINDOWS_CODEBUILD_MATRIX = {
         # "2.10.0",
         # "2.11.0",
         # "2.12.1",
+        # "2.13.0",
     ],
     "cuda-version": [
         "12.8",
@@ -276,8 +284,8 @@ WINDOWS_SELF_HOSTED_MATRIX = {
         "3.12",
         "3.13",
         "3.14",
-        # "3.13t",  # torch 2.12.1 no longer publishes cp313t wheels
-        # "3.14t",  # Excluded: torch 2.12.x's setuptools/cpp_extension cannot
+        # "3.13t",  # torch 2.12.1/2.13.0 no longer publish cp313t wheels
+        # "3.14t",  # Excluded: torch 2.12.x/2.13.0's setuptools/cpp_extension cannot
         # resolve the free-threaded import library on Windows
         # (LNK1104: python314.lib vs python314t.lib). Re-enable once PyTorch
         # / setuptools handle this for free-threaded CPython on Windows.
@@ -291,6 +299,7 @@ WINDOWS_SELF_HOSTED_MATRIX = {
         # "2.10.0",
         # "2.11.0",
         "2.12.1",
+        "2.13.0",
     ],
     "cuda-version": [
         # "12.4",
