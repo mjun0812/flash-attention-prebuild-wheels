@@ -6,7 +6,7 @@ services:
       - .env
     environment:
       REPOSITORY_URL: https://github.com/mjun0812/flash-attention-prebuild-wheels
-      RUNNER_NAME: self-hosted-runner-raspi
+      RUNNER_NAME: self-hosted-runner
       RUNNER_GROUP: default
     build:
       context: .
@@ -23,7 +23,7 @@ services:
       - .env.arm
     environment:
       REPOSITORY_URL: https://github.com/mjun0812/flash-attention-prebuild-wheels
-      RUNNER_NAME: self-hosted-runner-arm-raspi
+      RUNNER_NAME: self-hosted-runner-arm
       RUNNER_GROUP: default
     build:
       context: .
