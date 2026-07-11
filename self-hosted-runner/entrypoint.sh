@@ -3,23 +3,7 @@
 # Detect architecture
 ARCH=$(uname -m)
 
-# Under QEMU emulation, setuid binaries (like sudo) do not work.
-# Run the GitHub Actions runner as root so that workflow steps
-# can install system packages without sudo.
-# if [ "$ARCH" = "aarch64" ]; then
-#     echo "Architecture is aarch64 (ARM64). Applying QEMU workarounds..."
-#     RUN_AS_ROOT=true
-#     mkdir -p /etc/docker
-#     cat <<EOF >/etc/docker/daemon.json
-# {
-#   "iptables": false,
-#   "ip6tables": false
-# }
-# EOF
-# else
-#     RUN_AS_ROOT=false
-# fi
-RUN_AS_ROOT=false
+RUN_AS_ROOT="${RUN_AS_ROOT:-true}"
 
 # Start docker daemon
 service docker start

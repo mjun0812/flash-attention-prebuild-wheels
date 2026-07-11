@@ -8,6 +8,7 @@ services:
       REPOSITORY_URL: https://github.com/mjun0812/flash-attention-prebuild-wheels
       RUNNER_NAME: self-hosted-runner
       RUNNER_GROUP: default
+      RUN_AS_ROOT: ${RUN_AS_ROOT:-true}
     build:
       context: .
       dockerfile: Dockerfile
@@ -25,6 +26,7 @@ services:
       REPOSITORY_URL: https://github.com/mjun0812/flash-attention-prebuild-wheels
       RUNNER_NAME: self-hosted-runner-arm
       RUNNER_GROUP: default
+      RUN_AS_ROOT: ${RUN_AS_ROOT:-true}
     build:
       context: .
       dockerfile: Dockerfile
