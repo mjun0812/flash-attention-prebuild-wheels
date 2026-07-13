@@ -43,13 +43,14 @@ LINUX_MATRIX = {
 
 LINUX_ARM64_MATRIX = {
     "flash-attn-version": [
+        "2.8.3",
         FA3_COMMIT,
     ],
     "python-version": [
         "3.12",  # FA3 is abi3 (cp39-abi3); one build covers all non-FT pythons
     ],
     "torch-version": [
-        "2.12.1",
+        # "2.12.1",
         "2.13.0",
     ],
     "cuda-version": [
@@ -98,8 +99,6 @@ LINUX_SELF_HOSTED_MATRIX = {
 
 LINUX_ARM64_SELF_HOSTED_MATRIX = {
     "flash-attn-version": [
-        # "2.6.3",
-        # "2.7.4",
         # "2.8.3",
         FA3_COMMIT,
     ],
@@ -311,11 +310,11 @@ def main():
                 "linux": False,
                 # "linux": LINUX_MATRIX,
                 #
-                "linux_arm64": False,
-                # "linux_arm64": LINUX_ARM64_MATRIX,
+                # "linux_arm64": False,
+                "linux_arm64": LINUX_ARM64_MATRIX,
                 #
-                # "linux_self_hosted": False,
-                "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
+                "linux_self_hosted": False,
+                # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
                 #
                 "linux_arm64_self_hosted": False,
                 # "linux_arm64_self_hosted": LINUX_ARM64_SELF_HOSTED_MATRIX,
