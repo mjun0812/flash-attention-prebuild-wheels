@@ -61,17 +61,38 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
   # suppresses verbose --resource-usage ptxas logs that would otherwise
   # clutter CI output with thousands of lines per build.
   cp "$(dirname "$0")/patches/fa3/setup.py" flash-attention/hopper/setup.py
-  # Restore the ninja build directory + cutlass headers cached by the CI
-  # action. We also push every non-cached input (FA3 sources, torch/CUDA
-  # headers) into the past so the restored .o files stay strictly newer
-  # than their inputs, then run `ninja -t restat` to sync .ninja_log with
-  # the restored mtimes. See memory/project_build_cache_ninja_mtime.md.
-  if [ -d "$HOME/.fa-build-cache/build" ]; then
-    echo "fa-build-cache: restoring build dir"
-    du -sh "$HOME/.fa-build-cache/build" || true
-    mkdir -p flash-attention/hopper
-    rm -rf flash-attention/hopper/build
-    mv "$HOME/.fa-build-cache/build" flash-attention/hopper/build
+  BUILD_ROOT=flash-attention/hopper/build
+elif [[ "${FLASH_ATTN_VARIANT}" == "Flash Attention 2" ]]; then
+  echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
+  git clone https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FLASH_ATTN_VERSION"
+  # Remove FA4 (flash_attn/cute) to prevent it from being included in the FA2 wheel
+  rm -rf flash-attention/flash_attn/cute
+  BUILD_ROOT=flash-attention/build
+else
+  echo "Unknown Flash Attention variant: $FLASH_ATTN_VARIANT"
+  exit 1
+fi
+
+# Restore the ninja build directory + cutlass headers cached by the CI
+# action (FA2 and FA3). We also push every non-cached input (FA sources,
+# torch/CUDA headers) into the past so the restored .o files stay strictly
+# newer than their inputs, then run `ninja -t restat` to sync .ninja_log
+# with the restored mtimes. See memory/project_build_cache_ninja_mtime.md.
+# Any validation failure falls back to a clean build instead of risking a
+# wheel built from a corrupt cache.
+if [ -d "$HOME/.fa-build-cache/build" ]; then
+  echo "fa-build-cache: restoring build dir into $BUILD_ROOT"
+  du -sh "$HOME/.fa-build-cache/build" || true
+  restore_ok=true
+  if ! python "$SCRIPT_DIR/scripts/tools/validate_build_cache.py" "$HOME/.fa-build-cache/build"; then
+    echo "fa-build-cache: cached build dir failed validation; using clean build"
+    rm -rf "$HOME/.fa-build-cache"
+    restore_ok=false
+  fi
+  if [ "$restore_ok" = "true" ]; then
+    mkdir -p "$(dirname "$BUILD_ROOT")"
+    rm -rf "$BUILD_ROOT"
+    mv "$HOME/.fa-build-cache/build" "$BUILD_ROOT"
     if [ -d "$HOME/.fa-build-cache/cutlass" ]; then
       echo "fa-build-cache: restoring cutlass"
       du -sh "$HOME/.fa-build-cache/cutlass" || true
@@ -79,7 +100,7 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
       mv "$HOME/.fa-build-cache/cutlass" flash-attention/csrc/cutlass
     fi
     PAST=197001020000
-    find flash-attention -path flash-attention/hopper/build -prune \
+    find flash-attention -path "$BUILD_ROOT" -prune \
                           -o -path flash-attention/csrc/cutlass -prune \
                           -o -type f -print 2>/dev/null \
       | xargs -r touch -t "$PAST" 2>/dev/null || true
@@ -87,30 +108,43 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
       find .venv/lib -path '*/site-packages/torch/include*' -type f \
         -exec touch -t "$PAST" {} + 2>/dev/null || true
     fi
-    if [ -d /usr/local/cuda/include ]; then
-      sudo find /usr/local/cuda/include -type f \
+    CUDA_INCLUDE="${CUDA_HOME:-/usr/local/cuda}/include"
+    if [ -d "$CUDA_INCLUDE" ]; then
+      sudo find "$CUDA_INCLUDE" -type f \
         -exec touch -t "$PAST" {} + 2>/dev/null || true
     fi
-    BUILD_TEMP=flash-attention/hopper/build/temp.linux-aarch64-cpython-312
-    if [ -f "$BUILD_TEMP/build.ninja" ]; then
-      uv pip install --quiet ninja 2>/dev/null || true
-      if command -v ninja >/dev/null; then
-        ( cd "$BUILD_TEMP" \
-          && find . -name '*.o' -type f -printf '%P\n' \
-            | xargs -r -n 500 ninja -t restat \
-        ) 2>/dev/null || true
-      fi
+    uv pip install --quiet ninja 2>/dev/null || true
+    if ! command -v ninja >/dev/null; then
+      echo "fa-build-cache: ninja not available; using clean build"
+      restore_ok=false
+    else
+      # Discover every ninja build dir dynamically (temp.linux-<arch>-cpython-<ver>
+      # varies by platform and Python), verify its metadata, and re-stat the
+      # cached objects so ninja trusts them.
+      while IFS= read -r -d '' ninja_file; do
+        ninja_dir=$(dirname "$ninja_file")
+        echo "fa-build-cache: verifying $ninja_dir"
+        if ! (cd "$ninja_dir" && ninja -t deps > /dev/null); then
+          echo "fa-build-cache: ninja -t deps failed in $ninja_dir"
+          restore_ok=false
+          break
+        fi
+        if ! (cd "$ninja_dir" \
+          && find . \( -name '*.o' -o -name '*.obj' \) -type f -printf '%P\0' \
+            | xargs -0 -r -n 500 ninja -t restat); then
+          echo "fa-build-cache: ninja -t restat failed in $ninja_dir"
+          restore_ok=false
+          break
+        fi
+      done < <(find "$BUILD_ROOT" -name build.ninja -type f -print0)
     fi
-    echo "fa-build-cache: restore done"
+    if [ "$restore_ok" = "true" ]; then
+      echo "fa-build-cache: restore done"
+    else
+      echo "fa-build-cache: restore verification failed; using clean build"
+      rm -rf "$BUILD_ROOT"
+    fi
   fi
-elif [[ "${FLASH_ATTN_VARIANT}" == "Flash Attention 2" ]]; then
-  echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
-  git clone https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FLASH_ATTN_VERSION"
-  # Remove FA4 (flash_attn/cute) to prevent it from being included in the FA2 wheel
-  rm -rf flash-attention/flash_attn/cute
-else
-  echo "Unknown Flash Attention variant: $FLASH_ATTN_VARIANT"
-  exit 1
 fi
 
 # Determine MAX_JOBS and NVCC_THREADS based on system resources

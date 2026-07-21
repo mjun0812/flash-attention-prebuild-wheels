@@ -38,15 +38,26 @@ on:
         required: false
         type: boolean
         default: false
+      build-timeout-minutes:
+        description: "Minutes from job start until the build is capped so the warm cache can still be saved (only used with use-build-cache)"
+        required: false
+        type: string
+        default: "330"
 
 jobs:
   build_wheels:
-    name: Build wheels and Upload (Linux x86_64, GitHub hosted runner)
+    name: Build wheels and Upload (Linux, GitHub hosted runner)
     runs-on: ${{ inputs.runner }}
+    # GitHub-hosted jobs are hard-cancelled at 6h; the build cap below is
+    # measured from BUILD_JOB_STARTED_AT so setup time counts toward it.
+    timeout-minutes: 360
     env:
       DEBIAN_FRONTEND: noninteractive
       TERM: xterm-256color
     steps:
+      - name: Record job start time
+        run: echo "BUILD_JOB_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v6
 
       - name: Maximize build space
@@ -72,3 +83,4 @@ jobs:
           cuda-version: ${{ inputs.cuda-version }}
           is-upload: ${{ inputs.is-upload }}
           use-build-cache: ${{ inputs.use-build-cache }}
+          build-timeout-minutes: ${{ inputs.build-timeout-minutes }}
