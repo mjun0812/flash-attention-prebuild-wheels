@@ -1,4 +1,20 @@
 # Copyright (c) 2024, Jay Shah, Ganesh Bikshandi, Ying Zhang, Vijay Thakkar, Pradeep Ramani, Tri Dao.
+#
+# Full replacement for upstream hopper/setup.py, copied over the clone by
+# build_linux.sh / build_windows.ps1 (full file copy, not a patch).
+#
+# Provenance:
+#   Base: https://github.com/Dao-AILab/flash-attention/blob/e2743ab/hopper/setup.py
+#   Plus: https://github.com/Dao-AILab/flash-attention/pull/2047 (unmerged) —
+#     Windows support: skips Linux-only NVIDIA toolchain downloads, and
+#     overrides BuildExtension/_write_ninja_file to work around the Windows
+#     linker's 32KB command-line limit via Ninja response files.
+#
+# Local changes on top of the above:
+#   1. Comment out "--resource-usage" (nvcc) to keep CI logs readable.
+#
+# Once PR #2047 is merged upstream and FA3_COMMIT moves past it, this file
+# can be regenerated as a plain copy of upstream with only change 1 applied.
 
 import ast
 import itertools
