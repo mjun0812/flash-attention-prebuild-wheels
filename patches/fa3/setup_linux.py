@@ -6,21 +6,20 @@
 #
 # Base: https://github.com/Dao-AILab/flash-attention/blob/e2743ab/hopper/setup.py
 #
-# This repository always builds from source in CI
-# (FLASH_ATTENTION_FORCE_BUILD=TRUE, CUDA only, Linux only), so the
+# This repository always builds from source in CI (Linux only), so the
 # following upstream code paths are removed as unreachable here:
-#   - ROCm / HIP / Triton-AMD support
-#   - Prebuilt wheel download (CachedWheelsCommand / get_wheel_url)
-#   - FLASH_ATTENTION_SKIP_CUDA_BUILD (sdist-only) path
+#   - Prebuilt wheel download (CachedWheelsCommand / get_wheel_url;
+#     FLASH_ATTENTION_FORCE_BUILD is therefore no longer consulted)
 #   - macOS / Windows platform branches
 #   - FLASH_ATTENTION_OFFLINE_BUILD support
 # Behavioral change on top of upstream:
 #   - "--resource-usage" (nvcc) is dropped to keep CI logs readable.
 # Everything that affects the produced wheel is kept identical: the
 # _write_ninja_file monkey patch (per-arch gencode routing for *_sm80.cu /
-# *_sm90.cu / *_sm100.cu), the pinned nvcc/ptxas toolchain download for
-# CUDA < 13.0 (except 12.8), the FLASHATTENTION_DISABLE_* feature flags,
-# and the source list generation.
+# *_sm90.cu / *_sm100.cu), the ROCm/HIP and SKIP_CUDA_BUILD control flow,
+# the pinned nvcc/ptxas toolchain download for CUDA < 13.0 (except 12.8),
+# the FLASHATTENTION_DISABLE_* feature flags, and the source list
+# generation.
 
 import ast
 import itertools
@@ -40,11 +39,14 @@ import torch
 from packaging.version import Version, parse
 from setuptools import find_packages, setup
 from torch.utils.cpp_extension import (
+    COMMON_HIP_FLAGS,
     CUDA_HOME,
+    IS_HIP_EXTENSION,
     BuildExtension,
     CUDAExtension,
     _is_cuda_file,
     _join_cuda_home,
+    _join_rocm_home,
     _maybe_write,
     get_cxx_compiler,
 )
@@ -60,6 +62,12 @@ PACKAGE_NAME = "flash_attn_3"
 
 # For CI, we want the option to build with C++11 ABI since the nvcr images use C++11 ABI
 FORCE_CXX11_ABI = os.getenv("FLASH_ATTENTION_FORCE_CXX11_ABI", "FALSE") == "TRUE"
+# SKIP_CUDA_BUILD: Intended to allow CI to use a simple `python setup.py sdist` run to copy over raw files, without any cuda compilation
+SKIP_CUDA_BUILD = os.getenv("FLASH_ATTENTION_SKIP_CUDA_BUILD", "FALSE") == "TRUE"
+# ROCm specific settings
+USE_TRITON_ROCM = os.getenv("FLASH_ATTENTION_TRITON_AMD_ENABLE", "FALSE") == "TRUE"
+if USE_TRITON_ROCM:
+    SKIP_CUDA_BUILD = True
 
 DISABLE_BACKWARD = os.getenv("FLASH_ATTENTION_DISABLE_BACKWARD", "FALSE") == "TRUE"
 DISABLE_SPLIT = os.getenv("FLASH_ATTENTION_DISABLE_SPLIT", "FALSE") == "TRUE"
@@ -179,13 +187,18 @@ def _write_ninja_file(
     config = ["ninja_required_version = 1.3"]
     config.append(f"cxx = {compiler}")
     if with_cuda or cuda_dlink_post_cflags:
-        nvcc = _join_cuda_home("bin", "nvcc")
+        if IS_HIP_EXTENSION:
+            nvcc = _join_rocm_home("bin", "hipcc")
+        else:
+            nvcc = _join_cuda_home("bin", "nvcc")
         # PYTORCH_NVCC points at the pinned toolchain downloaded below for
         # CUDA < 13.0 (except 12.8); otherwise it falls back to CUDA_HOME's nvcc.
         nvcc_from_env = os.getenv("PYTORCH_NVCC", nvcc)
         config.append(f"nvcc_from_env = {nvcc_from_env}")
         config.append(f"nvcc = {nvcc}")
 
+    if IS_HIP_EXTENSION:
+        post_cflags = COMMON_HIP_FLAGS + post_cflags
     flags = [f"cflags = {' '.join(cflags)}"]
     flags.append(f"post_cflags = {' '.join(post_cflags)}")
     if with_cuda:
@@ -228,8 +241,12 @@ def _write_ninja_file(
     if with_cuda:
         cuda_compile_rule = ["rule cuda_compile"]
         nvcc_gendeps = ""
+        # --generate-dependencies-with-compile is not supported by ROCm
         # Nvcc flag `--generate-dependencies-with-compile` is not supported by sccache, which may increase build time.
-        if os.getenv("TORCH_EXTENSION_SKIP_NVCC_GEN_DEPENDENCIES", "0") != "1":
+        if (
+            torch.version.cuda is not None
+            and os.getenv("TORCH_EXTENSION_SKIP_NVCC_GEN_DEPENDENCIES", "0") != "1"
+        ):
             cuda_compile_rule.append("  depfile = $out.d")
             cuda_compile_rule.append("  deps = gcc")
             nvcc_gendeps = (
@@ -391,257 +408,260 @@ NVIDIA_TOOLCHAIN_VERSION = {"nvcc": "12.6.85", "ptxas": "12.8.93"}
 
 exe_extension = sysconfig.get_config_var("EXE")
 
-subprocess.run(["git", "submodule", "update", "--init", "../csrc/cutlass"])
+ext_modules = []
+if not USE_TRITON_ROCM:
+    subprocess.run(["git", "submodule", "update", "--init", "../csrc/cutlass"])
 
-print("\n\ntorch.__version__  = {}\n\n".format(torch.__version__))
+if not SKIP_CUDA_BUILD:
+    print("\n\ntorch.__version__  = {}\n\n".format(torch.__version__))
 
-create_build_config_file()
-check_if_cuda_home_none(PACKAGE_NAME)
-_, bare_metal_version = get_cuda_bare_metal_version(CUDA_HOME)
-if bare_metal_version < Version("12.3"):
-    raise RuntimeError("FlashAttention-3 is only supported on CUDA 12.3 and above")
-elif bare_metal_version >= Version("13.0"):
-    # CUDA 13.0+ uses system nvcc and CCCL headers are in /usr/local/cuda/include/cccl/
-    cccl_include = os.path.join(CUDA_HOME, "include", "cccl")
-    for env_var in ["CPLUS_INCLUDE_PATH", "C_INCLUDE_PATH"]:
-        current = os.environ.get(env_var, "")
-        os.environ[env_var] = cccl_include + (":" + current if current else "")
+    create_build_config_file()
+    check_if_cuda_home_none(PACKAGE_NAME)
+    _, bare_metal_version = get_cuda_bare_metal_version(CUDA_HOME)
+    if bare_metal_version < Version("12.3"):
+        raise RuntimeError("FlashAttention-3 is only supported on CUDA 12.3 and above")
+    elif bare_metal_version >= Version("13.0"):
+        # CUDA 13.0+ uses system nvcc and CCCL headers are in /usr/local/cuda/include/cccl/
+        cccl_include = os.path.join(CUDA_HOME, "include", "cccl")
+        for env_var in ["CPLUS_INCLUDE_PATH", "C_INCLUDE_PATH"]:
+            current = os.environ.get(env_var, "")
+            os.environ[env_var] = cccl_include + (":" + current if current else "")
 
-# ptxas 12.8 gives the best perf currently
-# We want to use the nvcc front end from 12.6 however, since if we use nvcc 12.8
-# Cutlass 3.8 will expect the new data types in cuda.h from CTK 12.8, which we don't have.
-# For CUDA 13.0+, use system nvcc instead of downloading CUDA 12.x toolchain
-if (
-    bare_metal_version >= Version("12.3")
-    and bare_metal_version < Version("13.0")
-    and bare_metal_version != Version("12.8")
-):
-    download_and_copy(
-        name="nvcc",
-        src_func=lambda system, arch, version: (
-            f"cuda_nvcc-{system}-{arch}-{version}-archive/bin"
-        ),
-        dst_path="bin",
-        version=NVIDIA_TOOLCHAIN_VERSION["nvcc"],
-        url_func=lambda system, arch, version: (
-            f"https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/{system}-{arch}/cuda_nvcc-{system}-{arch}-{version}-archive.tar.xz"
-        ),
+    # ptxas 12.8 gives the best perf currently
+    # We want to use the nvcc front end from 12.6 however, since if we use nvcc 12.8
+    # Cutlass 3.8 will expect the new data types in cuda.h from CTK 12.8, which we don't have.
+    # For CUDA 13.0+, use system nvcc instead of downloading CUDA 12.x toolchain
+    if (
+        bare_metal_version >= Version("12.3")
+        and bare_metal_version < Version("13.0")
+        and bare_metal_version != Version("12.8")
+    ):
+        download_and_copy(
+            name="nvcc",
+            src_func=lambda system, arch, version: (
+                f"cuda_nvcc-{system}-{arch}-{version}-archive/bin"
+            ),
+            dst_path="bin",
+            version=NVIDIA_TOOLCHAIN_VERSION["nvcc"],
+            url_func=lambda system, arch, version: (
+                f"https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/{system}-{arch}/cuda_nvcc-{system}-{arch}-{version}-archive.tar.xz"
+            ),
+        )
+        download_and_copy(
+            name="ptxas",
+            src_func=lambda system, arch, version: (
+                f"cuda_nvcc-{system}-{arch}-{version}-archive/bin/ptxas"
+            ),
+            dst_path="bin",
+            version=NVIDIA_TOOLCHAIN_VERSION["ptxas"],
+            url_func=lambda system, arch, version: (
+                f"https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/{system}-{arch}/cuda_nvcc-{system}-{arch}-{version}-archive.tar.xz"
+            ),
+        )
+        download_and_copy(
+            name="ptxas",
+            src_func=lambda system, arch, version: (
+                f"cuda_nvcc-{system}-{arch}-{version}-archive/nvvm/bin"
+            ),
+            dst_path="nvvm/bin",
+            version=NVIDIA_TOOLCHAIN_VERSION["ptxas"],
+            url_func=lambda system, arch, version: (
+                f"https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/{system}-{arch}/cuda_nvcc-{system}-{arch}-{version}-archive.tar.xz"
+            ),
+        )
+        base_dir = os.path.dirname(__file__)
+        ctk_path_new = os.path.abspath(
+            os.path.join(base_dir, os.pardir, "third_party", "nvidia", "backend", "bin")
+        )
+        nvcc_path_new = os.path.join(ctk_path_new, f"nvcc{exe_extension}")
+        # Need to append to path otherwise nvcc can't find cicc in nvvm/bin/cicc
+        # nvcc 12.8 seems to hard-code looking for cicc in ../nvvm/bin/cicc
+        os.environ["PATH"] = ctk_path_new + os.pathsep + os.environ["PATH"]
+        os.environ["PYTORCH_NVCC"] = nvcc_path_new
+        # Make nvcc executable, sometimes after the copy it loses its permissions
+        os.chmod(nvcc_path_new, os.stat(nvcc_path_new).st_mode | stat.S_IEXEC)
+
+    cc_flag = []
+    cc_flag.append("-gencode")
+    cc_flag.append("arch=compute_90a,code=sm_90a")
+
+    # HACK: The compiler flag -D_GLIBCXX_USE_CXX11_ABI is set to be the same as
+    # torch._C._GLIBCXX_USE_CXX11_ABI
+    # https://github.com/pytorch/pytorch/blob/8472c24e3b5b60150096486616d98b7bea01500b/torch/utils/cpp_extension.py#L920
+    if FORCE_CXX11_ABI:
+        torch._C._GLIBCXX_USE_CXX11_ABI = True
+    repo_dir = Path(this_dir).parent
+    cutlass_dir = repo_dir / "csrc" / "cutlass"
+
+    feature_args = (
+        []
+        + (["-DFLASHATTENTION_DISABLE_BACKWARD"] if DISABLE_BACKWARD else [])
+        + (["-DFLASHATTENTION_DISABLE_PAGEDKV"] if DISABLE_PAGEDKV else [])
+        + (["-DFLASHATTENTION_DISABLE_SPLIT"] if DISABLE_SPLIT else [])
+        + (["-DFLASHATTENTION_DISABLE_APPENDKV"] if DISABLE_APPENDKV else [])
+        + (["-DFLASHATTENTION_DISABLE_LOCAL"] if DISABLE_LOCAL else [])
+        + (["-DFLASHATTENTION_DISABLE_SOFTCAP"] if DISABLE_SOFTCAP else [])
+        + (["-DFLASHATTENTION_DISABLE_PACKGQA"] if DISABLE_PACKGQA else [])
+        + (["-DFLASHATTENTION_DISABLE_FP16"] if DISABLE_FP16 else [])
+        + (["-DFLASHATTENTION_DISABLE_FP8"] if DISABLE_FP8 else [])
+        + (["-DFLASHATTENTION_DISABLE_VARLEN"] if DISABLE_VARLEN else [])
+        + (["-DFLASHATTENTION_DISABLE_CLUSTER"] if DISABLE_CLUSTER else [])
+        + (["-DFLASHATTENTION_DISABLE_HDIM64"] if DISABLE_HDIM64 else [])
+        + (["-DFLASHATTENTION_DISABLE_HDIM96"] if DISABLE_HDIM96 else [])
+        + (["-DFLASHATTENTION_DISABLE_HDIM128"] if DISABLE_HDIM128 else [])
+        + (["-DFLASHATTENTION_DISABLE_HDIM192"] if DISABLE_HDIM192 else [])
+        + (["-DFLASHATTENTION_DISABLE_HDIM256"] if DISABLE_HDIM256 else [])
+        + (["-DFLASHATTENTION_DISABLE_SM8x"] if DISABLE_SM8x else [])
+        + (["-DFLASHATTENTION_ENABLE_VCOLMAJOR"] if ENABLE_VCOLMAJOR else [])
+        + (["-DFLASHATTENTION_DISABLE_HDIMDIFF64"] if DISABLE_HDIMDIFF64 else [])
+        + (["-DFLASHATTENTION_DISABLE_HDIMDIFF192"] if DISABLE_HDIMDIFF192 else [])
     )
-    download_and_copy(
-        name="ptxas",
-        src_func=lambda system, arch, version: (
-            f"cuda_nvcc-{system}-{arch}-{version}-archive/bin/ptxas"
-        ),
-        dst_path="bin",
-        version=NVIDIA_TOOLCHAIN_VERSION["ptxas"],
-        url_func=lambda system, arch, version: (
-            f"https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/{system}-{arch}/cuda_nvcc-{system}-{arch}-{version}-archive.tar.xz"
-        ),
-    )
-    download_and_copy(
-        name="ptxas",
-        src_func=lambda system, arch, version: (
-            f"cuda_nvcc-{system}-{arch}-{version}-archive/nvvm/bin"
-        ),
-        dst_path="nvvm/bin",
-        version=NVIDIA_TOOLCHAIN_VERSION["ptxas"],
-        url_func=lambda system, arch, version: (
-            f"https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/{system}-{arch}/cuda_nvcc-{system}-{arch}-{version}-archive.tar.xz"
-        ),
-    )
-    base_dir = os.path.dirname(__file__)
-    ctk_path_new = os.path.abspath(
-        os.path.join(base_dir, os.pardir, "third_party", "nvidia", "backend", "bin")
-    )
-    nvcc_path_new = os.path.join(ctk_path_new, f"nvcc{exe_extension}")
-    # Need to append to path otherwise nvcc can't find cicc in nvvm/bin/cicc
-    # nvcc 12.8 seems to hard-code looking for cicc in ../nvvm/bin/cicc
-    os.environ["PATH"] = ctk_path_new + os.pathsep + os.environ["PATH"]
-    os.environ["PYTORCH_NVCC"] = nvcc_path_new
-    # Make nvcc executable, sometimes after the copy it loses its permissions
-    os.chmod(nvcc_path_new, os.stat(nvcc_path_new).st_mode | stat.S_IEXEC)
 
-cc_flag = []
-cc_flag.append("-gencode")
-cc_flag.append("arch=compute_90a,code=sm_90a")
-
-# HACK: The compiler flag -D_GLIBCXX_USE_CXX11_ABI is set to be the same as
-# torch._C._GLIBCXX_USE_CXX11_ABI
-# https://github.com/pytorch/pytorch/blob/8472c24e3b5b60150096486616d98b7bea01500b/torch/utils/cpp_extension.py#L920
-if FORCE_CXX11_ABI:
-    torch._C._GLIBCXX_USE_CXX11_ABI = True
-repo_dir = Path(this_dir).parent
-cutlass_dir = repo_dir / "csrc" / "cutlass"
-
-feature_args = (
-    []
-    + (["-DFLASHATTENTION_DISABLE_BACKWARD"] if DISABLE_BACKWARD else [])
-    + (["-DFLASHATTENTION_DISABLE_PAGEDKV"] if DISABLE_PAGEDKV else [])
-    + (["-DFLASHATTENTION_DISABLE_SPLIT"] if DISABLE_SPLIT else [])
-    + (["-DFLASHATTENTION_DISABLE_APPENDKV"] if DISABLE_APPENDKV else [])
-    + (["-DFLASHATTENTION_DISABLE_LOCAL"] if DISABLE_LOCAL else [])
-    + (["-DFLASHATTENTION_DISABLE_SOFTCAP"] if DISABLE_SOFTCAP else [])
-    + (["-DFLASHATTENTION_DISABLE_PACKGQA"] if DISABLE_PACKGQA else [])
-    + (["-DFLASHATTENTION_DISABLE_FP16"] if DISABLE_FP16 else [])
-    + (["-DFLASHATTENTION_DISABLE_FP8"] if DISABLE_FP8 else [])
-    + (["-DFLASHATTENTION_DISABLE_VARLEN"] if DISABLE_VARLEN else [])
-    + (["-DFLASHATTENTION_DISABLE_CLUSTER"] if DISABLE_CLUSTER else [])
-    + (["-DFLASHATTENTION_DISABLE_HDIM64"] if DISABLE_HDIM64 else [])
-    + (["-DFLASHATTENTION_DISABLE_HDIM96"] if DISABLE_HDIM96 else [])
-    + (["-DFLASHATTENTION_DISABLE_HDIM128"] if DISABLE_HDIM128 else [])
-    + (["-DFLASHATTENTION_DISABLE_HDIM192"] if DISABLE_HDIM192 else [])
-    + (["-DFLASHATTENTION_DISABLE_HDIM256"] if DISABLE_HDIM256 else [])
-    + (["-DFLASHATTENTION_DISABLE_SM8x"] if DISABLE_SM8x else [])
-    + (["-DFLASHATTENTION_ENABLE_VCOLMAJOR"] if ENABLE_VCOLMAJOR else [])
-    + (["-DFLASHATTENTION_DISABLE_HDIMDIFF64"] if DISABLE_HDIMDIFF64 else [])
-    + (["-DFLASHATTENTION_DISABLE_HDIMDIFF192"] if DISABLE_HDIMDIFF192 else [])
-)
-
-DTYPE_FWD_SM80 = ["bf16"] + (["fp16"] if not DISABLE_FP16 else [])
-DTYPE_FWD_SM90 = (
-    ["bf16"]
-    + (["fp16"] if not DISABLE_FP16 else [])
-    + (["e4m3"] if not DISABLE_FP8 else [])
-)
-HALF_DTYPE_FWD_SM90 = ["bf16"] + (["fp16"] if not DISABLE_FP16 else [])
-DTYPE_BWD = ["bf16"] + (["fp16"] if not DISABLE_FP16 else [])
-HEAD_DIMENSIONS_BWD = (
-    []
-    + ([64] if not DISABLE_HDIM64 else [])
-    + ([96] if not DISABLE_HDIM96 else [])
-    + ([128] if not DISABLE_HDIM128 else [])
-    + ([192] if not DISABLE_HDIM192 else [])
-    + ([256] if not DISABLE_HDIM256 else [])
-)
-# build will now explode with this compilation grouping given all our templating
-# HEAD_DIMENSIONS_FWD = ["all", "diff"]
-HEAD_DIMENSIONS_FWD = HEAD_DIMENSIONS_BWD
-HEAD_DIMENSIONS_DIFF64_FWD = (
-    []
-    + (["64_256"] if not DISABLE_HDIMDIFF64 else [])
-    + (["64_512"] if not DISABLE_HDIMDIFF64 else [])
-)
-HEAD_DIMENSIONS_DIFF192_FWD = [] + (["192_128"] if not DISABLE_HDIMDIFF192 else [])
-HEAD_DIMENSIONS_FWD_SM80 = HEAD_DIMENSIONS_BWD
-SPLIT = [""] + (["_split"] if not DISABLE_SPLIT else [])
-PAGEDKV = [""] + (["_paged"] if not DISABLE_PAGEDKV else [])
-SOFTCAP = [""] + (["_softcap"] if not DISABLE_SOFTCAP else [])
-SOFTCAP_ALL = [""] if DISABLE_SOFTCAP else ["_softcapall"]
-PACKGQA = [""] + (["_packgqa"] if not DISABLE_PACKGQA else [])
-# We already always hard-code PackGQA=true for Sm8x
-sources_fwd_sm80 = [
-    f"instantiations/flash_fwd_hdim{hdim}_{dtype}{paged}{split}{softcap}_sm80.cu"
-    for hdim, dtype, split, paged, softcap in itertools.product(
-        HEAD_DIMENSIONS_FWD_SM80, DTYPE_FWD_SM80, SPLIT, PAGEDKV, SOFTCAP_ALL
+    DTYPE_FWD_SM80 = ["bf16"] + (["fp16"] if not DISABLE_FP16 else [])
+    DTYPE_FWD_SM90 = (
+        ["bf16"]
+        + (["fp16"] if not DISABLE_FP16 else [])
+        + (["e4m3"] if not DISABLE_FP8 else [])
     )
-]
-# We already always hard-code PackGQA=true for Sm9x if PagedKV or Split
-sources_fwd_sm90 = [
-    f"instantiations/flash_fwd_hdim{hdim}_{dtype}{paged}{split}{softcap}{packgqa}_sm90.cu"
-    for hdim, dtype, split, paged, softcap, packgqa in itertools.product(
-        HEAD_DIMENSIONS_FWD, DTYPE_FWD_SM90, SPLIT, PAGEDKV, SOFTCAP, PACKGQA
+    HALF_DTYPE_FWD_SM90 = ["bf16"] + (["fp16"] if not DISABLE_FP16 else [])
+    DTYPE_BWD = ["bf16"] + (["fp16"] if not DISABLE_FP16 else [])
+    HEAD_DIMENSIONS_BWD = (
+        []
+        + ([64] if not DISABLE_HDIM64 else [])
+        + ([96] if not DISABLE_HDIM96 else [])
+        + ([128] if not DISABLE_HDIM128 else [])
+        + ([192] if not DISABLE_HDIM192 else [])
+        + ([256] if not DISABLE_HDIM256 else [])
     )
-    if not (packgqa and (paged or split))
-]
-if not DISABLE_HDIMDIFF64:
-    sources_fwd_sm90 += [
+    # build will now explode with this compilation grouping given all our templating
+    # HEAD_DIMENSIONS_FWD = ["all", "diff"]
+    HEAD_DIMENSIONS_FWD = HEAD_DIMENSIONS_BWD
+    HEAD_DIMENSIONS_DIFF64_FWD = (
+        []
+        + (["64_256"] if not DISABLE_HDIMDIFF64 else [])
+        + (["64_512"] if not DISABLE_HDIMDIFF64 else [])
+    )
+    HEAD_DIMENSIONS_DIFF192_FWD = [] + (["192_128"] if not DISABLE_HDIMDIFF192 else [])
+    HEAD_DIMENSIONS_FWD_SM80 = HEAD_DIMENSIONS_BWD
+    SPLIT = [""] + (["_split"] if not DISABLE_SPLIT else [])
+    PAGEDKV = [""] + (["_paged"] if not DISABLE_PAGEDKV else [])
+    SOFTCAP = [""] + (["_softcap"] if not DISABLE_SOFTCAP else [])
+    SOFTCAP_ALL = [""] if DISABLE_SOFTCAP else ["_softcapall"]
+    PACKGQA = [""] + (["_packgqa"] if not DISABLE_PACKGQA else [])
+    # We already always hard-code PackGQA=true for Sm8x
+    sources_fwd_sm80 = [
+        f"instantiations/flash_fwd_hdim{hdim}_{dtype}{paged}{split}{softcap}_sm80.cu"
+        for hdim, dtype, split, paged, softcap in itertools.product(
+            HEAD_DIMENSIONS_FWD_SM80, DTYPE_FWD_SM80, SPLIT, PAGEDKV, SOFTCAP_ALL
+        )
+    ]
+    # We already always hard-code PackGQA=true for Sm9x if PagedKV or Split
+    sources_fwd_sm90 = [
         f"instantiations/flash_fwd_hdim{hdim}_{dtype}{paged}{split}{softcap}{packgqa}_sm90.cu"
         for hdim, dtype, split, paged, softcap, packgqa in itertools.product(
-            HEAD_DIMENSIONS_DIFF64_FWD,
-            HALF_DTYPE_FWD_SM90,
-            SPLIT,
-            PAGEDKV,
-            SOFTCAP,
-            PACKGQA,
+            HEAD_DIMENSIONS_FWD, DTYPE_FWD_SM90, SPLIT, PAGEDKV, SOFTCAP, PACKGQA
         )
         if not (packgqa and (paged or split))
     ]
-if not DISABLE_HDIMDIFF192:
-    sources_fwd_sm90 += [
-        f"instantiations/flash_fwd_hdim{hdim}_{dtype}{paged}{split}{softcap}{packgqa}_sm90.cu"
-        for hdim, dtype, split, paged, softcap, packgqa in itertools.product(
-            HEAD_DIMENSIONS_DIFF192_FWD,
-            DTYPE_FWD_SM90,
-            SPLIT,
-            PAGEDKV,
-            SOFTCAP,
-            PACKGQA,
+    if not DISABLE_HDIMDIFF64:
+        sources_fwd_sm90 += [
+            f"instantiations/flash_fwd_hdim{hdim}_{dtype}{paged}{split}{softcap}{packgqa}_sm90.cu"
+            for hdim, dtype, split, paged, softcap, packgqa in itertools.product(
+                HEAD_DIMENSIONS_DIFF64_FWD,
+                HALF_DTYPE_FWD_SM90,
+                SPLIT,
+                PAGEDKV,
+                SOFTCAP,
+                PACKGQA,
+            )
+            if not (packgqa and (paged or split))
+        ]
+    if not DISABLE_HDIMDIFF192:
+        sources_fwd_sm90 += [
+            f"instantiations/flash_fwd_hdim{hdim}_{dtype}{paged}{split}{softcap}{packgqa}_sm90.cu"
+            for hdim, dtype, split, paged, softcap, packgqa in itertools.product(
+                HEAD_DIMENSIONS_DIFF192_FWD,
+                DTYPE_FWD_SM90,
+                SPLIT,
+                PAGEDKV,
+                SOFTCAP,
+                PACKGQA,
+            )
+            if not (packgqa and (paged or split))
+        ]
+    sources_bwd_sm80 = [
+        f"instantiations/flash_bwd_hdim{hdim}_{dtype}{softcap}_sm80.cu"
+        for hdim, dtype, softcap in itertools.product(
+            HEAD_DIMENSIONS_BWD, DTYPE_BWD, SOFTCAP
         )
-        if not (packgqa and (paged or split))
     ]
-sources_bwd_sm80 = [
-    f"instantiations/flash_bwd_hdim{hdim}_{dtype}{softcap}_sm80.cu"
-    for hdim, dtype, softcap in itertools.product(
-        HEAD_DIMENSIONS_BWD, DTYPE_BWD, SOFTCAP
+    sources_bwd_sm90 = [
+        f"instantiations/flash_bwd_hdim{hdim}_{dtype}{softcap}_sm90.cu"
+        for hdim, dtype, softcap in itertools.product(
+            HEAD_DIMENSIONS_BWD, DTYPE_BWD, SOFTCAP_ALL
+        )
+    ]
+    if DISABLE_BACKWARD:
+        sources_bwd_sm90 = []
+        sources_bwd_sm80 = []
+
+    # Choose between flash_api.cpp and flash_api_stable.cpp based on torch version
+    torch_version = parse(torch.__version__)
+    target_version = parse("2.9.0.dev20250830")
+    stable_args = []
+
+    if torch_version >= target_version:
+        flash_api_source = "flash_api_stable.cpp"
+        stable_args = [
+            "-DTORCH_TARGET_VERSION=0x0209000000000000"
+        ]  # Targets minimum runtime version torch 2.9.0
+    else:
+        flash_api_source = "flash_api.cpp"
+
+    sources = (
+        [flash_api_source]
+        + (sources_fwd_sm80 if not DISABLE_SM8x else [])
+        + sources_fwd_sm90
+        + (sources_bwd_sm80 if not DISABLE_SM8x else [])
+        + sources_bwd_sm90
     )
-]
-sources_bwd_sm90 = [
-    f"instantiations/flash_bwd_hdim{hdim}_{dtype}{softcap}_sm90.cu"
-    for hdim, dtype, softcap in itertools.product(
-        HEAD_DIMENSIONS_BWD, DTYPE_BWD, SOFTCAP_ALL
+    if not DISABLE_SPLIT:
+        sources += ["flash_fwd_combine.cu"]
+    sources += ["flash_prepare_scheduler.cu"]
+    nvcc_flags = [
+        "-O3",
+        "-std=c++17",
+        "--ftemplate-backtrace-limit=0",  # To debug template code
+        "--use_fast_math",
+        # "--keep",
+        # "--ptxas-options=--verbose,--register-usage-level=5,--warn-on-local-memory-usage",  # printing out number of registers
+        # "--resource-usage",  # printing out number of registers; disabled to keep CI logs readable
+        # f"--split-compile={os.getenv('NVCC_THREADS', '4')}",  # split-compile is faster
+        "-lineinfo",  # TODO: disable this for release to reduce binary size
+        "-DCUTE_SM90_EXTENDED_MMA_SHAPES_ENABLED",  # Necessary for the WGMMA shapes that we use
+        "-DCUTLASS_ENABLE_GDC_FOR_SM90",  # For PDL
+        "-DCUTLASS_DEBUG_TRACE_LEVEL=0",  # Can toggle for debugging
+        "-DNDEBUG",  # Important, otherwise performance is severely impacted
+    ]
+    include_dirs = [
+        Path(this_dir),
+        cutlass_dir / "include",
+    ]
+
+    ext_modules.append(
+        CUDAExtension(
+            name=f"{PACKAGE_NAME}._C",
+            sources=sources,
+            extra_compile_args={
+                "cxx": ["-O3", "-std=c++17", "-DPy_LIMITED_API=0x03090000"]
+                + stable_args
+                + feature_args,
+                "nvcc": nvcc_threads_args() + nvcc_flags + cc_flag + feature_args,
+            },
+            include_dirs=include_dirs,
+            py_limited_api=True,
+        )
     )
-]
-if DISABLE_BACKWARD:
-    sources_bwd_sm90 = []
-    sources_bwd_sm80 = []
-
-# Choose between flash_api.cpp and flash_api_stable.cpp based on torch version
-torch_version = parse(torch.__version__)
-target_version = parse("2.9.0.dev20250830")
-stable_args = []
-
-if torch_version >= target_version:
-    flash_api_source = "flash_api_stable.cpp"
-    stable_args = [
-        "-DTORCH_TARGET_VERSION=0x0209000000000000"
-    ]  # Targets minimum runtime version torch 2.9.0
-else:
-    flash_api_source = "flash_api.cpp"
-
-sources = (
-    [flash_api_source]
-    + (sources_fwd_sm80 if not DISABLE_SM8x else [])
-    + sources_fwd_sm90
-    + (sources_bwd_sm80 if not DISABLE_SM8x else [])
-    + sources_bwd_sm90
-)
-if not DISABLE_SPLIT:
-    sources += ["flash_fwd_combine.cu"]
-sources += ["flash_prepare_scheduler.cu"]
-nvcc_flags = [
-    "-O3",
-    "-std=c++17",
-    "--ftemplate-backtrace-limit=0",  # To debug template code
-    "--use_fast_math",
-    # "--keep",
-    # "--ptxas-options=--verbose,--register-usage-level=5,--warn-on-local-memory-usage",  # printing out number of registers
-    # "--resource-usage",  # printing out number of registers; disabled to keep CI logs readable
-    # f"--split-compile={os.getenv('NVCC_THREADS', '4')}",  # split-compile is faster
-    "-lineinfo",  # TODO: disable this for release to reduce binary size
-    "-DCUTE_SM90_EXTENDED_MMA_SHAPES_ENABLED",  # Necessary for the WGMMA shapes that we use
-    "-DCUTLASS_ENABLE_GDC_FOR_SM90",  # For PDL
-    "-DCUTLASS_DEBUG_TRACE_LEVEL=0",  # Can toggle for debugging
-    "-DNDEBUG",  # Important, otherwise performance is severely impacted
-]
-include_dirs = [
-    Path(this_dir),
-    cutlass_dir / "include",
-]
-
-ext_modules = [
-    CUDAExtension(
-        name=f"{PACKAGE_NAME}._C",
-        sources=sources,
-        extra_compile_args={
-            "cxx": ["-O3", "-std=c++17", "-DPy_LIMITED_API=0x03090000"]
-            + stable_args
-            + feature_args,
-            "nvcc": nvcc_threads_args() + nvcc_flags + cc_flag + feature_args,
-        },
-        include_dirs=include_dirs,
-        py_limited_api=True,
-    )
-]
 
 
 def get_package_version():
@@ -679,7 +699,7 @@ setup(
         "Operating System :: Unix",
     ],
     ext_modules=ext_modules,
-    cmdclass={"build_ext": BuildExtension},
+    cmdclass={"build_ext": BuildExtension} if ext_modules else {},
     python_requires=">=3.8",
     install_requires=[
         "torch",
