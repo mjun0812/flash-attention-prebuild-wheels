@@ -93,15 +93,15 @@ if [ -d "$HOME/.fa-build-cache/build" ]; then
     mkdir -p "$(dirname "$BUILD_ROOT")"
     rm -rf "$BUILD_ROOT"
     mv "$HOME/.fa-build-cache/build" "$BUILD_ROOT"
-    if [ -d "$HOME/.fa-build-cache/cutlass" ]; then
-      echo "fa-build-cache: restoring cutlass"
-      du -sh "$HOME/.fa-build-cache/cutlass" || true
-      rm -rf flash-attention/csrc/cutlass
-      mv "$HOME/.fa-build-cache/cutlass" flash-attention/csrc/cutlass
-    fi
+    # Initialize the cutlass submodule now (normally done inside setup.py)
+    # so its headers exist before the past-touch below and setup.py's own
+    # `git submodule update` becomes a no-op. Restoring cutlass from the
+    # cache instead would carry a .git pointer into the previous runner's
+    # gitdir, which makes FA2's check=True submodule update fail.
+    echo "fa-build-cache: initializing cutlass submodule"
+    git -C flash-attention submodule update --init csrc/cutlass
     PAST=197001020000
     find flash-attention -path "$BUILD_ROOT" -prune \
-                          -o -path flash-attention/csrc/cutlass -prune \
                           -o -type f -print 2>/dev/null \
       | xargs -r touch -t "$PAST" 2>/dev/null || true
     if [ -d .venv ]; then

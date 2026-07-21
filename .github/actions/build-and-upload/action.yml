@@ -159,12 +159,6 @@ runs:
         mv "$src" "$HOME/.fa-build-cache/build"
         echo "Staged $src -> ~/.fa-build-cache/build"
         du -sh "$HOME/.fa-build-cache/build" || true
-        if [ -d flash-attention/csrc/cutlass ]; then
-          # cp -a (not mv) so flash-attention/ stays intact for post-build steps.
-          cp -a flash-attention/csrc/cutlass "$HOME/.fa-build-cache/cutlass"
-          echo "Staged cutlass -> ~/.fa-build-cache/cutlass"
-          du -sh "$HOME/.fa-build-cache/cutlass" || true
-        fi
         # Truncate mtimes to whole seconds so they survive GNU tar in
         # actions/cache@v4 (ustar drops sub-second precision). Exits non-zero
         # on a corrupt .ninja_deps, in which case the save is skipped.
