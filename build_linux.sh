@@ -60,7 +60,7 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
   # Replace upstream hopper/setup.py with our patched version, which
   # suppresses verbose --resource-usage ptxas logs that would otherwise
   # clutter CI output with thousands of lines per build.
-  cp "$(dirname "$0")/patches/fa3/setup.py" flash-attention/hopper/setup.py
+  cp "$(dirname "$0")/patches/fa3/setup_linux.py" flash-attention/hopper/setup.py
   BUILD_ROOT=flash-attention/hopper/build
 elif [[ "${FLASH_ATTN_VARIANT}" == "Flash Attention 2" ]]; then
   echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."

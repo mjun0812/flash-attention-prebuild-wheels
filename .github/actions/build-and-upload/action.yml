@@ -78,7 +78,7 @@ runs:
         fingerprint=$({
           c++ --version
           nvcc --version
-          cat build_linux.sh get_torch_cuda_version.py patches/fa3/setup.py \
+          cat build_linux.sh get_torch_cuda_version.py patches/fa3/setup_linux.py \
             scripts/tools/truncate_build_cache_mtimes.py \
             scripts/tools/validate_build_cache.py
         } | sha256sum | cut -c1-16)

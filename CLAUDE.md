@@ -11,7 +11,7 @@ Pre-built Python wheel distribution for Flash Attention (v2/v3) across multiple 
 ### Build Flow
 
 1. **`create_matrix.py`** — Generates JSON matrices of all build combinations (flash-attn, python, torch, cuda versions). Each platform matrix can be individually toggled `False` in `main()` to skip; the combined `exclude` list is `EXCLUDE` from `scripts/coverage_matrix.py` plus optional inline excludes for already-released cells.
-2. **`build_linux.sh` / `build_windows.ps1`** — Builds a wheel for one combination (args: `<flash-attn-version> <python-version> <torch-version> <cuda-version>`). FA3 paths overlay `patches/fa3/setup.py` onto the upstream clone before invoking `python setup.py bdist_wheel`.
+2. **`build_linux.sh` / `build_windows.ps1`** — Builds a wheel for one combination (args: `<flash-attn-version> <python-version> <torch-version> <cuda-version>`). FA3 paths overlay `patches/fa3/setup_linux.py` (Linux) or `patches/fa3/setup_windows.py` (Windows) onto the upstream clone before invoking `python setup.py bdist_wheel`.
 3. **`.github/actions/build-and-upload/action.yml`** — Composite action: restore build cache → build → test (`import flash_attn`) → upload → `auditwheel repair` → manylinux test & upload. Cap + cache save logic gated by the `use-build-cache` input.
 
 ### CI/CD Workflow Structure
@@ -44,8 +44,9 @@ Typical run-to-completion: attempt 1 caps and saves cache → `gh run rerun <run
 
 ### FA3 patches (`patches/fa3/`)
 
-- `setup.py` is fully replaced (not patched) by `build_linux.sh` to suppress verbose `--resource-usage` ptxas logs.
-- `cuda_h_alignment_fix.patch` / `cutlass_alignment_fix.patch` are kept for reference; current build flow does not apply them — overlay the patched `setup.py` instead.
+- `setup_linux.py` — plain copy of the pinned upstream `hopper/setup.py` with only `--resource-usage` commented out; fully replaces (not patches) the upstream file in `build_linux.sh`.
+- `setup_windows.py` — same, but based on the unmerged upstream PR Dao-AILab/flash-attention#2047 (Windows linker 32KB command-line limit workaround via Ninja response files); used by `build_windows.ps1`.
+- `cuda_h_alignment_fix.patch` / `cutlass_alignment_fix.patch` are kept for reference; current build flow does not apply them — overlay the patched setup instead.
 
 ### Version Detection
 
@@ -90,6 +91,6 @@ python3 -m unittest discover -v
 
 - Adding a new version requires updating both `create_matrix.py` (matrix definitions) **and** `scripts/coverage_matrix.py` (`TORCH_SUPPORT_*` tables + `EXCLUDE` rules).
 - Build resources (`MAX_JOBS`, `NVCC_THREADS`) are auto-calculated from CPU/RAM in `build_linux.sh`.
-- FA3 builds replace the upstream `hopper/setup.py` with `patches/fa3/setup.py` (full file copy, not a patch).
+- FA3 builds replace the upstream `hopper/setup.py` with `patches/fa3/setup_linux.py` / `setup_windows.py` (full file copy, not a patch).
 - Cache key prefix is `fabuild-v4-`; bumping the layout (added/removed paths under `~/.fa-build-cache/`) requires a new prefix to avoid restoring incompatible caches.
 - `LINUX_ARM64_MATRIX` is frequently scoped down to a single combination for tag releases — restore the broader matrix (or leave a `_ALREADY_RELEASED` exclude list) when finished to make `check_missing_packages` work correctly.

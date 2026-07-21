@@ -315,7 +315,7 @@ if ($FlashAttnVariant -eq "Flash Attention 3") {
     git clone -q https://github.com/Dao-AILab/flash-attention.git flash-attention
     git -C flash-attention checkout $FaCommit
     # Replace upstream setup.py with patched version
-    $patchedSetup = Join-Path $PSScriptRoot "patches\fa3\setup.py"
+    $patchedSetup = Join-Path $PSScriptRoot "patches\fa3\setup_windows.py"
     Copy-Item $patchedSetup "flash-attention\hopper\setup.py" -Force
     # MSVC cannot pass 128-byte aligned CUDA-generated types by value on CUDA 13.0+.
     if (Test-Cuda13OrNewer -Version $CudaVersion) {
