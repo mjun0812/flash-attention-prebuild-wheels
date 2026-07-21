@@ -44,10 +44,15 @@ LINUX_MATRIX = {
 LINUX_ARM64_MATRIX = {
     "flash-attn-version": [
         "2.8.3",
-        FA3_COMMIT,
+        # FA3_COMMIT,  # FA3 arm64 is fully released (abi3 covers all non-FT pythons)
     ],
     "python-version": [
-        "3.12",  # FA3 is abi3 (cp39-abi3); one build covers all non-FT pythons
+        "3.10",
+        "3.11",
+        # "3.12",  # already released for 2.8.3 x torch 2.13.0
+        "3.13",
+        "3.14",
+        "3.14t",
     ],
     "torch-version": [
         # "2.12.1",
