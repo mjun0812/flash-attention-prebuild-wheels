@@ -29,7 +29,7 @@ Pre-built Python wheel distribution for Flash Attention (v2/v3) across multiple 
 - Save only happens when the build exits with code 124 (capped by `timeout`); completed builds and compile errors never save. Before saving, `scripts/tools/validate_build_cache.py` checks the build tree (build.ninja present, objects present, every `.ninja_deps` structurally valid) and `scripts/tools/truncate_build_cache_mtimes.py` rewrites every mtime (and the int64 mtime in version-4 `.ninja_deps`) to whole seconds so they survive GNU tar's ustar precision loss. Either failing skips the save.
 - On restore, `build_linux.sh` validates the cache, moves it to the variant's build root (`flash-attention/build` for FA2, `flash-attention/hopper/build` for FA3), runs `git submodule update --init csrc/cutlass`, pushes every non-cached input (FA sources incl. cutlass, `.venv`'s torch include, `${CUDA_HOME}/include`) to `1970-01-02`, then discovers every `build.ninja` dynamically (no hardcoded `temp.linux-*` dir) and runs `ninja -t deps` + `ninja -t restat` so the restored `.o` tree stays "newer than its inputs" from ninja's perspective. Any verification failure falls back to a clean build.
 
-Typical run-to-completion: attempt 1 caps and saves cache → `gh run rerun <run_id> --failed` triggers attempt 2 which restores the cache, ninja skips most completed compilations, and the build finishes within the cap. See `memory/project_build_cache_ninja_mtime.md` for the full debug trail. Tools are unit-tested in `tests/test_build_cache_tools.py` (run via `.github/workflows/test-build-cache-tools.yml`).
+Typical run-to-completion: attempt 1 caps and saves cache → `gh run rerun <run_id> --failed` triggers attempt 2 which restores the cache, ninja skips most completed compilations, and the build finishes within the cap. See `memory/project_build_cache_ninja_mtime.md` for the full debug trail.
 
 ### Scripts (`scripts/`)
 
@@ -82,9 +82,6 @@ uvx ruff check --fix
 
 # Retry a GitHub-hosted Linux build after the timeout cap saved its cache
 gh run rerun <run_id> --failed
-
-# Build cache tool tests
-python3 -m unittest discover -v
 ```
 
 ## Key Conventions

@@ -25,7 +25,6 @@ flash-attention-prebuild-wheels/
 │       ├── fetch_all_assets.py
 │       ├── truncate_build_cache_mtimes.py
 │       └── validate_build_cache.py
-└── tests/                                      # Unit tests (build cache tools)
 ```
 
 ### Why Some Scripts Stay in the Root
@@ -270,16 +269,6 @@ Validates that a cached ninja build directory is resumable: the directory exists
 
 ```bash
 python -m scripts.tools.validate_build_cache ~/.fa-build-cache/build
-```
-
----
-
-## Tests (`tests/`)
-
-Unit tests for the build cache tools, including an integration test against a deps log written by a real `ninja` binary (skipped when `ninja` or a C compiler is unavailable). Run by `.github/workflows/test-build-cache-tools.yml` on every pull request.
-
-```bash
-python3 -m unittest discover -v
 ```
 
 ---
