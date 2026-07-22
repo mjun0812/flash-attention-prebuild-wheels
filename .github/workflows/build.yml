@@ -57,6 +57,7 @@ jobs:
       python-version: ${{ matrix.python-version }}
       torch-version: ${{ matrix.torch-version }}
       cuda-version: ${{ matrix.cuda-version }}
+      use-build-cache: true
     secrets: inherit
 
   build_wheels_linux_arm64:

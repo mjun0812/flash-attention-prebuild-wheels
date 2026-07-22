@@ -19,6 +19,7 @@ on:
         required: true
         type: choice
         options:
+          - linux-x64-github-hosted
           - linux-x64-self-hosted
           - linux-x64-no-container
           - linux-arm64
@@ -56,12 +57,32 @@ on:
         required: false
         type: string
       use-build-cache:
-        description: "Cache the ninja build directory across retries and cap builds at 5h45m (GitHub-hosted Linux only)"
+        description: "Cache the ninja build directory across retries and cap builds before the 6h job limit (GitHub-hosted Linux only)"
         required: false
         type: boolean
         default: false
+      build-timeout-minutes:
+        description: "Minutes from job start until the build is capped (only used with use-build-cache)"
+        required: false
+        type: string
+        default: "330"
 
 jobs:
+  # #########################################################
+  # Linux x86_64 GitHub-hosted runner
+  # #########################################################
+  linux-x64-github-hosted:
+    if: inputs.platform == 'linux-x64-github-hosted'
+    uses: ./.github/workflows/_build_linux.yml
+    with:
+      flash-attn-version: ${{ inputs.flash-attn-version }}
+      python-version: ${{ inputs.python-version }}
+      torch-version: ${{ inputs.torch-version }}
+      cuda-version: ${{ inputs.cuda-version }}
+      is-upload: false
+      use-build-cache: ${{ inputs.use-build-cache }}
+      build-timeout-minutes: ${{ inputs.build-timeout-minutes }}
+
   # #########################################################
   # Linux x86_64 self-hosted runner
   # #########################################################
@@ -105,6 +126,7 @@ jobs:
       is-upload: false
       runner: ubuntu-22.04-arm
       use-build-cache: ${{ inputs.use-build-cache }}
+      build-timeout-minutes: ${{ inputs.build-timeout-minutes }}
 
   # #########################################################
   # Linux ARM64 self-hosted runner

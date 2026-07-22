@@ -23,9 +23,13 @@ inputs:
     required: false
     default: "false"
   use-build-cache:
-    description: "Whether to cache the ninja build directory across retries and cap builds at 5h45m so the warm cache survives a hard 6h cancel."
+    description: "Whether to cache the ninja build directory across retries and cap builds before GitHub's hard 6h job cancel."
     required: false
     default: "false"
+  build-timeout-minutes:
+    description: "Minutes from job start until the build is capped so the warm cache can still be validated, compressed, and uploaded (only used with use-build-cache)."
+    required: false
+    default: "330"
 
 outputs:
   wheel-path:
@@ -57,35 +61,66 @@ runs:
     # ninja build directory cache so the next attempt resumes from the
     # already-compiled .o files. See memory/project_build_cache_ninja_mtime.md
     # for why ccache was unsuitable and how the mtime juggling works.
-    - name: Restore FA3 build directory cache
-      id: build_cache_restore
+    #
+    # The key ties the cache to this exact workflow run (run_id) plus a
+    # toolchain/script fingerprint, so a rerun only ever restores what an
+    # earlier attempt of the same run saved. Each attempt saves under its own
+    # immutable key; the restore prefix drops only the attempt suffix.
+    - name: Compute build cache key
+      id: cache_meta
+      if: ${{ inputs.use-build-cache == 'true' }}
+      shell: bash
+      run: |
+        case "${{ inputs.flash-attn-version }}" in
+          fa3:*) variant=fa3 ;;
+          *) variant=fa2 ;;
+        esac
+        fingerprint=$({
+          c++ --version
+          nvcc --version
+          cat build_linux.sh get_torch_cuda_version.py patches/fa3/setup_linux.py \
+            scripts/tools/truncate_build_cache_mtimes.py \
+            scripts/tools/validate_build_cache.py
+        } | sha256sum | cut -c1-16)
+        base="fa-build-cache-linux-${{ runner.arch }}-${variant}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-${fingerprint}-${{ github.run_id }}"
+        echo "key=${base}-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+        echo "restore-prefix=${base}-" >> "$GITHUB_OUTPUT"
+        echo "Cache key: ${base}-${{ github.run_attempt }}"
+
+    - name: Restore build directory cache
       if: ${{ inputs.use-build-cache == 'true' }}
       uses: actions/cache/restore@v4
       with:
         path: ~/.fa-build-cache
-        key: fabuild3-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-${{ github.run_id }}-${{ github.run_attempt }}
+        key: ${{ steps.cache_meta.outputs.key }}
         restore-keys: |
-          fabuild3-linux-${{ runner.arch }}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-
+          ${{ steps.cache_meta.outputs.restore-prefix }}
 
     - name: Build wheels
       id: build
       shell: bash
       env:
         USE_BUILD_CACHE: ${{ inputs.use-build-cache == 'true' && '1' || '0' }}
+        BUILD_TIMEOUT_MINUTES: ${{ inputs.build-timeout-minutes }}
       run: |
         chmod +x build_linux.sh
         if [ "${USE_BUILD_CACHE}" = "1" ]; then
-          # Cap the build at 5h45m. GitHub-hosted jobs are hard-cancelled at
-          # 6h, which would skip the cache save and lose the warm build dir.
-          # Stopping the build ourselves before that lets the cache be saved
-          # so a subsequent retry resumes from the warm build directory.
+          # Cap the build relative to the job start (GitHub's 6h limit covers
+          # the whole job, setup included), leaving headroom to validate,
+          # compress, and upload the warm build dir before the hard cancel.
+          # BUILD_JOB_STARTED_AT must be exported by the first step of the
+          # calling workflow.
+          deadline=$((BUILD_JOB_STARTED_AT + BUILD_TIMEOUT_MINUTES * 60))
+          remaining=$((deadline - $(date +%s)))
+          echo "Build deadline in ${remaining}s (${BUILD_TIMEOUT_MINUTES}m from job start)"
           rc=0
-          timeout --signal=TERM 345m ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}" || rc=$?
+          timeout --signal=TERM "${remaining}s" ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}" || rc=$?
           if [ "${rc}" = "124" ]; then
             # Capped: mark so the cache-save steps below run. A completed
-            # build (rc=0) leaves capped unset, so its cache is NOT saved.
+            # build (rc=0) or a compile error leaves capped unset, so its
+            # cache is NOT saved.
             echo "capped=true" >> "$GITHUB_OUTPUT"
-            echo "::warning::Build hit the 5h45m cap; build directory will be saved for a warm retry. Marking this attempt as failed."
+            echo "::warning::Build hit the ${BUILD_TIMEOUT_MINUTES}m cap; build directory will be saved for a warm retry. Marking this attempt as failed."
           fi
           exit "${rc}"
         else
@@ -93,46 +128,48 @@ runs:
         fi
 
     # Stage the build dir + cutlass tree under ~/.fa-build-cache/ so
-    # actions/cache/save picks them up at a stable path.
-    - name: Stage FA3 build directory for cache save
+    # actions/cache/save picks them up at a stable path. Only a validated
+    # build tree is staged; a corrupt one (e.g. .ninja_deps cut mid-write)
+    # is dropped so the rerun starts clean instead of building a broken wheel.
+    - name: Stage build directory for cache save
       id: stage_build
       if: ${{ always() && inputs.use-build-cache == 'true' && steps.build.outputs.capped == 'true' }}
       shell: bash
       run: |
-        src=""
-        if [ -d flash-attention/hopper/build ]; then
-          src=flash-attention/hopper/build
-        elif [ -d flash-attention/build ]; then
-          src=flash-attention/build
+        case "${{ inputs.flash-attn-version }}" in
+          fa3:*) src=flash-attention/hopper/build ;;
+          *) src=flash-attention/build ;;
+        esac
+        echo "staged=false" >> "$GITHUB_OUTPUT"
+        if [ ! -d "$src" ]; then
+          echo "No build directory found at $src; skipping cache save."
+          exit 0
         fi
-        if [ -n "$src" ]; then
-          mkdir -p "$HOME/.fa-build-cache"
-          rm -rf "$HOME/.fa-build-cache/build" "$HOME/.fa-build-cache/cutlass"
-          mv "$src" "$HOME/.fa-build-cache/build"
-          echo "Staged $src -> ~/.fa-build-cache/build"
-          du -sh "$HOME/.fa-build-cache/build" || true
-          if [ -d flash-attention/csrc/cutlass ]; then
-            # cp -a (not mv) so flash-attention/ stays intact for post-build steps.
-            cp -a flash-attention/csrc/cutlass "$HOME/.fa-build-cache/cutlass"
-            echo "Staged cutlass -> ~/.fa-build-cache/cutlass"
-            du -sh "$HOME/.fa-build-cache/cutlass" || true
-          fi
-          # Truncate mtimes to whole seconds so they survive GNU tar in
-          # actions/cache@v4 (ustar drops sub-second precision).
-          python3 "$GITHUB_WORKSPACE/scripts/tools/truncate_build_cache_mtimes.py" \
-            "$HOME/.fa-build-cache" || true
-          echo "staged=true" >> "$GITHUB_OUTPUT"
-        else
-          echo "No build directory found to stage; skipping cache save."
-          echo "staged=false" >> "$GITHUB_OUTPUT"
+        if ! python3 "$GITHUB_WORKSPACE/scripts/tools/validate_build_cache.py" "$src"; then
+          echo "::warning::Build directory failed validation; skipping cache save."
+          exit 0
         fi
+        mkdir -p "$HOME/.fa-build-cache"
+        rm -rf "$HOME/.fa-build-cache/build" "$HOME/.fa-build-cache/cutlass"
+        mv "$src" "$HOME/.fa-build-cache/build"
+        echo "Staged $src -> ~/.fa-build-cache/build"
+        du -sh "$HOME/.fa-build-cache/build" || true
+        # Truncate mtimes to whole seconds so they survive GNU tar in
+        # actions/cache@v4 (ustar drops sub-second precision). Exits non-zero
+        # on a corrupt .ninja_deps, in which case the save is skipped.
+        if ! python3 "$GITHUB_WORKSPACE/scripts/tools/truncate_build_cache_mtimes.py" \
+          "$HOME/.fa-build-cache"; then
+          echo "::warning::mtime truncation failed; skipping cache save."
+          exit 0
+        fi
+        echo "staged=true" >> "$GITHUB_OUTPUT"
 
-    - name: Save FA3 build directory cache (only when capped)
+    - name: Save build directory cache (only when capped)
       if: ${{ always() && inputs.use-build-cache == 'true' && steps.build.outputs.capped == 'true' && steps.stage_build.outputs.staged == 'true' }}
       uses: actions/cache/save@v4
       with:
         path: ~/.fa-build-cache
-        key: ${{ steps.build_cache_restore.outputs.cache-primary-key }}
+        key: ${{ steps.cache_meta.outputs.key }}
 
     - name: Locate wheel
       id: build_wheels

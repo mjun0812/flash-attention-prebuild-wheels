@@ -20,9 +20,11 @@ flash-attention-prebuild-wheels/
 │   ├── maintenance/                            # Scheduled maintenance tasks
 │   │   ├── update_download_stats.py
 │   │   └── update_readme_coverage.py
-│   └── tools/                                  # Manual CLI tools
+│   └── tools/                                  # Manual CLI tools & CI helpers
 │       ├── check_missing_packages.py
-│       └── fetch_all_assets.py
+│       ├── fetch_all_assets.py
+│       ├── truncate_build_cache_mtimes.py
+│       └── validate_build_cache.py
 ```
 
 ### Why Some Scripts Stay in the Root
@@ -36,7 +38,7 @@ flash-attention-prebuild-wheels/
 | Root | Wheel builds, matrix generation | Tag push via `build.yml` |
 | `scripts/release/` | Release notes, history, package docs | Post-build step in `build.yml` |
 | `scripts/maintenance/` | README updates, download statistics | Daily cron via `update-download-stats.yml` |
-| `scripts/tools/` | Missing package checks, asset fetching | Manual execution |
+| `scripts/tools/` | Missing package checks, asset fetching, build cache helpers | Manual execution / CI build cache steps |
 
 ## Running Scripts
 
@@ -252,6 +254,22 @@ python -m scripts.tools.fetch_all_assets --repo mjun0812/flash-attention-prebuil
 |----------|---------|-------------|
 | `--repo` | `mjun0812/flash-attention-prebuild-wheels` | GitHub repository |
 | `--output` | `assets.json` | Output file path |
+
+### `truncate_build_cache_mtimes.py`
+
+Truncates every file mtime under a build cache root to whole seconds and rewrites the int64 mtimes inside version-4 `.ninja_deps` logs to match (GNU tar in `actions/cache@v4` drops sub-second precision). Contains the strict `.ninja_deps` parser; exits non-zero if a deps log is corrupt so the CI cache save is skipped. Called by `.github/actions/build-and-upload/action.yml` before `actions/cache/save`.
+
+```bash
+python -m scripts.tools.truncate_build_cache_mtimes ~/.fa-build-cache
+```
+
+### `validate_build_cache.py`
+
+Validates that a cached ninja build directory is resumable: the directory exists, contains at least one `build.ninja` and one `.o`/`.obj` object, and every `.ninja_deps` parses. Exits non-zero when invalid. Called before the CI cache save and by `build_linux.sh` after restore (falling back to a clean build on failure).
+
+```bash
+python -m scripts.tools.validate_build_cache ~/.fa-build-cache/build
+```
 
 ---
 
