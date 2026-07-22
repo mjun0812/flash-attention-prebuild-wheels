@@ -108,15 +108,10 @@ runs:
           # Cap the build relative to the job start (GitHub's 6h limit covers
           # the whole job, setup included), leaving headroom to validate,
           # compress, and upload the warm build dir before the hard cancel.
-          # BUILD_JOB_STARTED_AT is exported by the first step of the calling
-          # workflow; fall back to now if a caller does not set it.
-          : "${BUILD_JOB_STARTED_AT:=$(date +%s)}"
+          # BUILD_JOB_STARTED_AT must be exported by the first step of the
+          # calling workflow.
           deadline=$((BUILD_JOB_STARTED_AT + BUILD_TIMEOUT_MINUTES * 60))
           remaining=$((deadline - $(date +%s)))
-          if [ "${remaining}" -le 60 ]; then
-            echo "::error::Less than 60s left before the build deadline; not starting the build."
-            exit 1
-          fi
           echo "Build deadline in ${remaining}s (${BUILD_TIMEOUT_MINUTES}m from job start)"
           rc=0
           timeout --signal=TERM "${remaining}s" ./build_linux.sh "${{ inputs.flash-attn-version }}" "${{ inputs.python-version }}" "${{ inputs.torch-version }}" "${{ inputs.cuda-version }}" || rc=$?
