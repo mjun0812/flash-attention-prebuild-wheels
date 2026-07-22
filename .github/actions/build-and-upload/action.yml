@@ -82,7 +82,7 @@ runs:
             scripts/tools/truncate_build_cache_mtimes.py \
             scripts/tools/validate_build_cache.py
         } | sha256sum | cut -c1-16)
-        base="fabuild-v4-linux-${{ runner.arch }}-${variant}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-${fingerprint}-${{ github.run_id }}"
+        base="fa-build-cache-linux-${{ runner.arch }}-${variant}-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-${fingerprint}-${{ github.run_id }}"
         echo "key=${base}-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
         echo "restore-prefix=${base}-" >> "$GITHUB_OUTPUT"
         echo "Cache key: ${base}-${{ github.run_attempt }}"
