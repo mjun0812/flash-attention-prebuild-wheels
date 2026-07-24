@@ -23,6 +23,8 @@ flash-attention-prebuild-wheels/
 │   └── tools/                                  # Manual CLI tools & CI helpers
 │       ├── check_missing_packages.py
 │       ├── fetch_all_assets.py
+│       ├── restore_build_cache.py
+│       ├── run_with_timeout.py
 │       ├── truncate_build_cache_mtimes.py
 │       └── validate_build_cache.py
 ```
@@ -269,6 +271,25 @@ Validates that a cached ninja build directory is resumable: the directory exists
 
 ```bash
 python -m scripts.tools.validate_build_cache ~/.fa-build-cache/build
+```
+
+### `restore_build_cache.py`
+
+Restores a cached ninja build tree into a fresh flash-attention clone: validate → move into the variant's build root → re-initialize the cutlass submodule → push non-cached inputs (repo sources, torch/CUDA headers) to 1970-01-02 → `ninja -t deps` / `ninja -t restat`. On failure it deletes the restored tree and exits non-zero so the caller falls back to a clean build. Called by `build_windows.ps1` (the Linux equivalent lives inline in `build_linux.sh`).
+
+```bash
+python scripts/tools/restore_build_cache.py --cache-root ~/.fa-build-cache \
+  --repo flash-attention --build-root flash-attention/hopper/build \
+  --extra-include .venv/Lib/site-packages/torch/include \
+  --extra-include "$CUDA_HOME/include"
+```
+
+### `run_with_timeout.py`
+
+Windows-aware equivalent of coreutils `timeout(1)`. Runs a command in its own process group with a Unix-epoch deadline; on expiry it stops the whole process tree (CTRL_BREAK_EVENT → grace period → `taskkill /T /F` on Windows, SIGTERM → SIGKILL elsewhere) and exits 124. Used by `_build_windows.yml` to cap builds when `use-build-cache` is enabled.
+
+```bash
+python scripts/tools/run_with_timeout.py --deadline-epoch 1750000000 -- pwsh -File build_windows.ps1 ...
 ```
 
 ---

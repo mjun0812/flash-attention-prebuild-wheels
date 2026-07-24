@@ -33,12 +33,30 @@ on:
         required: false
         type: boolean
         default: true
+      use-build-cache:
+        description: "Whether to cache the ninja build directory across retries"
+        required: false
+        type: boolean
+        default: false
+      build-timeout-minutes:
+        description: "Minutes from job start until the build is capped so the warm cache can still be saved (only used with use-build-cache)"
+        required: false
+        type: string
+        default: "330"
 
 jobs:
   build_windows_wheels:
     name: Build wheels and Upload (Windows x86_64, GitHub hosted runner)
     runs-on: ${{ inputs.runner }}
+    # GitHub-hosted jobs are hard-cancelled at 6h; the build cap below is
+    # measured from BUILD_JOB_STARTED_AT so setup time counts toward it.
+    timeout-minutes: 360
     steps:
+      - name: Record job start time
+        shell: pwsh
+        run: |
+          "BUILD_JOB_STARTED_AT=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())" >> $env:GITHUB_ENV
+
       - uses: actions/checkout@v6
 
       - name: Enable Git long paths
@@ -83,12 +101,78 @@ jobs:
           cuda-version: ${{ inputs.cuda-version }}
           cuda-home: ${{ env.CUDA_HOME }}
 
-      - name: Build wheels
+      # ninja build directory cache so the next attempt resumes from the
+      # already-compiled .obj files. Same key scheme as the Linux composite
+      # action: toolchain/script fingerprint + run_id, restore prefix drops
+      # only the attempt suffix so caches are shared between rerun attempts
+      # of the same workflow run only.
+      - name: Compute build cache key
+        id: cache_meta
+        if: ${{ inputs.use-build-cache }}
         shell: pwsh
         run: |
-          .\build_windows.ps1 -FlashAttnVersion "${{ inputs.flash-attn-version }}" -PythonVersion "${{ inputs.python-version }}" -TorchVersion "${{ inputs.torch-version }}" -CudaVersion "${{ inputs.cuda-version }}"
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
+          if ("${{ inputs.flash-attn-version }}" -like "fa3:*") {
+            $variant = "fa3"
+          } else {
+            $variant = "fa2"
+          }
+          $clBanner = (cmd /c "cl 2>&1 & exit 0" | Out-String)
+          $nvccBanner = (nvcc --version | Out-String)
+          $scriptContents = (Get-Content -Raw build_windows.ps1, get_torch_cuda_version.py, `
+            patches\fa3\setup_windows.py, scripts\tools\truncate_build_cache_mtimes.py, `
+            scripts\tools\validate_build_cache.py, scripts\tools\restore_build_cache.py, `
+            scripts\tools\run_with_timeout.py) -join "`n"
+          $bytes = [System.Text.Encoding]::UTF8.GetBytes($clBanner + $nvccBanner + $scriptContents)
+          $sha = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
+          $fingerprint = ([System.BitConverter]::ToString($sha) -replace '-', '').Substring(0, 16).ToLower()
+          $base = "fa-build-cache-windows-${{ runner.arch }}-$variant-cu${{ inputs.cuda-version }}-torch${{ inputs.torch-version }}-py${{ inputs.python-version }}-fa${{ inputs.flash-attn-version }}-$fingerprint-${{ github.run_id }}"
+          "key=$base-${{ github.run_attempt }}" >> $env:GITHUB_OUTPUT
+          "restore-prefix=$base-" >> $env:GITHUB_OUTPUT
+          Write-Host "Cache key: $base-${{ github.run_attempt }}"
+
+      - name: Restore build directory cache
+        if: ${{ inputs.use-build-cache }}
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.fa-build-cache
+          key: ${{ steps.cache_meta.outputs.key }}
+          restore-keys: |
+            ${{ steps.cache_meta.outputs.restore-prefix }}
+
+      - name: Build wheels
+        id: build
+        shell: pwsh
+        run: |
+          if ("${{ inputs.use-build-cache }}" -eq "true") {
+            # Cap the build relative to the job start (GitHub's 6h limit
+            # covers the whole job, setup included), leaving headroom to
+            # validate, move, compress, and upload the warm build dir.
+            # run_with_timeout.py stops the whole process tree (pwsh ->
+            # python -> ninja -> cl/nvcc) and exits 124, mirroring the
+            # coreutils timeout convention used on Linux.
+            $deadline = [int]$env:BUILD_JOB_STARTED_AT + [int]"${{ inputs.build-timeout-minutes }}" * 60
+            python scripts\tools\run_with_timeout.py --deadline-epoch $deadline -- `
+              pwsh -NoProfile -File build_windows.ps1 `
+              -FlashAttnVersion "${{ inputs.flash-attn-version }}" `
+              -PythonVersion "${{ inputs.python-version }}" `
+              -TorchVersion "${{ inputs.torch-version }}" `
+              -CudaVersion "${{ inputs.cuda-version }}"
+            $rc = $LASTEXITCODE
+            if ($rc -eq 124) {
+              # Capped: mark so the cache-save steps below run. A completed
+              # build or a compile error leaves capped unset, so its cache
+              # is NOT saved.
+              "capped=true" >> $env:GITHUB_OUTPUT
+              Write-Host "::warning::Build hit the ${{ inputs.build-timeout-minutes }}m cap; build directory will be saved for a warm retry. Marking this attempt as failed."
+            }
+            if ($rc -ne 0) {
+              exit $rc
+            }
+          } else {
+            .\build_windows.ps1 -FlashAttnVersion "${{ inputs.flash-attn-version }}" -PythonVersion "${{ inputs.python-version }}" -TorchVersion "${{ inputs.torch-version }}" -CudaVersion "${{ inputs.cuda-version }}"
+            if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+            }
           }
           # build_windows.ps1 changes cwd (cd flash-attention[\hopper]), so use
           # absolute paths from GITHUB_WORKSPACE to locate the built wheel.
@@ -105,6 +189,55 @@ jobs:
             echo "is_fa3=false" >> $env:GITHUB_ENV
             echo "wheel_dir=$wheelDir" >> $env:GITHUB_ENV
           }
+
+      # Stage the build dir under ~/.fa-build-cache/ so actions/cache/save
+      # picks it up at a stable path. Only a validated build tree is staged;
+      # a corrupt one (e.g. .ninja_deps cut mid-write) is dropped so the
+      # rerun starts clean instead of building a broken wheel.
+      - name: Stage build directory for cache save
+        id: stage_build
+        if: ${{ always() && inputs.use-build-cache && steps.build.outputs.capped == 'true' }}
+        shell: pwsh
+        run: |
+          if ("${{ inputs.flash-attn-version }}" -like "fa3:*") {
+            $src = "flash-attention\hopper\build"
+          } else {
+            $src = "flash-attention\build"
+          }
+          "staged=false" >> $env:GITHUB_OUTPUT
+          if (-not (Test-Path $src)) {
+            Write-Host "No build directory found at $src; skipping cache save."
+            exit 0
+          }
+          python scripts\tools\validate_build_cache.py $src
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::warning::Build directory failed validation; skipping cache save."
+            exit 0
+          }
+          $cacheRoot = Join-Path $env:USERPROFILE ".fa-build-cache"
+          New-Item -ItemType Directory -Force -Path $cacheRoot | Out-Null
+          if (Test-Path (Join-Path $cacheRoot "build")) {
+            Remove-Item -Recurse -Force (Join-Path $cacheRoot "build")
+          }
+          Move-Item $src (Join-Path $cacheRoot "build")
+          Write-Host "Staged $src -> $cacheRoot\build"
+          # Truncate mtimes to whole seconds so they survive GNU tar in
+          # actions/cache@v4 (ustar drops sub-second precision). Exits
+          # non-zero on a corrupt .ninja_deps, in which case the save is
+          # skipped.
+          python scripts\tools\truncate_build_cache_mtimes.py $cacheRoot
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::warning::mtime truncation failed; skipping cache save."
+            exit 0
+          }
+          "staged=true" >> $env:GITHUB_OUTPUT
+
+      - name: Save build directory cache (only when capped)
+        if: ${{ always() && inputs.use-build-cache && steps.build.outputs.capped == 'true' && steps.stage_build.outputs.staged == 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.fa-build-cache
+          key: ${{ steps.cache_meta.outputs.key }}
 
       - name: Install Test
         shell: pwsh
