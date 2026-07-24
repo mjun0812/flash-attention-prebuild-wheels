@@ -20,14 +20,15 @@ Pre-built Python wheel distribution for Flash Attention (v2/v3) across multiple 
 - **`test-build.yml`** — Manual `workflow_dispatch` for individual platform test builds. Forces `is-upload: false`.
 - **`_build_*.yml`** — Reusable workflows per runner type (Linux hosted/self-hosted/no-container, Windows hosted/self-hosted/CodeBuild, Linux ARM hosted/self-hosted/no-container).
 
-### GitHub-hosted Linux Resumable Build Cache (retry mechanism)
+### GitHub-hosted Resumable Build Cache (retry mechanism)
 
-`use-build-cache: true` (set in `build.yml` for `build_wheels_linux` and `build_wheels_linux_arm64`) enables, for FA2 and FA3 on both x86_64 and ARM64:
+`use-build-cache: true` (set in `build.yml` for `build_wheels_linux`, `build_wheels_linux_arm64`, and `build_wheels_windows`) enables, for FA2 and FA3:
 
 - A build cap measured from job start (`BUILD_JOB_STARTED_AT`, default `build-timeout-minutes: 330` of the job's `timeout-minutes: 360`) so setup time counts toward GitHub's hard 6h job cancel and ~30m remain to validate/compress/upload the cache.
 - `actions/cache@v4` save+restore of `~/.fa-build-cache/` (ninja build dir only; cutlass is re-initialized as a real submodule on restore because a cached copy carries a `.git` pointer into the previous runner's gitdir, breaking FA2's `check=True` submodule update in setup.py) under the `fa-build-cache-` prefix. The key includes a toolchain/script fingerprint plus `github.run_id`, so caches are only shared between rerun attempts of the same workflow run; each attempt saves its own immutable key.
 - Save only happens when the build exits with code 124 (capped by `timeout`); completed builds and compile errors never save. Before saving, `scripts/tools/validate_build_cache.py` checks the build tree (build.ninja present, objects present, every `.ninja_deps` structurally valid) and `scripts/tools/truncate_build_cache_mtimes.py` rewrites every mtime (and the int64 mtime in version-4 `.ninja_deps`) to whole seconds so they survive GNU tar's ustar precision loss. Either failing skips the save.
-- On restore, `build_linux.sh` validates the cache, moves it to the variant's build root (`flash-attention/build` for FA2, `flash-attention/hopper/build` for FA3), runs `git submodule update --init csrc/cutlass`, pushes every non-cached input (FA sources incl. cutlass, `.venv`'s torch include, `${CUDA_HOME}/include`) to `1970-01-02`, then discovers every `build.ninja` dynamically (no hardcoded `temp.linux-*` dir) and runs `ninja -t deps` + `ninja -t restat` so the restored `.o` tree stays "newer than its inputs" from ninja's perspective. Any verification failure falls back to a clean build.
+- On restore, the cache is validated, moved to the variant's build root (`flash-attention/build` for FA2, `flash-attention/hopper/build` for FA3), cutlass is re-initialized via `git submodule update --init csrc/cutlass`, every non-cached input (FA sources incl. cutlass, `.venv`'s torch include, `${CUDA_HOME}/include`) is pushed to `1970-01-02`, then every `build.ninja` is discovered dynamically (no hardcoded `temp.*` dir) and `ninja -t deps` + `ninja -t restat` run so the restored object tree stays "newer than its inputs" from ninja's perspective. Any verification failure falls back to a clean build. Linux implements this inline in `build_linux.sh`; Windows calls `scripts/tools/restore_build_cache.py` from `build_windows.ps1` (mtime rewinds over ~70k files are too slow in PowerShell).
+- Windows has no `timeout(1)`, so `_build_windows.yml` wraps `build_windows.ps1` in `scripts/tools/run_with_timeout.py`, which stops the whole process tree on expiry (CTRL_BREAK_EVENT → grace period → `taskkill /T /F`) and exits 124 like coreutils timeout.
 
 Typical run-to-completion: attempt 1 caps and saves cache → `gh run rerun <run_id> --failed` triggers attempt 2 which restores the cache, ninja skips most completed compilations, and the build finishes within the cap. See `memory/project_build_cache_ninja_mtime.md` for the full debug trail.
 
@@ -40,6 +41,8 @@ Typical run-to-completion: attempt 1 caps and saves cache → `gh run rerun <run
 - **`tools/check_missing_packages.py`** — Prints per-platform coverage tables (✓/✗/-) by hitting the GitHub Releases API.
 - **`tools/truncate_build_cache_mtimes.py`** — Stand-alone mtime truncator + strict `.ninja_deps` parser used by the cache save step.
 - **`tools/validate_build_cache.py`** — Validates a cached ninja build tree before cache save / after restore.
+- **`tools/restore_build_cache.py`** — Restores the cached build tree into a fresh clone (validate → move → cutlass init → mtime rewind → ninja restat); used by `build_windows.ps1`.
+- **`tools/run_with_timeout.py`** — Windows-aware `timeout(1)` equivalent (process-tree stop, exit 124); used by `_build_windows.yml`.
 - **`tools/fetch_all_assets.py`** — Bulk asset retrieval.
 
 ### FA3 patches (`patches/fa3/`)

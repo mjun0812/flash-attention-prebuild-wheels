@@ -347,6 +347,31 @@ if ($FlashAttnVariant -eq "Flash Attention 3") {
     exit 1
 }
 
+# Restore the ninja build directory saved by a capped earlier attempt, if the
+# CI workflow placed one under ~/.fa-build-cache. The heavy lifting (validate,
+# move into the variant's build root, cutlass submodule init, mtime rewind,
+# ninja -t deps / restat) happens in restore_build_cache.py; on failure it
+# cleans up and exits non-zero, and we continue with a clean build.
+$FaBuildCacheRoot = Join-Path $env:USERPROFILE ".fa-build-cache"
+if (Test-Path (Join-Path $FaBuildCacheRoot "build")) {
+    Write-Host "::group::Restoring build cache"
+    if ($FlashAttnVariant -eq "Flash Attention 3") {
+        $BuildRoot = "flash-attention\hopper\build"
+    } else {
+        $BuildRoot = "flash-attention\build"
+    }
+    python (Join-Path $PSScriptRoot "scripts\tools\restore_build_cache.py") `
+        --cache-root $FaBuildCacheRoot `
+        --repo flash-attention `
+        --build-root $BuildRoot `
+        --extra-include ".venv\Lib\site-packages\torch\include" `
+        --extra-include (Join-Path $env:CUDA_HOME "include")
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "fa-build-cache: restore failed; continuing with a clean build"
+    }
+    Write-Host "::endgroup::"
+}
+
 # Build wheels
 Write-Host "::group::Setting up build environment"
 Import-Module 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\Microsoft.VisualStudio.DevShell.dll'
