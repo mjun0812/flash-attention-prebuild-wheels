@@ -233,8 +233,16 @@ jobs:
             }
           }
           if (-not $moved) {
-            Write-Host "::warning::Could not move build directory; skipping cache save."
-            exit 0
+            # Last resort: copy file-by-file. A file still locked by a
+            # surviving compiler is skipped after robocopy's retries; such
+            # half-written objects are not recorded in .ninja_log/.ninja_deps
+            # anyway, so ninja simply rebuilds them on the warm retry.
+            Write-Host "Move-Item kept failing; falling back to robocopy"
+            robocopy $src (Join-Path $cacheRoot "build") /E /MOVE /R:3 /W:10 /NFL /NDL /NJH /NJS | Out-Null
+            if ($LASTEXITCODE -ge 8) {
+              Write-Host "::warning::Could not move build directory; skipping cache save."
+              exit 0
+            }
           }
           Write-Host "Staged $src -> $cacheRoot\build"
           # Truncate mtimes to whole seconds so they survive GNU tar in

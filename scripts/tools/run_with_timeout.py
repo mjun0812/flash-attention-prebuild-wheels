@@ -28,6 +28,22 @@ import time
 
 TIMEOUT_EXIT_CODE = 124
 
+# taskkill /T walks a snapshot of the process tree, so compilers whose parent
+# (ninja) already exited on CTRL_BREAK become orphans and survive it. They
+# keep running (and keep handles on the build dir) for the rest of their
+# compile, so sweep the known build executables by name afterwards.
+WINDOWS_BUILD_PROCESS_NAMES = (
+    "ninja.exe",
+    "nvcc.exe",
+    "cicc.exe",
+    "cudafe++.exe",
+    "ptxas.exe",
+    "fatbinary.exe",
+    "nvlink.exe",
+    "cl.exe",
+    "link.exe",
+)
+
 
 def stop_process_tree(proc: subprocess.Popen, grace_seconds: int) -> None:
     """Stop ``proc`` and its descendants, gently first, then forcefully.
@@ -57,6 +73,12 @@ def stop_process_tree(proc: subprocess.Popen, grace_seconds: int) -> None:
             capture_output=True,
             check=False,
         )
+        for name in WINDOWS_BUILD_PROCESS_NAMES:
+            subprocess.run(
+                ["taskkill", "/IM", name, "/F", "/T"],
+                capture_output=True,
+                check=False,
+            )
     else:
         os.killpg(proc.pid, signal.SIGKILL)
     proc.wait()
