@@ -60,6 +60,10 @@ def stop_process_tree(proc: subprocess.Popen, grace_seconds: int) -> None:
     else:
         os.killpg(proc.pid, signal.SIGKILL)
     proc.wait()
+    # taskkill returns before the descendants have fully exited and released
+    # their file handles; without this pause the caller's Move-Item on the
+    # build directory can fail with a sharing violation.
+    time.sleep(10)
 
 
 def main() -> int:
