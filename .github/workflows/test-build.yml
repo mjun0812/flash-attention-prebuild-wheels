@@ -57,7 +57,7 @@ on:
         required: false
         type: string
       use-build-cache:
-        description: "Cache the ninja build directory across retries and cap builds before the 6h job limit (GitHub-hosted Linux only)"
+        description: "Cache the ninja build directory across retries and cap builds before the 6h job limit (GitHub-hosted Linux/Windows only)"
         required: false
         type: boolean
         default: false
@@ -184,6 +184,8 @@ jobs:
       torch-version: ${{ inputs.torch-version }}
       cuda-version: ${{ inputs.cuda-version }}
       is-upload: false
+      use-build-cache: ${{ inputs.use-build-cache }}
+      build-timeout-minutes: ${{ inputs.build-timeout-minutes }}
 
   # #########################################################
   # Windows x86_64 AWS CodeBuild
