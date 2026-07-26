@@ -421,10 +421,14 @@ $env:CFLAGS = "/w"
 # torch 2.13.0's ArrayRef operator== rework (pytorch/pytorch#185379) is only
 # unambiguous in MSVC conformance mode: pytorch builds itself with
 # /permissive- (cmake/public/utils.cmake) but torch.utils.cpp_extension does
-# not pass it, so extension TUs fail with error C2666 in legacy mode. cl.exe
-# appends the _CL_ env var to every invocation, including the ones nvcc
-# spawns for host code, so this covers both cl and nvcc compile paths.
-$env:_CL_ = "/permissive-"
+# not pass it, so extension TUs fail with error C2666 in legacy mode. In
+# conformance mode the same headers then need C++20 (designated initializers
+# in StringUtil.h, bit-field defaults in AutogradState.h), so /std:c++20 is
+# required as well; it overrides the /std:c++17 that flash-attn's setup.py
+# passes because cl.exe appends the _CL_ env var after the command line.
+# _CL_ reaches every cl.exe invocation, including the ones nvcc spawns for
+# host code, so this covers both cl and nvcc compile paths.
+$env:_CL_ = "/permissive- /std:c++20"
 # CUDA 13.2+ ships a CCCL header that emits `#error C1189` when MSVC's
 # traditional preprocessor is in use. Force the standard-conforming
 # preprocessor for both host cl.exe and nvcc-driven cl.exe invocations.
