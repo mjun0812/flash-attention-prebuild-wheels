@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T03:08:43.254854+00:00",
+  "generatedAt": "2026-07-26T03:29:36.037998+00:00",
   "repository": "mjun0812/flash-attention-prebuild-wheels",
   "releaseCount": 87,
   "assetCount": 3555,
@@ -14762,7 +14762,7 @@
           "state": "uploaded",
           "size": 241032427,
           "digest": "sha256:b8acd82e3a0c846e4993a47196500e5d0c8462b21703c442a214a2687731d555",
-          "download_count": 9299,
+          "download_count": 9303,
           "created_at": "2026-05-26T17:57:24Z",
           "updated_at": "2026-05-26T17:57:40Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.25/flash_attn-2.8.3%2Bcu132torch2.12-cp313-cp313-win_amd64.whl"
@@ -20080,7 +20080,7 @@
           "state": "uploaded",
           "size": 243933894,
           "digest": "sha256:34304ebe2047de9ec400baf7633431033602a05e5297a32f23d6bc2d674254aa",
-          "download_count": 1483,
+          "download_count": 1487,
           "created_at": "2026-05-23T10:00:43Z",
           "updated_at": "2026-05-23T10:00:50Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.22/flash_attn-2.8.3%2Bcu132torch2.12-cp313-cp313-linux_aarch64.whl"
@@ -27728,7 +27728,7 @@
           "state": "uploaded",
           "size": 243963836,
           "digest": "sha256:f42938baa6928477426435bd479fe62b27b12b9fe0cc54019e43a3637c1a5cf6",
-          "download_count": 13403,
+          "download_count": 13407,
           "created_at": "2026-05-13T21:02:38Z",
           "updated_at": "2026-05-13T21:02:55Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.17/flash_attn-2.8.3%2Bcu132torch2.12-cp313-cp313-linux_x86_64.whl"
@@ -29344,7 +29344,7 @@
           "state": "uploaded",
           "size": 239440730,
           "digest": "sha256:c779503a38ec91f8fed4cfd8b3446c1d1724df03fad13dad3997dc5fbed5f5fd",
-          "download_count": 2308,
+          "download_count": 2309,
           "created_at": "2026-04-01T13:23:36Z",
           "updated_at": "2026-04-01T13:23:57Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.6/flash_attn-2.8.3%2Bcu130torch2.11-cp312-cp312-win_amd64.whl"
@@ -29380,7 +29380,7 @@
           "state": "uploaded",
           "size": 239441217,
           "digest": "sha256:5946f2f731572df89c1dba4429e504b9f3d20a6275a67182dc0d738f0a16aa9d",
-          "download_count": 64386,
+          "download_count": 64393,
           "created_at": "2026-04-02T05:58:38Z",
           "updated_at": "2026-04-02T05:58:55Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.6/flash_attn-2.8.3%2Bcu130torch2.11-cp313-cp313-win_amd64.whl"
@@ -32603,7 +32603,7 @@
           "state": "uploaded",
           "size": 253571348,
           "digest": "sha256:a16162f436286cc03ebbfb174c0853343ed98ae13c37abf1042947668ec40549",
-          "download_count": 175038,
+          "download_count": 175083,
           "created_at": "2026-03-24T23:21:18Z",
           "updated_at": "2026-03-24T23:21:30Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn-2.8.3%2Bcu128torch2.11-cp312-cp312-linux_x86_64.whl"
@@ -32639,7 +32639,7 @@
           "state": "uploaded",
           "size": 253572646,
           "digest": "sha256:0116722426785d44ebf20a0b01c57229b0b19f2316426e257dc3c453a4ac1da7",
-          "download_count": 40066,
+          "download_count": 40072,
           "created_at": "2026-03-24T23:22:46Z",
           "updated_at": "2026-03-24T23:22:57Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn-2.8.3%2Bcu128torch2.11-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl"
@@ -32675,7 +32675,7 @@
           "state": "uploaded",
           "size": 253572826,
           "digest": "sha256:77187e6624e7027869812aff3a989eae69a95e59d0098a45bf867782779f798c",
-          "download_count": 6131,
+          "download_count": 6135,
           "created_at": "2026-03-24T12:09:00Z",
           "updated_at": "2026-03-24T12:09:11Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn-2.8.3%2Bcu128torch2.11-cp313-cp313-linux_x86_64.whl"
@@ -32963,7 +32963,7 @@
           "state": "uploaded",
           "size": 242362896,
           "digest": "sha256:8bf21c47ea042440801924f652906d4215eb199050873bc755baac4f3fe6f5da",
-          "download_count": 15675,
+          "download_count": 15685,
           "created_at": "2026-03-24T15:21:30Z",
           "updated_at": "2026-03-24T15:21:48Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn-2.8.3%2Bcu130torch2.11-cp311-cp311-linux_x86_64.whl"
@@ -33035,7 +33035,7 @@
           "state": "uploaded",
           "size": 242365039,
           "digest": "sha256:173b0e1a5d6a0becb4ce11b755605c4b20289a6d17816a00cfd7a69078c3e612",
-          "download_count": 46176,
+          "download_count": 46182,
           "created_at": "2026-03-24T22:41:43Z",
           "updated_at": "2026-03-24T22:41:53Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn-2.8.3%2Bcu130torch2.11-cp312-cp312-linux_x86_64.whl"
@@ -33107,7 +33107,7 @@
           "state": "uploaded",
           "size": 242365698,
           "digest": "sha256:f4161833c5a710ab4ab409c0fbdb7a6971b46513646e07f0ff59b19cc98880b0",
-          "download_count": 221695,
+          "download_count": 221696,
           "created_at": "2026-03-25T04:30:08Z",
           "updated_at": "2026-03-25T04:30:17Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn-2.8.3%2Bcu130torch2.11-cp313-cp313-linux_x86_64.whl"
@@ -33431,7 +33431,7 @@
           "state": "uploaded",
           "size": 442157056,
           "digest": "sha256:bd8913ff82933994030af0c78ec53e88df2f8c65583a286b89dac0ad736d9b0c",
-          "download_count": 32139,
+          "download_count": 32145,
           "created_at": "2026-03-26T01:52:48Z",
           "updated_at": "2026-03-26T01:53:17Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn_3-3.0.0%2Bcu128torch2.11gite2743ab-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl"
@@ -33829,7 +33829,7 @@
           "state": "uploaded",
           "size": 116860202,
           "digest": "sha256:a3ece51c513e69a9c0947f36507c8f5e3a5aab9c7cbba54dd6eb42e1b2bacec3",
-          "download_count": 325,
+          "download_count": 328,
           "created_at": "2026-03-18T22:22:05Z",
           "updated_at": "2026-03-18T22:22:11Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.0/flash_attn-2.8.3%2Bcu126torch2.10-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl"
@@ -34585,7 +34585,7 @@
           "state": "uploaded",
           "size": 253572153,
           "digest": "sha256:e3976faa725618328617934fb773cae337408f91569b5ca4aadcef833c523f9d",
-          "download_count": 23904,
+          "download_count": 23907,
           "created_at": "2026-03-18T20:58:20Z",
           "updated_at": "2026-03-18T20:58:32Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.0/flash_attn-2.8.3%2Bcu128torch2.10-cp311-cp311-linux_x86_64.whl"
@@ -34657,7 +34657,7 @@
           "state": "uploaded",
           "size": 253572977,
           "digest": "sha256:a58c95a080363606e691c342d47dd173b510f4c013a8c5fcb8744def12e36a0f",
-          "download_count": 364143,
+          "download_count": 364151,
           "created_at": "2026-03-18T19:28:31Z",
           "updated_at": "2026-03-18T19:28:42Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.0/flash_attn-2.8.3%2Bcu128torch2.10-cp312-cp312-linux_x86_64.whl"
@@ -35017,7 +35017,7 @@
           "state": "uploaded",
           "size": 253556761,
           "digest": "sha256:bc9b0bf94b457fe1469ebabdf56656a2515711a893b86cd20d7085339989a5af",
-          "download_count": 7583,
+          "download_count": 7584,
           "created_at": "2026-03-19T01:07:30Z",
           "updated_at": "2026-03-19T01:07:41Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.0/flash_attn-2.8.3%2Bcu128torch2.9-cp312-cp312-linux_x86_64.whl"
@@ -35089,7 +35089,7 @@
           "state": "uploaded",
           "size": 253555591,
           "digest": "sha256:14c82eda8f1616d2ef72ba229b273c330dac4a18d310d81d9d88c585b5e37f41",
-          "download_count": 6898,
+          "download_count": 6900,
           "created_at": "2026-03-19T00:26:47Z",
           "updated_at": "2026-03-19T00:26:58Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.0/flash_attn-2.8.3%2Bcu128torch2.9-cp313-cp313-linux_x86_64.whl"
@@ -35377,7 +35377,7 @@
           "state": "uploaded",
           "size": 242362751,
           "digest": "sha256:bb67bd3c2784ffedf07a2633b18722ccdaf54eb0aba18203fc02cae9ced44977",
-          "download_count": 8639,
+          "download_count": 8641,
           "created_at": "2026-03-18T22:57:36Z",
           "updated_at": "2026-03-18T22:57:47Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.0/flash_attn-2.8.3%2Bcu130torch2.10-cp312-cp312-linux_x86_64.whl"
@@ -36296,7 +36296,7 @@
           "state": "uploaded",
           "size": 442151149,
           "digest": "sha256:1dce34b8778e85c1de67e0e15c49a2ebf24bf90cd3ee17aa4ca221ae815be5ce",
-          "download_count": 28188,
+          "download_count": 28191,
           "created_at": "2026-03-03T16:24:04Z",
           "updated_at": "2026-03-03T16:24:33Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.8.2/flash_attn_3-3.0.0%2Bcu128torch2.10gite2743ab-cp39-abi3-linux_x86_64.whl"
@@ -45557,7 +45557,7 @@
           "state": "uploaded",
           "size": 115220266,
           "digest": "sha256:408f78807e7b56d6edc0fd02731ec9e6f0a34f708b1869bc89fca2724bc3c3f1",
-          "download_count": 510,
+          "download_count": 512,
           "created_at": "2026-01-29T16:39:26Z",
           "updated_at": "2026-01-29T16:39:35Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.16/flash_attn-2.8.3%2Bcu124torch2.6-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
@@ -45629,7 +45629,7 @@
           "state": "uploaded",
           "size": 115222541,
           "digest": "sha256:ef7b9faa71f9e8e55161fc58d4b0a1211e8c373fd239598263273302eece9a25",
-          "download_count": 674,
+          "download_count": 676,
           "created_at": "2026-01-29T04:00:46Z",
           "updated_at": "2026-01-29T04:00:55Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.16/flash_attn-2.8.3%2Bcu124torch2.6-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
@@ -48365,7 +48365,7 @@
           "state": "uploaded",
           "size": 253660767,
           "digest": "sha256:5ef676dfd01d198eed36795d924eb6af4c87674896de6bd102390afa7f522bc0",
-          "download_count": 287812,
+          "download_count": 287814,
           "created_at": "2026-01-28T19:23:25Z",
           "updated_at": "2026-01-28T19:23:40Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.16/flash_attn-2.8.3%2Bcu128torch2.10-cp312-cp312-linux_x86_64.whl"
@@ -48905,7 +48905,7 @@
           "state": "uploaded",
           "size": 253460731,
           "digest": "sha256:7778847721137d8bd233911ec9710a42cc9c44851ff202e02f90e3ca4cd4e860",
-          "download_count": 28872,
+          "download_count": 28873,
           "created_at": "2026-01-28T10:17:49Z",
           "updated_at": "2026-01-28T10:18:05Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.16/flash_attn-2.8.3%2Bcu128torch2.7-cp312-cp312-linux_x86_64.whl"
@@ -49517,7 +49517,7 @@
           "state": "uploaded",
           "size": 253642756,
           "digest": "sha256:d25a1f81b54147ec3ee0c53a6db70067479f51ae8edf9f47350802c13ff6ac13",
-          "download_count": 430036,
+          "download_count": 430037,
           "created_at": "2026-02-02T18:48:13Z",
           "updated_at": "2026-02-02T18:48:28Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.16/flash_attn-2.8.3%2Bcu128torch2.9-cp311-cp311-linux_x86_64.whl"
@@ -49661,7 +49661,7 @@
           "state": "uploaded",
           "size": 253644412,
           "digest": "sha256:cd07c8bd5354421fb25268f3dd4042508f9863d265da39e57d8b1d77f6fd4991",
-          "download_count": 86722,
+          "download_count": 86830,
           "created_at": "2026-01-30T08:57:13Z",
           "updated_at": "2026-01-30T08:57:25Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.16/flash_attn-2.8.3%2Bcu128torch2.9-cp312-cp312-linux_x86_64.whl"
@@ -50381,7 +50381,7 @@
           "state": "uploaded",
           "size": 242450737,
           "digest": "sha256:bf8d2ff48d71b3c395ca9651edcf5d5154d07e6d11ef48ba64db0747a8bc43ec",
-          "download_count": 44742,
+          "download_count": 44743,
           "created_at": "2026-01-28T10:54:58Z",
           "updated_at": "2026-01-28T10:55:17Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.16/flash_attn-2.8.3%2Bcu130torch2.10-cp312-cp312-linux_x86_64.whl"
@@ -52963,7 +52963,7 @@
           "state": "uploaded",
           "size": 239528870,
           "digest": "sha256:d07add7cca7c330a70674c29114398eeb46192a372f9da5d92e3e9b908f8ad3b",
-          "download_count": 7319,
+          "download_count": 7320,
           "created_at": "2026-01-30T06:01:47Z",
           "updated_at": "2026-01-30T06:02:03Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.13/flash_attn-2.8.3%2Bcu130torch2.10-cp312-cp312-win_amd64.whl"
@@ -55394,7 +55394,7 @@
           "state": "uploaded",
           "size": 253658726,
           "digest": "sha256:fa848ca9b2039a70810547e9fd9a007cf5d14f0c6e09acad51afa0b5c3b50196",
-          "download_count": 1011809,
+          "download_count": 1011895,
           "created_at": "2026-01-22T05:49:26Z",
           "updated_at": "2026-01-22T05:49:42Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.12/flash_attn-2.8.3%2Bcu128torch2.10-cp311-cp311-linux_x86_64.whl"
@@ -55538,7 +55538,7 @@
           "state": "uploaded",
           "size": 253677687,
           "digest": "sha256:a1bdfaa0afa5e087a88132af823cf10aef3350234023441d72e905b21718d992",
-          "download_count": 4717,
+          "download_count": 4720,
           "created_at": "2026-01-22T09:40:39Z",
           "updated_at": "2026-01-22T09:40:57Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.12/flash_attn-2.8.3%2Bcu128torch2.10-cp312-cp312-linux_x86_64.whl"
@@ -58257,7 +58257,7 @@
           "state": "uploaded",
           "size": 414517786,
           "digest": "sha256:0a8f6219e61f8ff923cfd2cdad105d95a66106a6c9e754486d778c3a25e7707f",
-          "download_count": 76310,
+          "download_count": 76337,
           "created_at": "2026-01-18T04:25:32Z",
           "updated_at": "2026-01-18T04:25:55Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.11/flash_attn-2.7.4%2Bcu129torch2.9-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl"
@@ -59553,7 +59553,7 @@
           "state": "uploaded",
           "size": 256048186,
           "digest": "sha256:9f9b86c3e94bd3c559453c94510f5f1198b81c19f35838e767e2392a6558dcea",
-          "download_count": 240524,
+          "download_count": 240555,
           "created_at": "2026-01-18T13:52:37Z",
           "updated_at": "2026-01-18T13:52:55Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.11/flash_attn-2.8.3%2Bcu129torch2.9-cp311-cp311-linux_x86_64.whl"
@@ -64926,7 +64926,7 @@
           "state": "uploaded",
           "size": 253495391,
           "digest": "sha256:9bf3944c926ce24a4e459af72cd4f3f7fa878386adf526adf12dc1f8c8652d46",
-          "download_count": 265783,
+          "download_count": 265788,
           "created_at": "2025-12-24T00:25:45Z",
           "updated_at": "2025-12-24T00:26:02Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.2/flash_attn-2.8.3%2Bcu128torch2.8-cp312-cp312-linux_x86_64.whl"
@@ -80686,7 +80686,7 @@
           "state": "uploaded",
           "size": 115294575,
           "digest": "sha256:8a075770c39f861bd0f4d3837d726951bb33a6d958325bb669f11087279e539f",
-          "download_count": 8025,
+          "download_count": 8026,
           "created_at": "2025-08-23T00:35:01Z",
           "updated_at": "2025-08-23T00:35:05Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.4.11/flash_attn-2.8.3%2Bcu124torch2.6-cp310-cp310-linux_x86_64.whl"
@@ -86114,7 +86114,7 @@
           "state": "uploaded",
           "size": 253547497,
           "digest": "sha256:af8f8a920320108e670603f340b916c85975a9f704fcfc46574d97987ef81dcb",
-          "download_count": 3643291,
+          "download_count": 3643643,
           "created_at": "2025-08-07T11:48:27Z",
           "updated_at": "2025-08-07T11:48:35Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2%2Bcu128torch2.8-cp311-cp311-linux_x86_64.whl"
@@ -86150,7 +86150,7 @@
           "state": "uploaded",
           "size": 253545701,
           "digest": "sha256:c5253b90c072ce70c4977bb02a03b00fe468c24af5c3350c97d509fda7059cd0",
-          "download_count": 3616,
+          "download_count": 3617,
           "created_at": "2025-08-07T11:46:55Z",
           "updated_at": "2025-08-07T11:47:00Z",
           "browser_download_url": "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.8.2%2Bcu128torch2.8-cp312-cp312-linux_x86_64.whl"
