@@ -264,32 +264,40 @@ function Apply-CudaToolkitPatch {
     Write-Host "$Description applied successfully"
 }
 
-function Patch-SizesComparisons {
+function Patch-Fa2SetupMsvcConformance {
     param(
         [Parameter(Mandatory=$true)]
-        [string]$SourcePath
+        [string]$SetupPath
     )
 
-    # torch 2.13.0 reworked c10::ArrayRef on top of HeaderOnlyArrayRef with
-    # hidden-friend operator== overloads (pytorch/pytorch#170470, #185379),
-    # which MSVC rejects as ambiguous (error C2666) wherever flash-attn
-    # compares x.sizes() with a torch::IntArrayRef (the CHECK_SHAPE macro and
-    # the alibi_slopes checks). Call .equals() explicitly instead; it exists
-    # on all supported torch versions, so patch unconditionally.
-    $pattern = '(\w+)\.sizes\(\) == (torch::IntArrayRef\(\{[^}]*\}\))'
-    $content = Get-Content -Raw $SourcePath
-    $count = [regex]::Matches($content, $pattern).Count
-    if ($count -eq 0) {
-        Write-Error "No sizes() == torch::IntArrayRef comparison found in ${SourcePath}; upstream code may have changed"
+    # torch 2.13.0 headers fail under MSVC's legacy mode (error C2666 on
+    # ArrayRef operator==, pytorch/pytorch#185379) and, once conformance mode
+    # is on, additionally require C++20 (C7555/C7582), so switch the
+    # host-only cxx flags to /permissive- + /std:c++20. Passing MSVC flags
+    # via _CL_ instead would reach nvcc-spawned cl.exe and crash cudafe++
+    # (0xC0000409). patches/fa3/setup_windows.py carries the same cxx flags
+    # for FA3 directly.
+    $old = '["-O2", "/std:c++17", "/Zc:__cplusplus"]'
+    $new = '["-O2", "/permissive-", "/std:c++20", "/Zc:__cplusplus"]'
+    $content = Get-Content -Raw $SetupPath
+    if (-not $content.Contains($old)) {
+        Write-Error "Windows cxx flag list not found in ${SetupPath}; upstream setup.py may have changed"
         exit 1
     }
-    $content = [regex]::Replace($content, $pattern, '$1.sizes().equals($2)')
-    if ($content -match '\.sizes\(\) ==') {
-        Write-Error "Unpatched sizes() == comparison remains in ${SourcePath}; the pattern needs updating"
+    $content = $content.Replace($old, $new)
+    # nvcc's EDG front end emulates the MSVC host and rejects the same C++20
+    # constructs in c++17 mode ("data member initializer is not allowed" in
+    # AutogradState.h), so device compilation needs c++20 as well; torch
+    # 2.13's own JIT path passes -std=c++20 to nvcc on Windows. FA3's nvcc
+    # std stays c++17 (its .cu files compiled fine for hours in v0.9.51).
+    $nvccPattern = '(nvcc_flags = \[\s*"-O3",\s*)"-std=c\+\+17",'
+    if ($content -notmatch $nvccPattern) {
+        Write-Error "nvcc_flags std entry not found in ${SetupPath}; upstream setup.py may have changed"
         exit 1
     }
-    Set-Content -Path $SourcePath -Value $content -NoNewline
-    Write-Host "Patched $count sizes() comparison(s) to .equals() in $SourcePath"
+    $content = [regex]::Replace($content, $nvccPattern, '$1"-std=c++20",')
+    Set-Content -Path $SetupPath -Value $content -NoNewline
+    Write-Host "Patched Windows cxx flags to /permissive- /std:c++20 and nvcc std to c++20 in $SetupPath"
 }
 
 Write-Host "Building Flash Attention with parameters:"
@@ -345,7 +353,6 @@ if ($FlashAttnVariant -eq "Flash Attention 3") {
     # Replace upstream setup.py with patched version
     $patchedSetup = Join-Path $PSScriptRoot "patches\fa3\setup_windows.py"
     Copy-Item $patchedSetup "flash-attention\hopper\setup.py" -Force
-    Patch-SizesComparisons -SourcePath "flash-attention\hopper\flash_api.cpp"
     # MSVC cannot pass 128-byte aligned CUDA-generated types by value on CUDA 13.0+.
     if (Test-Cuda13OrNewer -Version $CudaVersion) {
         $cutlassPatch = Join-Path $PSScriptRoot "patches\fa3\cutlass_alignment_fix.patch"
@@ -365,7 +372,14 @@ if ($FlashAttnVariant -eq "Flash Attention 3") {
 } elseif ($FlashAttnVariant -eq "Flash Attention 2") {
     Write-Host "::group::Checking out flash-attention v$FlashAttnVersion"
     git clone -q https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FlashAttnVersion"
-    Patch-SizesComparisons -SourcePath "flash-attention\csrc\flash_attn\flash_api.cpp"
+    # torch <= 2.12 Windows wheels are all built on the proven c++17
+    # legacy-mode path; only torch >= 2.13 headers need the MSVC
+    # conformance/C++20 treatment, so gate to avoid destabilizing the old
+    # combinations (C++20 changes overload resolution, e.g. rewritten
+    # operator== candidates).
+    if ([Version]$MatrixTorchVersion -ge [Version]"2.13") {
+        Patch-Fa2SetupMsvcConformance -SetupPath "flash-attention\setup.py"
+    }
     # Remove FA4 (flash_attn/cute) to prevent it from being included in the FA2 wheel
     if (Test-Path "flash-attention\flash_attn\cute") {
         Remove-Item -Recurse -Force "flash-attention\flash_attn\cute"

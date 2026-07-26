@@ -759,7 +759,18 @@ if not SKIP_CUDA_BUILD:
             name=f"{PACKAGE_NAME}._C",
             sources=sources,
             extra_compile_args={
-                "cxx": ["-O3", "-std=c++17", "-DPy_LIMITED_API=0x03090000"]
+                # /permissive- + /std:c++20: torch >= 2.13 headers fail under
+                # MSVC's legacy mode (error C2666 on ArrayRef operator==) and
+                # need C++20 in conformance mode; cl.exe ignores the unix-style
+                # flags. Host-only: nvcc reads the "nvcc" list instead. Gated
+                # so proven torch <= 2.12 builds keep their c++17 legacy path.
+                "cxx": ["-O3", "-std=c++17"]
+                + (
+                    ["/permissive-", "/std:c++20"]
+                    if torch_version.release >= (2, 13)
+                    else []
+                )
+                + ["-DPy_LIMITED_API=0x03090000"]
                 + stable_args
                 + feature_args,
                 "nvcc": nvcc_threads_args() + nvcc_flags + cc_flag + feature_args,
