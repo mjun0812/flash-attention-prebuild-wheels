@@ -372,7 +372,14 @@ if ($FlashAttnVariant -eq "Flash Attention 3") {
 } elseif ($FlashAttnVariant -eq "Flash Attention 2") {
     Write-Host "::group::Checking out flash-attention v$FlashAttnVersion"
     git clone -q https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FlashAttnVersion"
-    Patch-Fa2SetupMsvcConformance -SetupPath "flash-attention\setup.py"
+    # torch <= 2.12 Windows wheels are all built on the proven c++17
+    # legacy-mode path; only torch >= 2.13 headers need the MSVC
+    # conformance/C++20 treatment, so gate to avoid destabilizing the old
+    # combinations (C++20 changes overload resolution, e.g. rewritten
+    # operator== candidates).
+    if ([Version]$MatrixTorchVersion -ge [Version]"2.13") {
+        Patch-Fa2SetupMsvcConformance -SetupPath "flash-attention\setup.py"
+    }
     # Remove FA4 (flash_attn/cute) to prevent it from being included in the FA2 wheel
     if (Test-Path "flash-attention\flash_attn\cute") {
         Remove-Item -Recurse -Force "flash-attention\flash_attn\cute"
