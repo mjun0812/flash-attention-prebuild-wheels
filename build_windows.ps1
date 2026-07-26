@@ -267,24 +267,31 @@ function Apply-CudaToolkitPatch {
 function Patch-SizesComparisons {
     param(
         [Parameter(Mandatory=$true)]
-        [string]$SourcePath
+        [string]$SourcePath,
+
+        [switch]$AllowNoMatch
     )
 
     # torch 2.13.0 reworked c10::ArrayRef on top of HeaderOnlyArrayRef with
     # hidden-friend operator== overloads (pytorch/pytorch#170470, #185379),
-    # which MSVC rejects as ambiguous (error C2666) wherever flash-attn
-    # compares x.sizes() with a torch::IntArrayRef (the CHECK_SHAPE macro and
-    # the alibi_slopes checks). Call .equals() explicitly instead; it exists
-    # on all supported torch versions, so patch unconditionally.
-    $pattern = '(\w+)\.sizes\(\) == (torch::IntArrayRef\(\{[^}]*\}\))'
+    # which MSVC rejects as ambiguous (error C2666) wherever a sizes() result
+    # is compared with == (flash-attn's CHECK_SHAPE macro and alibi_slopes
+    # checks, and torch's own C++ frontend headers). Call .equals() explicitly
+    # instead; it exists on all supported torch versions, so patch
+    # unconditionally. Handles `a.sizes() == b.sizes()` (incl. `b[i].sizes()`
+    # and a line break around ==) and `a.sizes() == [torch::]IntArrayRef({...})`.
+    $pattern = '(\w+(?:\[\w+\])?)\.sizes\(\)\s*==\s*((?:torch::)?IntArrayRef\(\{[^}]*\}\)|\w+(?:\[\w+\])?\.sizes\(\))'
     $content = Get-Content -Raw $SourcePath
     $count = [regex]::Matches($content, $pattern).Count
     if ($count -eq 0) {
-        Write-Error "No sizes() == torch::IntArrayRef comparison found in ${SourcePath}; upstream code may have changed"
+        if ($AllowNoMatch) {
+            return
+        }
+        Write-Error "No patchable sizes() comparison found in ${SourcePath}; upstream code may have changed"
         exit 1
     }
     $content = [regex]::Replace($content, $pattern, '$1.sizes().equals($2)')
-    if ($content -match '\.sizes\(\) ==') {
+    if ($content -match '\.sizes\(\)\s*==') {
         Write-Error "Unpatched sizes() == comparison remains in ${SourcePath}; the pattern needs updating"
         exit 1
     }
@@ -325,6 +332,17 @@ python -V
 python -c "import torch; print('PyTorch:', torch.__version__)"
 python -c "import torch; print('CUDA:', torch.version.cuda)"
 python -c "from torch.utils import cpp_extension; print(cpp_extension.CUDA_HOME)"
+Write-Host "::endgroup::"
+
+# torch 2.13.0's own C++ frontend headers contain the same MSVC-ambiguous
+# sizes() comparisons (nn/functional/{activation,embedding,loss}.h etc.),
+# which break every extension TU that includes them. Patch the installed
+# headers in the venv the same way as the flash-attn sources below.
+Write-Host "::group::Patching torch headers for MSVC sizes() == ambiguity"
+$TorchApiInclude = Join-Path $PSScriptRoot ".venv\Lib\site-packages\torch\include\torch\csrc\api\include"
+Get-ChildItem -Path $TorchApiInclude -Recurse -Filter *.h | ForEach-Object {
+    Patch-SizesComparisons -SourcePath $_.FullName -AllowNoMatch
+}
 Write-Host "::endgroup::"
 
 # FlashAttention Variant handling
