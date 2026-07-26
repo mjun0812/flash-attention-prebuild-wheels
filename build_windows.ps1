@@ -264,6 +264,30 @@ function Apply-CudaToolkitPatch {
     Write-Host "$Description applied successfully"
 }
 
+function Patch-Fa2SetupMsvcConformance {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$SetupPath
+    )
+
+    # torch 2.13.0 headers fail under MSVC's legacy mode (error C2666 on
+    # ArrayRef operator==, pytorch/pytorch#185379) and, once conformance mode
+    # is on, additionally require C++20 (C7555/C7582), so switch the
+    # host-only cxx flags to /permissive- + /std:c++20. The "nvcc" flag list
+    # must stay untouched: feeding these flags into nvcc-spawned cl.exe
+    # crashes cudafe++ (0xC0000409). patches/fa3/setup_windows.py carries the
+    # same flags for FA3 directly.
+    $old = '["-O2", "/std:c++17", "/Zc:__cplusplus"]'
+    $new = '["-O2", "/permissive-", "/std:c++20", "/Zc:__cplusplus"]'
+    $content = Get-Content -Raw $SetupPath
+    if (-not $content.Contains($old)) {
+        Write-Error "Windows cxx flag list not found in ${SetupPath}; upstream setup.py may have changed"
+        exit 1
+    }
+    Set-Content -Path $SetupPath -Value $content.Replace($old, $new) -NoNewline
+    Write-Host "Patched Windows cxx flags to /permissive- /std:c++20 in $SetupPath"
+}
+
 Write-Host "Building Flash Attention with parameters:"
 Write-Host "  Flash-Attention: $FlashAttnVersion"
 Write-Host "  Python: $PythonVersion"
@@ -336,6 +360,7 @@ if ($FlashAttnVariant -eq "Flash Attention 3") {
 } elseif ($FlashAttnVariant -eq "Flash Attention 2") {
     Write-Host "::group::Checking out flash-attention v$FlashAttnVersion"
     git clone -q https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FlashAttnVersion"
+    Patch-Fa2SetupMsvcConformance -SetupPath "flash-attention\setup.py"
     # Remove FA4 (flash_attn/cute) to prevent it from being included in the FA2 wheel
     if (Test-Path "flash-attention\flash_attn\cute") {
         Remove-Item -Recurse -Force "flash-attention\flash_attn\cute"
@@ -418,17 +443,6 @@ $env:FLASH_ATTENTION_FORCE_BUILD = "TRUE"
 $env:NVCC_FLAGS = "-w --disable-warnings"
 $env:CXXFLAGS = "/w"
 $env:CFLAGS = "/w"
-# torch 2.13.0's ArrayRef operator== rework (pytorch/pytorch#185379) is only
-# unambiguous in MSVC conformance mode: pytorch builds itself with
-# /permissive- (cmake/public/utils.cmake) but torch.utils.cpp_extension does
-# not pass it, so extension TUs fail with error C2666 in legacy mode. In
-# conformance mode the same headers then need C++20 (designated initializers
-# in StringUtil.h, bit-field defaults in AutogradState.h), so /std:c++20 is
-# required as well; it overrides the /std:c++17 that flash-attn's setup.py
-# passes because cl.exe appends the _CL_ env var after the command line.
-# _CL_ reaches every cl.exe invocation, including the ones nvcc spawns for
-# host code, so this covers both cl and nvcc compile paths.
-$env:_CL_ = "/permissive- /std:c++20"
 # CUDA 13.2+ ships a CCCL header that emits `#error C1189` when MSVC's
 # traditional preprocessor is in use. Force the standard-conforming
 # preprocessor for both host cl.exe and nvcc-driven cl.exe invocations.
