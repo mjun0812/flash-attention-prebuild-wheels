@@ -264,6 +264,34 @@ function Apply-CudaToolkitPatch {
     Write-Host "$Description applied successfully"
 }
 
+function Patch-SizesComparisons {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$SourcePath
+    )
+
+    # torch 2.13.0 reworked c10::ArrayRef on top of HeaderOnlyArrayRef with
+    # hidden-friend operator== overloads (pytorch/pytorch#170470, #185379),
+    # which MSVC rejects as ambiguous (error C2666) wherever flash-attn
+    # compares x.sizes() with a torch::IntArrayRef (the CHECK_SHAPE macro and
+    # the alibi_slopes checks). Call .equals() explicitly instead; it exists
+    # on all supported torch versions, so patch unconditionally.
+    $pattern = '(\w+)\.sizes\(\) == (torch::IntArrayRef\(\{[^}]*\}\))'
+    $content = Get-Content -Raw $SourcePath
+    $count = [regex]::Matches($content, $pattern).Count
+    if ($count -eq 0) {
+        Write-Error "No sizes() == torch::IntArrayRef comparison found in ${SourcePath}; upstream code may have changed"
+        exit 1
+    }
+    $content = [regex]::Replace($content, $pattern, '$1.sizes().equals($2)')
+    if ($content -match '\.sizes\(\) ==') {
+        Write-Error "Unpatched sizes() == comparison remains in ${SourcePath}; the pattern needs updating"
+        exit 1
+    }
+    Set-Content -Path $SourcePath -Value $content -NoNewline
+    Write-Host "Patched $count sizes() comparison(s) to .equals() in $SourcePath"
+}
+
 Write-Host "Building Flash Attention with parameters:"
 Write-Host "  Flash-Attention: $FlashAttnVersion"
 Write-Host "  Python: $PythonVersion"
@@ -317,6 +345,7 @@ if ($FlashAttnVariant -eq "Flash Attention 3") {
     # Replace upstream setup.py with patched version
     $patchedSetup = Join-Path $PSScriptRoot "patches\fa3\setup_windows.py"
     Copy-Item $patchedSetup "flash-attention\hopper\setup.py" -Force
+    Patch-SizesComparisons -SourcePath "flash-attention\hopper\flash_api.cpp"
     # MSVC cannot pass 128-byte aligned CUDA-generated types by value on CUDA 13.0+.
     if (Test-Cuda13OrNewer -Version $CudaVersion) {
         $cutlassPatch = Join-Path $PSScriptRoot "patches\fa3\cutlass_alignment_fix.patch"
@@ -336,6 +365,7 @@ if ($FlashAttnVariant -eq "Flash Attention 3") {
 } elseif ($FlashAttnVariant -eq "Flash Attention 2") {
     Write-Host "::group::Checking out flash-attention v$FlashAttnVersion"
     git clone -q https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FlashAttnVersion"
+    Patch-SizesComparisons -SourcePath "flash-attention\csrc\flash_attn\flash_api.cpp"
     # Remove FA4 (flash_attn/cute) to prevent it from being included in the FA2 wheel
     if (Test-Path "flash-attention\flash_attn\cute") {
         Remove-Item -Recurse -Force "flash-attention\flash_attn\cute"
