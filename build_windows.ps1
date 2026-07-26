@@ -273,10 +273,10 @@ function Patch-Fa2SetupMsvcConformance {
     # torch 2.13.0 headers fail under MSVC's legacy mode (error C2666 on
     # ArrayRef operator==, pytorch/pytorch#185379) and, once conformance mode
     # is on, additionally require C++20 (C7555/C7582), so switch the
-    # host-only cxx flags to /permissive- + /std:c++20. The "nvcc" flag list
-    # must stay untouched: feeding these flags into nvcc-spawned cl.exe
-    # crashes cudafe++ (0xC0000409). patches/fa3/setup_windows.py carries the
-    # same flags for FA3 directly.
+    # host-only cxx flags to /permissive- + /std:c++20. Passing MSVC flags
+    # via _CL_ instead would reach nvcc-spawned cl.exe and crash cudafe++
+    # (0xC0000409). patches/fa3/setup_windows.py carries the same cxx flags
+    # for FA3 directly.
     $old = '["-O2", "/std:c++17", "/Zc:__cplusplus"]'
     $new = '["-O2", "/permissive-", "/std:c++20", "/Zc:__cplusplus"]'
     $content = Get-Content -Raw $SetupPath
@@ -284,8 +284,20 @@ function Patch-Fa2SetupMsvcConformance {
         Write-Error "Windows cxx flag list not found in ${SetupPath}; upstream setup.py may have changed"
         exit 1
     }
-    Set-Content -Path $SetupPath -Value $content.Replace($old, $new) -NoNewline
-    Write-Host "Patched Windows cxx flags to /permissive- /std:c++20 in $SetupPath"
+    $content = $content.Replace($old, $new)
+    # nvcc's EDG front end emulates the MSVC host and rejects the same C++20
+    # constructs in c++17 mode ("data member initializer is not allowed" in
+    # AutogradState.h), so device compilation needs c++20 as well; torch
+    # 2.13's own JIT path passes -std=c++20 to nvcc on Windows. FA3's nvcc
+    # std stays c++17 (its .cu files compiled fine for hours in v0.9.51).
+    $nvccPattern = '(nvcc_flags = \[\s*"-O3",\s*)"-std=c\+\+17",'
+    if ($content -notmatch $nvccPattern) {
+        Write-Error "nvcc_flags std entry not found in ${SetupPath}; upstream setup.py may have changed"
+        exit 1
+    }
+    $content = [regex]::Replace($content, $nvccPattern, '$1"-std=c++20",')
+    Set-Content -Path $SetupPath -Value $content -NoNewline
+    Write-Host "Patched Windows cxx flags to /permissive- /std:c++20 and nvcc std to c++20 in $SetupPath"
 }
 
 Write-Host "Building Flash Attention with parameters:"
