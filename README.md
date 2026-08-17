@@ -105,11 +105,11 @@ If you use this repository in your research and find it helpful, please cite thi
 
 ## Star History and Download Statistics
 
-<a href="https://www.star-history.com/#mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left">
+<a href="https://star-history.dera.page/#mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&theme=dark&legend=top-left" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left" height="400px"/>
+    <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&theme=dark&legend=top-left" />
+    <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=mjun0812/flash-attention-prebuild-wheels&type=date&legend=top-left" height="400px"/>
   </picture>
 </a>
 
