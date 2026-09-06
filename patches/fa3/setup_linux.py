@@ -618,6 +618,12 @@ if not SKIP_CUDA_BUILD:
     else:
         flash_api_source = "flash_api.cpp"
 
+    # torch >= 2.14 headers (ATen/ATen.h, torch/all.h) #error on non-MSVC
+    # compilers when __cplusplus < 202002L. flash_api(_stable).cpp includes
+    # those headers, so cxx must move to C++20; the .cu files under hopper/
+    # never include torch/c10/ATen headers, so nvcc keeps C++17.
+    cxx_std = "-std=c++20" if torch_version.release >= (2, 14) else "-std=c++17"
+
     sources = (
         [flash_api_source]
         + (sources_fwd_sm80 if not DISABLE_SM8x else [])
@@ -653,7 +659,7 @@ if not SKIP_CUDA_BUILD:
             name=f"{PACKAGE_NAME}._C",
             sources=sources,
             extra_compile_args={
-                "cxx": ["-O3", "-std=c++17", "-DPy_LIMITED_API=0x03090000"]
+                "cxx": ["-O3", cxx_std, "-DPy_LIMITED_API=0x03090000"]
                 + stable_args
                 + feature_args,
                 "nvcc": nvcc_threads_args() + nvcc_flags + cc_flag + feature_args,
