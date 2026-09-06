@@ -30,6 +30,7 @@ LINUX_MATRIX = {
         # "2.11.0",
         # "2.12.1",
         # "2.13.0",
+        # "2.14.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -57,6 +58,7 @@ LINUX_ARM64_MATRIX = {
     "torch-version": [
         # "2.12.1",
         "2.13.0",
+        "2.14.0",
     ],
     "cuda-version": [
         "12.6",
@@ -91,6 +93,7 @@ LINUX_SELF_HOSTED_MATRIX = {
         # "2.11.0",
         # "2.12.1",
         "2.13.0",
+        "2.14.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -126,6 +129,7 @@ LINUX_ARM64_SELF_HOSTED_MATRIX = {
         "2.11.0",
         "2.12.1",
         "2.13.0",
+        "2.14.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -163,6 +167,7 @@ LINUX_NO_CONTAINER_MATRIX = {
         "2.11.0",
         "2.12.1",
         "2.13.0",
+        "2.14.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -200,6 +205,7 @@ LINUX_ARM64_NO_CONTAINER_MATRIX = {
         "2.11.0",
         "2.12.1",
         "2.13.0",
+        "2.14.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -233,6 +239,7 @@ WINDOWS_MATRIX = {
         # "2.11.0",
         # "2.12.1",
         "2.13.0",
+        "2.14.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -269,6 +276,7 @@ WINDOWS_CODEBUILD_MATRIX = {
         # "2.11.0",
         # "2.12.1",
         # "2.13.0",
+        # "2.14.0",
     ],
     "cuda-version": [
         "12.8",
@@ -288,8 +296,8 @@ WINDOWS_SELF_HOSTED_MATRIX = {
         "3.12",
         "3.13",
         "3.14",
-        # "3.13t",  # torch 2.12.1/2.13.0 no longer publish cp313t wheels
-        # "3.14t",  # Excluded: torch 2.12.x/2.13.0's setuptools/cpp_extension cannot
+        # "3.13t",  # torch 2.12.1/2.13.0/2.14.0 no longer publish cp313t wheels
+        # "3.14t",  # Excluded: torch 2.12.x/2.13.0/2.14.0's setuptools/cpp_extension cannot
         # resolve the free-threaded import library on Windows
         # (LNK1104: python314.lib vs python314t.lib). Re-enable once PyTorch
         # / setuptools handle this for free-threaded CPython on Windows.
@@ -304,6 +312,7 @@ WINDOWS_SELF_HOSTED_MATRIX = {
         # "2.11.0",
         "2.12.1",
         "2.13.0",
+        "2.14.0",
     ],
     "cuda-version": [
         # "12.4",
