@@ -23,6 +23,7 @@ TORCH_FULL_VERSIONS = [
     "2.11.0",
     "2.12.1",
     "2.13.0",
+    "2.14.0",
 ]
 TORCH_SUPPORT_CUDA_VERSIONS = {
     "2.0": ("11.7", "11.8"),
@@ -39,6 +40,7 @@ TORCH_SUPPORT_CUDA_VERSIONS = {
     "2.11": ("12.6", "12.8", "13.0"),
     "2.12": ("12.6", "13.0", "13.2"),
     "2.13": ("12.6", "13.0", "13.2"),
+    "2.14": ("12.6", "13.0", "13.2"),
 }
 # torch_version: minimum and maximum supported Python versions
 TORCH_SUPPORT_PYTHON_VERSIONS = {
@@ -56,6 +58,7 @@ TORCH_SUPPORT_PYTHON_VERSIONS = {
     "2.11": ("3.10", "3.14"),
     "2.12": ("3.10", "3.14"),
     "2.13": ("3.10", "3.14"),
+    "2.14": ("3.10", "3.14"),
 }
 TORCH_EXPERIMENTAL_FREE_THREADED_PYTHON_VERSIONS = {
     "2.6": ("3.13t",),
@@ -66,6 +69,7 @@ TORCH_EXPERIMENTAL_FREE_THREADED_PYTHON_VERSIONS = {
     "2.11": ("3.13t", "3.14t"),
     "2.12": ("3.14t",),
     "2.13": ("3.14t",),
+    "2.14": ("3.14t",),
 }
 
 # FA3 is distributed as a single ABI3 wheel per (torch, cuda) combination, so
@@ -183,6 +187,7 @@ LINUX_MATRIX = {
         "2.11.0",
         "2.12.1",
         "2.13.0",
+        "2.14.0",
     ],
     "cuda-version": ["12.4", "12.6", "12.8", "12.9", "13.0", "13.2"],
 }
@@ -196,6 +201,7 @@ LINUX_ARM64_MATRIX = {
         "2.11.0",
         "2.12.1",
         "2.13.0",
+        "2.14.0",
     ],
     "cuda-version": ["12.6", "12.8", "12.9", "13.0", "13.2"],
 }
@@ -203,7 +209,7 @@ LINUX_ARM64_MATRIX = {
 # Windows excludes "3.14t" because torch 2.12.x's setuptools/cpp_extension cannot
 # resolve the free-threaded import library on Windows
 # (LNK1104: python314.lib vs python314t.lib). 3.13t is pruned for torch
-# 2.12.1/2.13.0 by TORCH_EXPERIMENTAL_FREE_THREADED_PYTHON_VERSIONS because
+# 2.12.1/2.13.0/2.14.0 by TORCH_EXPERIMENTAL_FREE_THREADED_PYTHON_VERSIONS because
 # those versions do not publish cp313t wheels.
 WINDOWS_PYTHON_VERSIONS = [*PYTHON_VERSIONS, "3.13t"]
 
@@ -216,6 +222,7 @@ WINDOWS_MATRIX = {
         "2.11.0",
         "2.12.1",
         "2.13.0",
+        "2.14.0",
     ],
     "cuda-version": ["12.6", "12.8", "13.0", "13.2"],
 }
