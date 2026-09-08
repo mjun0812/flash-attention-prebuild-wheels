@@ -2,6 +2,15 @@
 
 set -e
 
+# torch >= 2.14 headers (ATen/ATen.h, torch/all.h) `#error` when
+# __cplusplus < 202002L on non-MSVC compilers, but FA2 pins -std=c++17 for
+# both cxx and nvcc and its .cu files include c10/ATen headers, so both must
+# move to C++20. Gated like build_windows.ps1's Patch-Fa2SetupMsvcConformance
+# so the proven torch <= 2.13 builds keep their c++17 path.
+fa2_needs_cxx20() {
+  awk -v v="$1" 'BEGIN { split(v, a, "."); exit !((a[1] > 2) || (a[1] == 2 && a[2] >= 14)) }'
+}
+
 SCRIPT_DIR=$(dirname "$(realpath "$0")")
 
 # Parameters with defaults
@@ -65,6 +74,14 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
 elif [[ "${FLASH_ATTN_VARIANT}" == "Flash Attention 2" ]]; then
   echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
   git clone https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FLASH_ATTN_VERSION"
+  if fa2_needs_cxx20 "$MATRIX_TORCH_VERSION"; then
+    if [ "$(grep -c -- '-std=c++17' flash-attention/setup.py)" -eq 0 ]; then
+      echo "-std=c++17 not found in flash-attention/setup.py; upstream setup.py may have changed"
+      exit 1
+    fi
+    sed -i 's/-std=c++17/-std=c++20/g' flash-attention/setup.py
+    echo "Patched flash-attention/setup.py cxx/nvcc std to c++20 for torch $MATRIX_TORCH_VERSION"
+  fi
   # Remove FA4 (flash_attn/cute) to prevent it from being included in the FA2 wheel
   rm -rf flash-attention/flash_attn/cute
   BUILD_ROOT=flash-attention/build
