@@ -4,6 +4,13 @@ from scripts.coverage_matrix import EXCLUDE
 
 FA3_COMMIT = "fa3:e2743ab5b3803bb672b16437ba98a3b1d4576c50"
 
+# FA3 wheels are abi3 (cp39-abi3), so one build covers all non-FT pythons.
+# Build FA3 only with Python 3.12 and let the abi3 wheel fill the rest.
+FA3_SINGLE_PYTHON_EXCLUDE = [
+    {"flash-attn-version": FA3_COMMIT, "python-version": python_version}
+    for python_version in ["3.10", "3.11", "3.13", "3.14"]
+]
+
 
 LINUX_MATRIX = {
     "flash-attn-version": [
@@ -45,19 +52,19 @@ LINUX_MATRIX = {
 LINUX_ARM64_MATRIX = {
     "flash-attn-version": [
         "2.8.3",
-        # FA3_COMMIT,  # FA3 arm64 is fully released (abi3 covers all non-FT pythons)
+        FA3_COMMIT,
     ],
     "python-version": [
         "3.10",
         "3.11",
-        # "3.12",  # already released for 2.8.3 x torch 2.13.0
+        "3.12",
         "3.13",
         "3.14",
         "3.14t",
     ],
     "torch-version": [
         # "2.12.1",
-        "2.13.0",
+        # "2.13.0",
         "2.14.0",
     ],
     "cuda-version": [
@@ -238,7 +245,7 @@ WINDOWS_MATRIX = {
         # "2.10.0",
         # "2.11.0",
         # "2.12.1",
-        "2.13.0",
+        # "2.13.0",
         "2.14.0",
     ],
     "cuda-version": [
@@ -325,11 +332,11 @@ def main():
                 "linux": False,
                 # "linux": LINUX_MATRIX,
                 #
-                "linux_arm64": False,
-                # "linux_arm64": LINUX_ARM64_MATRIX,
+                # "linux_arm64": False,
+                "linux_arm64": LINUX_ARM64_MATRIX,
                 #
-                # "linux_self_hosted": False,
-                "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
+                "linux_self_hosted": False,
+                # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
                 #
                 "linux_arm64_self_hosted": False,
                 # "linux_arm64_self_hosted": LINUX_ARM64_SELF_HOSTED_MATRIX,
@@ -349,7 +356,7 @@ def main():
                 "windows_code_build": False,
                 # "windows_code_build": WINDOWS_CODEBUILD_MATRIX,
                 #
-                "exclude": EXCLUDE,
+                "exclude": EXCLUDE + FA3_SINGLE_PYTHON_EXCLUDE,
             }
         )
     )
