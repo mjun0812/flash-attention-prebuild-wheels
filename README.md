@@ -3,7 +3,7 @@
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/mjun0812/flash-attention-prebuild-wheels/total?style=for-the-badge)
 [![Search Page](https://img.shields.io/badge/Search_Page-Find_Your_Wheel-blue?style=for-the-badge&logo=googlelens)](https://mjunya.com/flash-attention-prebuild-wheels/)
 <!-- COVERAGE_BADGE_START -->
-![Linux x86_64](https://img.shields.io/badge/Linux_x86_64-94.9%25-green?style=for-the-badge)
+![Linux x86_64](https://img.shields.io/badge/Linux_x86_64-96.3%25-green?style=for-the-badge)
 ![Linux ARM64](https://img.shields.io/badge/Linux_ARM64-89.9%25-yellow?style=for-the-badge)
 ![Windows](https://img.shields.io/badge/Windows-86.2%25-yellow?style=for-the-badge)
 <!-- COVERAGE_BADGE_END -->
@@ -51,10 +51,10 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 
 | Platform | Existing | Missing | Coverage |
 |----------|----------|---------|----------|
-| Linux x86_64 | 560 | 30 | 94.9% |
+| Linux x86_64 | 568 | 22 | 96.3% |
 | Linux ARM64 | 186 | 21 | 89.9% |
 | Windows | 163 | 26 | 86.2% |
-| **Total** | **909** | **77** | **92.2%** |
+| **Total** | **917** | **69** | **93.0%** |
 <!-- COVERAGE_TABLE_END -->
 
 > [!NOTE]
