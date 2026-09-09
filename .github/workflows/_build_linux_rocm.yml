@@ -1,0 +1,207 @@
+# #########################################################
+# Build ROCm wheels with self-hosted runner (no container)
+# #########################################################
+# Prerequisites (must be pre-installed on the runner):
+#   - sudo access
+#   - Basic tools: curl, wget, git
+#
+# All other dependencies (Python, ROCm) are installed during
+# the workflow and cleaned up afterwards.
+#
+# This workflow measures build time and disk usage so a single
+# ROCm cell can be evaluated before wheels are distributed.
+# #########################################################
+
+name: "[Linux, ROCm, self-hosted, no container] Build wheels"
+
+on:
+  workflow_call:
+    inputs:
+      flash-attn-version:
+        description: "Flash-Attention version"
+        required: true
+        type: string
+      python-version:
+        description: "Python version"
+        required: true
+        type: string
+      torch-version:
+        description: "PyTorch version"
+        required: true
+        type: string
+      rocm-version:
+        description: "ROCm version"
+        required: true
+        type: string
+      rocm-install-method:
+        description: "ROCm install method (auto, package-manager, runfile, pip)"
+        required: false
+        type: string
+        default: "auto"
+      runner:
+        description: "Runner type"
+        required: false
+        type: string
+        default: '["self-hosted", "Linux", "x64"]'
+      is-upload:
+        description: "Whether to upload the release asset"
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build_wheels_rocm:
+    name: Build wheels (Linux, ROCm, self-hosted, no container)
+    runs-on: ${{ fromjson(inputs.runner) }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      TERM: xterm-256color
+    timeout-minutes: 2160
+
+    steps:
+      - name: Check environment
+        run: |
+          cat /etc/os-release || true
+          echo "-----------------------------"
+          lscpu || true
+          echo "-----------------------------"
+          free -h || true
+
+      - uses: actions/checkout@v6
+
+      - name: Configure Git safe directory
+        run: |
+          git config --global --add safe.directory $(pwd)
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.3.2
+
+      - name: Install Python
+        run: |
+          uv venv -p ${{ inputs.python-version }} --python-preference only-managed
+          uv pip install -U pip setuptools==75.8.0 wheel packaging psutil auditwheel
+          current_dir=$(pwd)
+          echo "$current_dir/.venv/bin" >> $GITHUB_PATH
+
+      - name: Setup ROCm
+        id: setup_rocm
+        uses: mjun0812/setup-rocm@v1
+        with:
+          version: ${{ inputs.rocm-version }}
+          method: ${{ inputs.rocm-install-method }}
+
+      - name: Measure before build
+        if: always()
+        run: |
+          echo "ROCm version: ${{ steps.setup_rocm.outputs.version }}"
+          echo "ROCm path: ${{ steps.setup_rocm.outputs.rocm-path }}"
+          echo "-----------------------------"
+          du -sh "${{ steps.setup_rocm.outputs.rocm-path }}" || true
+          echo "-----------------------------"
+          df -h || true
+
+      - name: Record build start time
+        run: |
+          echo "BUILD_STARTED_AT=$(date +%s)" >> $GITHUB_ENV
+
+      # build_linux_rocm.sh prints the resolved MAX_JOBS and GPU_ARCHS
+      - name: Build wheels
+        run: |
+          chmod +x build_linux_rocm.sh
+          ./build_linux_rocm.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.rocm-version }}
+
+      - name: Report build duration
+        if: always() && env.BUILD_STARTED_AT
+        run: |
+          echo "Build wall clock: $(($(date +%s) - BUILD_STARTED_AT)) seconds"
+
+      - name: Locate wheel
+        id: build_wheels
+        run: |
+          wheel_path=$(ls flash-attention/dist/*.whl | head -n 1)
+          echo "WHEEL_PATH=$wheel_path" >> $GITHUB_OUTPUT
+
+      - name: Measure after build
+        if: always()
+        run: |
+          du -sh flash-attention || true
+          echo "-----------------------------"
+          ls -l "${{ steps.build_wheels.outputs.WHEEL_PATH }}" || true
+          echo "-----------------------------"
+          df -h || true
+
+      - name: Show wheel dependencies
+        continue-on-error: true
+        run: |
+          auditwheel show ${{ steps.build_wheels.outputs.WHEEL_PATH }}
+
+      - name: Install Test
+        run: |
+          pip uninstall -y flash-attn > /dev/null 2>&1
+          pip install --no-cache-dir ${{ steps.build_wheels.outputs.WHEEL_PATH }}
+          python -c "import flash_attn; from importlib.metadata import version; print(version('flash-attn'))"
+
+      # Cleanup step - always runs even if previous steps fail
+      - name: Cleanup (always run)
+        if: always()
+        run: |
+          echo "=========================================="
+          echo "Starting cleanup for self-hosted runner..."
+          echo "=========================================="
+
+          # 1. Remove flash-attention directory (source and build artifacts)
+          FLASH_ATTN_DIR="$(pwd)/flash-attention"
+          if [ -d "$FLASH_ATTN_DIR" ]; then
+            echo "[1/5] Removing flash-attention directory: $FLASH_ATTN_DIR"
+            rm -rf "$FLASH_ATTN_DIR" || true
+          else
+            echo "[1/5] flash-attention directory not found, skipping"
+          fi
+
+          # 2. Remove Python virtual environment (.venv)
+          VENV_DIR="$(pwd)/.venv"
+          if [ -d "$VENV_DIR" ]; then
+            echo "[2/5] Removing Python virtual environment: $VENV_DIR"
+            rm -rf "$VENV_DIR" || true
+          else
+            echo "[2/5] .venv directory not found, skipping"
+          fi
+
+          # 3. Remove pip cache
+          PIP_CACHE_DIR="$HOME/.cache/pip"
+          if [ -d "$PIP_CACHE_DIR" ]; then
+            echo "[3/5] Removing pip cache: $PIP_CACHE_DIR"
+            rm -rf "$PIP_CACHE_DIR" || true
+          else
+            echo "[3/5] pip cache not found, skipping"
+          fi
+
+          # 4. Remove uv cache
+          UV_CACHE_DIR="$HOME/.cache/uv"
+          if [ -d "$UV_CACHE_DIR" ]; then
+            echo "[4/5] Removing uv cache: $UV_CACHE_DIR"
+            rm -rf "$UV_CACHE_DIR" || true
+          else
+            echo "[4/5] uv cache not found, skipping"
+          fi
+
+          # 5. Uninstall ROCm
+          echo "[5/5] Removing ROCm installation..."
+          if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get remove -y --purge 'rocm*' 'hip*' 'hsa-*' 2>/dev/null || true
+            sudo apt-get autoremove -y 2>/dev/null || true
+          elif command -v dnf >/dev/null 2>&1; then
+            sudo dnf remove -y 'rocm*' 'hip*' 'hsa-*' 2>/dev/null || true
+          fi
+          ROCM_INSTALL_DIR="${{ steps.setup_rocm.outputs.rocm-path }}"
+          if [ -n "$ROCM_INSTALL_DIR" ] && [ -d "$ROCM_INSTALL_DIR" ]; then
+            sudo rm -rf "$ROCM_INSTALL_DIR" || true
+          fi
+          sudo rm -rf /opt/rocm* || true
+
+          echo "=========================================="
+          echo "Cleanup completed."
+          echo "=========================================="
