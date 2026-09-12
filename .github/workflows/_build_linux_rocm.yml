@@ -9,7 +9,9 @@
 # the workflow and cleaned up afterwards.
 #
 # This workflow measures build time and disk usage so a single
-# ROCm cell can be evaluated before wheels are distributed.
+# ROCm cell can be evaluated before wheels are distributed, and keeps
+# the wheel as a job artifact so it can be tested on a real AMD GPU
+# (the cleanup step below deletes the build tree either way).
 # #########################################################
 
 name: "[Linux, ROCm, self-hosted, no container] Build wheels"
@@ -137,6 +139,13 @@ jobs:
         continue-on-error: true
         run: |
           auditwheel show ${{ steps.build_wheels.outputs.WHEEL_PATH }}
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: rocm-wheel-${{ inputs.flash-attn-version }}-py${{ inputs.python-version }}-torch${{ inputs.torch-version }}-rocm${{ inputs.rocm-version }}-${{ github.run_attempt }}
+          path: ${{ steps.build_wheels.outputs.WHEEL_PATH }}
+          if-no-files-found: ignore
 
       - name: Install Test
         run: |
