@@ -468,6 +468,12 @@
                     </select>
                 </div>
                 <div class="filter-group">
+                    <label for="accelerator-filter">Accelerator</label>
+                    <select id="accelerator-filter">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group">
                     <label for="flash-filter">Version</label>
                     <select id="flash-filter">
                         <option value="">All Versions</option>
@@ -486,7 +492,7 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="cuda-filter">CUDA</label>
+                    <label for="cuda-filter">CUDA / ROCm</label>
                     <select id="cuda-filter">
                         <option value="">All</option>
                     </select>
@@ -535,7 +541,7 @@
                                 <th class="sortable" data-sort="flash">Version</th>
                                 <th class="sortable" data-sort="python">Python</th>
                                 <th class="sortable" data-sort="torch">PyTorch</th>
-                                <th class="sortable" data-sort="cuda">CUDA</th>
+                                <th class="sortable" data-sort="cuda">CUDA / ROCm</th>
                                 <th>Release</th>
                                 <th>Download</th>
                                 <th>Copy</th>
@@ -573,8 +579,9 @@
         const ITEMS_PER_PAGE = 50;
 
         // Wheel filename pattern (ported from common.py)
-        // Supports both flash_attn and flash_attn_3, and both cpXXX/cpXXXt and abi3 tags
-        const WHEEL_PATTERN = /flash_attn(?:_3)?-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)\+cu(\d+)torch(\d+\.\d+)(?:git([0-9a-f]+))?-cp(\d+)-(?:cp\d+(t?)|abi3)-(.+?)\.whl/;
+        // Supports both flash_attn and flash_attn_3, both cpXXX/cpXXXt and abi3 tags,
+        // and both CUDA (+cu130torch2.14) and ROCm (+rocm7.2torch2.14) local versions
+        const WHEEL_PATTERN = /flash_attn(?:_3)?-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)\+(cu|rocm)([\d.]+)torch(\d+\.\d+)(?:git([0-9a-f]+))?-cp(\d+)-(?:cp\d+(t?)|abi3)-(.+?)\.whl/;
 
         // State
         let allWheels = [];
@@ -591,6 +598,7 @@
             pythonFilter: document.getElementById('python-filter'),
             torchFilter: document.getElementById('torch-filter'),
             cudaFilter: document.getElementById('cuda-filter'),
+            acceleratorFilter: document.getElementById('accelerator-filter'),
             platformFilter: document.getElementById('platform-filter'),
             resetBtn: document.getElementById('reset-btn'),
             loading: document.getElementById('loading'),
@@ -618,10 +626,13 @@
             const match = filename.match(WHEEL_PATTERN);
             if (!match) return null;
 
-            const [, flashVersion, cudaRaw, torchVersion, gitHash, pythonRaw, freeThreaded, platform] = match;
+            const [, flashVersion, accelRaw, accelVersionRaw, torchVersion, gitHash, pythonRaw, freeThreaded, platform] = match;
 
-            // Convert CUDA version: 130 -> 13.0
-            const cudaVersion = `${cudaRaw.slice(0, -1)}.${cudaRaw.slice(-1)}`;
+            // CUDA versions drop the dot in the filename (130 -> 13.0); ROCm keeps it (7.2)
+            const accelerator = accelRaw === 'cu' ? 'CUDA' : 'ROCm';
+            const accelVersion = accelerator === 'CUDA'
+                ? `${accelVersionRaw.slice(0, -1)}.${accelVersionRaw.slice(-1)}`
+                : accelVersionRaw;
 
             // Detect abi3: freeThreaded group is undefined when abi3 matched
             const isAbi3 = freeThreaded === undefined;
@@ -637,13 +648,17 @@
             // Determine package name from filename
             const packageName = filename.startsWith('flash_attn_3-') ? 'flash_attn_3' : 'flash_attn';
 
+            // ROCm wheels share the linux_x86_64 tag with CUDA wheels; the suffix keeps them apart
+            const platformName = normalizePlatformName(platform) + (accelerator === 'ROCm' ? ' (ROCm)' : '');
+
             return {
                 packageName,
                 flashVersion,
-                cudaVersion,
+                accelerator,
+                accelVersion,
                 torchVersion,
                 pythonVersion,
-                platform: normalizePlatformName(platform)
+                platform: platformName
             };
         }
 
@@ -769,7 +784,7 @@
             const seen = new Map();
 
             for (const wheel of wheels) {
-                const key = `${wheel.packageName}-${wheel.flashVersion}-${wheel.pythonVersion}-${wheel.torchVersion}-${wheel.cudaVersion}-${wheel.platform}`;
+                const key = `${wheel.packageName}-${wheel.flashVersion}-${wheel.pythonVersion}-${wheel.torchVersion}-${wheel.accelerator}-${wheel.accelVersion}-${wheel.platform}`;
                 if (!seen.has(key)) {
                     seen.set(key, wheel);
                 }
@@ -864,6 +879,7 @@
                 python: new Set(),
                 torch: new Set(),
                 cuda: new Set(),
+                accelerator: new Set(),
                 platform: new Set()
             };
 
@@ -872,7 +888,8 @@
                 sets.flash.add(wheel.flashVersion);
                 sets.python.add(wheel.pythonVersion);
                 sets.torch.add(wheel.torchVersion);
-                sets.cuda.add(wheel.cudaVersion);
+                sets.cuda.add(wheel.accelVersion);
+                sets.accelerator.add(wheel.accelerator);
                 sets.platform.add(wheel.platform);
             }
 
@@ -882,6 +899,7 @@
             const sortedPython = Array.from(sets.python).sort(compareVersions).reverse();
             const sortedTorch = Array.from(sets.torch).sort(compareVersions).reverse();
             const sortedCuda = Array.from(sets.cuda).sort(compareVersions).reverse();
+            const sortedAccelerator = Array.from(sets.accelerator).sort();
             const sortedPlatform = Array.from(sets.platform).sort();
 
             populateSelect(elements.packageFilter, sortedPackage, 'All');
@@ -889,6 +907,7 @@
             populateSelect(elements.pythonFilter, sortedPython, 'All');
             populateSelect(elements.torchFilter, sortedTorch, 'All');
             populateSelect(elements.cudaFilter, sortedCuda, 'All');
+            populateSelect(elements.acceleratorFilter, sortedAccelerator, 'All');
             populateSelect(elements.platformFilter, sortedPlatform, 'All');
         }
 
@@ -921,6 +940,7 @@
                 python: elements.pythonFilter.value,
                 torch: elements.torchFilter.value,
                 cuda: elements.cudaFilter.value,
+                accelerator: elements.acceleratorFilter.value,
                 platform: elements.platformFilter.value
             };
 
@@ -929,7 +949,8 @@
                 if (filters.flash && wheel.flashVersion !== filters.flash) return false;
                 if (filters.python && wheel.pythonVersion !== filters.python) return false;
                 if (filters.torch && wheel.torchVersion !== filters.torch) return false;
-                if (filters.cuda && wheel.cudaVersion !== filters.cuda) return false;
+                if (filters.cuda && wheel.accelVersion !== filters.cuda) return false;
+                if (filters.accelerator && wheel.accelerator !== filters.accelerator) return false;
                 if (filters.platform && wheel.platform !== filters.platform) return false;
                 return true;
             });
@@ -951,7 +972,7 @@
                 flash: 'flashVersion',
                 python: 'pythonVersion',
                 torch: 'torchVersion',
-                cuda: 'cudaVersion',
+                cuda: 'accelVersion',
                 platform: 'platform'
             }[sortColumn];
 
@@ -1022,7 +1043,7 @@
                     <td>${wheel.flashVersion}</td>
                     <td>${wheel.pythonVersion}</td>
                     <td>${wheel.torchVersion}</td>
-                    <td>${wheel.cudaVersion}</td>
+                    <td>${wheel.accelVersion}</td>
                     <td><span class="tag">${wheel.tag}</span></td>
                     <td>
                         <a href="${wheel.url}" class="download-link" onclick="event.stopPropagation()">
@@ -1108,6 +1129,7 @@
             if (elements.pythonFilter.value) params.set('python', elements.pythonFilter.value);
             if (elements.torchFilter.value) params.set('torch', elements.torchFilter.value);
             if (elements.cudaFilter.value) params.set('cuda', elements.cudaFilter.value);
+            if (elements.acceleratorFilter.value) params.set('accel', elements.acceleratorFilter.value);
             if (elements.platformFilter.value) params.set('platform', elements.platformFilter.value);
 
             const newUrl = params.toString()
@@ -1126,6 +1148,7 @@
             elements.pythonFilter.value = params.get('python') || '';
             elements.torchFilter.value = params.get('torch') || '';
             elements.cudaFilter.value = params.get('cuda') || '';
+            elements.acceleratorFilter.value = params.get('accel') || '';
             elements.platformFilter.value = params.get('platform') || '';
         }
 
@@ -1136,6 +1159,7 @@
             elements.pythonFilter.value = '';
             elements.torchFilter.value = '';
             elements.cudaFilter.value = '';
+            elements.acceleratorFilter.value = '';
             elements.platformFilter.value = '';
             applyFilters();
         }
@@ -1185,6 +1209,7 @@
         elements.pythonFilter.addEventListener('change', applyFilters);
         elements.torchFilter.addEventListener('change', applyFilters);
         elements.cudaFilter.addEventListener('change', applyFilters);
+        elements.acceleratorFilter.addEventListener('change', applyFilters);
         elements.platformFilter.addEventListener('change', applyFilters);
         elements.resetBtn.addEventListener('click', resetFilters);
         elements.retryBtn.addEventListener('click', () => {
