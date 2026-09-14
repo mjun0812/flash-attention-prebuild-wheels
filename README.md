@@ -29,6 +29,10 @@ flash_attn-[flash_attn Version]+cu[CUDA Version]torch[PyTorch Version]-cp[Python
 
 # Example: Python 3.11, CUDA 12.4, PyTorch 2.5, and flash_attn 2.6.3
 flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
+
+# ROCm (AMD GPU) wheels use rocm[ROCm Version] instead of cu[CUDA Version]
+# Example: Python 3.12, ROCm 7.2, PyTorch 2.14, and flash_attn 2.8.3
+flash_attn-2.8.3+rocm7.2torch2.14-cp312-cp312-linux_x86_64.whl
 ```
 
 2. Find the corresponding version of a wheel from the **[Useful Search Page](https://mjunya.com/flash-attention-prebuild-wheels/)**, [Packages](./doc/packages.md) page, or [releases](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases) page.
@@ -68,6 +72,12 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 > [!NOTE]
 > Since v0.5.0, wheels are built with a local version label indicating the CUDA and PyTorch versions.
 > Example: `pip list` -> `flash_attn==2.8.3 (old) -> flash_attn==2.8.3+cu130torch2.9 (>= built since v0.5.0)`
+
+> [!NOTE]
+> ROCm (AMD GPU) wheels are available for Linux x86_64 and Flash Attention 2, built with the
+> Composable Kernel backend for gfx90a, gfx942 and gfx950 (MI200 / MI300 / MI350 series).
+> Install the matching ROCm build of PyTorch first, e.g.
+> `pip install torch==2.14.0 --index-url https://download.pytorch.org/whl/rocm7.2`.
 
 See [./doc/packages.md](./doc/packages.md) for the full list of available packages.
 

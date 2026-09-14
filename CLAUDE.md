@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Pre-built Python wheel distribution for Flash Attention (v2/v3) across multiple platforms (Linux x86_64, Linux ARM64, Windows). Uses GitHub Actions matrix builds to cover many combinations of PyTorch, CUDA, and Python versions.
+Pre-built Python wheel distribution for Flash Attention (v2/v3) across multiple platforms (Linux x86_64, Linux ARM64, Windows), plus ROCm (AMD GPU) wheels for Linux x86_64. Uses GitHub Actions matrix builds to cover many combinations of PyTorch, CUDA / ROCm, and Python versions.
 
 ## Architecture
 
@@ -12,13 +12,14 @@ Pre-built Python wheel distribution for Flash Attention (v2/v3) across multiple 
 
 1. **`create_matrix.py`** — Generates JSON matrices of all build combinations (flash-attn, python, torch, cuda versions). Each platform matrix can be individually toggled `False` in `main()` to skip; the combined `exclude` list is `EXCLUDE` from `scripts/coverage_matrix.py` plus optional inline excludes for already-released cells.
 2. **`build_linux.sh` / `build_windows.ps1`** — Builds a wheel for one combination (args: `<flash-attn-version> <python-version> <torch-version> <cuda-version>`). FA3 paths overlay `patches/fa3/setup_linux.py` (Linux) or `patches/fa3/setup_windows.py` (Windows) onto the upstream clone before invoking `python setup.py bdist_wheel`.
+   - **`build_linux_rocm.sh`** — ROCm counterpart (args: `... <rocm-version>`), FA2 only. Installs torch from `download.pytorch.org/whl/rocm<ver>`, sets `BUILD_TARGET=rocm` and `GPU_ARCHS` (default `gfx90a;gfx942;gfx950`, all in one wheel), and labels the wheel `rocm<ver>torch<major.minor>`. Shares no code with `build_linux.sh`; `MAX_JOBS` is the only parallelism knob (upstream's ROCm branch ignores `NVCC_THREADS`).
 3. **`.github/actions/build-and-upload/action.yml`** — Composite action: restore build cache → build → test (`import flash_attn`) → upload → `auditwheel repair` → manylinux test & upload. Cap + cache save logic gated by the `use-build-cache` input.
 
 ### CI/CD Workflow Structure
 
 - **`build.yml`** — Main workflow. Triggered by `v*` tag push. Creates release → generates matrix → parallel builds (7 job types) → updates release notes & docs.
 - **`test-build.yml`** — Manual `workflow_dispatch` for individual platform test builds. Forces `is-upload: false`.
-- **`_build_*.yml`** — Reusable workflows per runner type (Linux hosted/self-hosted/no-container, Windows hosted/self-hosted/CodeBuild, Linux ARM hosted/self-hosted/no-container).
+- **`_build_*.yml`** — Reusable workflows per runner type (Linux hosted/self-hosted/no-container, Windows hosted/self-hosted/CodeBuild, Linux ARM hosted/self-hosted/no-container, Linux ROCm self-hosted/no-container via `mjun0812/setup-rocm`). `_build_linux_rocm.yml` also logs build-time and disk measurements and uploads the wheel as a job artifact; one ROCm cell takes ~2h50m on the 32-thread self-hosted runner and ~7h20m on the 16-thread one.
 
 ### GitHub-hosted Resumable Build Cache (retry mechanism)
 
@@ -35,7 +36,7 @@ Typical run-to-completion: attempt 1 caps and saves cache → `gh run rerun <run
 ### Scripts (`scripts/`)
 
 - **`common.py`** — Shared utilities (wheel filename parsing, version extraction).
-- **`coverage_matrix.py`** — Single source of truth for `TORCH_SUPPORT_CUDA_VERSIONS`, `TORCH_SUPPORT_PYTHON_VERSIONS`, `EXCLUDE` (incompatible torch×cuda / torch×python combinations and FA3 free-threaded exclusions).
+- **`coverage_matrix.py`** — Single source of truth for `TORCH_SUPPORT_CUDA_VERSIONS`, `TORCH_SUPPORT_ROCM_VERSIONS`, `TORCH_SUPPORT_PYTHON_VERSIONS`, `EXCLUDE` (CUDA jobs: incompatible torch×cuda / torch×python combinations and FA3 free-threaded exclusions) and `EXCLUDE_ROCM` (the ROCm job: torch×rocm plus the shared entries). ROCm matrices use a `rocm-version` axis instead of `cuda-version`; the coverage key is `linux_rocm`.
 - **`release/`** — Generates Markdown for release notes, release history, and package lists.
 - **`maintenance/update_readme_coverage.py`** — Updates coverage badges and tables in README.
 - **`tools/check_missing_packages.py`** — Prints per-platform coverage tables (✓/✗/-) by hitting the GitHub Releases API.
@@ -60,7 +61,10 @@ Typical run-to-completion: attempt 1 caps and saves cache → `gh run rerun <run
 
 ```text
 flash_attn-{version}+cu{cuda}torch{pytorch}-cp{python}-cp{python}-{platform}.whl
+flash_attn-{version}+rocm{rocm}torch{pytorch}-cp{python}-cp{python}-linux_x86_64.whl   # ROCm; keeps the dot (rocm7.2), see ADR 0002
 ```
+
+`scripts/common.parse_wheel_filename` returns `accelerator` (`cuda` / `rocm`) and `accelerator_version`; ROCm wheels are shown as the separate platform "Linux x86_64 (ROCm)".
 
 ## Common Commands
 
@@ -70,6 +74,9 @@ uv run --python 3.14 --script create_matrix.py | python3 -m json.tool
 
 # Linux build (requires CUDA environment)
 ./build_linux.sh <flash-attn-version> <python-version> <torch-version> <cuda-version>
+
+# Linux ROCm build (requires hipcc on PATH; mjun0812/setup-rocm in CI)
+./build_linux_rocm.sh <flash-attn-version> <python-version> <torch-version> <rocm-version>
 
 # Release & doc generation (project root)
 python -m scripts.release.create_release_note
@@ -89,7 +96,7 @@ gh run rerun <run_id> --failed
 
 ## Key Conventions
 
-- Adding a new version requires updating both `create_matrix.py` (matrix definitions) **and** `scripts/coverage_matrix.py` (`TORCH_SUPPORT_*` tables + `EXCLUDE` rules).
+- Adding a new version requires updating both `create_matrix.py` (matrix definitions) **and** `scripts/coverage_matrix.py` (`TORCH_SUPPORT_*` tables + `EXCLUDE` rules). For ROCm, `LINUX_ROCM_MATRIX` in both files and `TORCH_SUPPORT_ROCM_VERSIONS`; `linux_rocm` in `create_matrix.main()` is toggled per release like the other platforms.
 - Build resources (`MAX_JOBS`, `NVCC_THREADS`) are auto-calculated from CPU/RAM in `build_linux.sh`.
 - FA3 builds replace the upstream `hopper/setup.py` with `patches/fa3/setup_linux.py` / `setup_windows.py` (full file copy, not a patch).
 - Cache key prefix is `fa-build-cache-`; the toolchain/script fingerprint in the key already prevents restoring incompatible caches on a layout change (added/removed paths under `~/.fa-build-cache/`).
