@@ -153,6 +153,21 @@ jobs:
           pip install --no-cache-dir ${{ steps.build_wheels.outputs.WHEEL_PATH }}
           python -c "import flash_attn; from importlib.metadata import version; print(version('flash-attn'))"
 
+      - name: Upload Release Asset
+        if: ${{ inputs.is-upload }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag_name=${{ github.ref_name }}
+          wheel_path="${{ steps.build_wheels.outputs.WHEEL_PATH }}"
+          # Check if the file exists
+          if [ ! -f "$wheel_path" ]; then
+            echo "Error: Wheel file not found at $wheel_path"
+            exit 1
+          fi
+          # Upload the release asset using GitHub CLI
+          gh release upload "$tag_name" "$wheel_path" --clobber
+
       # Cleanup step - always runs even if previous steps fail
       - name: Cleanup (always run)
         if: always()

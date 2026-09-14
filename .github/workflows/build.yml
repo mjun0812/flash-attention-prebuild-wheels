@@ -170,6 +170,28 @@ jobs:
       runner: '["self-hosted-arm", "arm64"]'
     secrets: inherit
 
+  # ################ Self-hosted runner (ROCm, no container) ################
+  build_wheels_linux_rocm:
+    name: Build Linux ROCm (self-hosted, no container)
+    needs: [create_releases, create_matrix]
+    if: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_rocm }}
+    strategy:
+      fail-fast: false
+      matrix:
+        flash-attn-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_rocm.flash-attn-version }}
+        python-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_rocm.python-version }}
+        torch-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_rocm.torch-version }}
+        rocm-version: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_rocm.rocm-version }}
+        exclude: ${{ fromjson(needs.create_matrix.outputs.matrix).exclude_rocm }}
+    uses: ./.github/workflows/_build_linux_rocm.yml
+    with:
+      flash-attn-version: ${{ matrix.flash-attn-version }}
+      python-version: ${{ matrix.python-version }}
+      torch-version: ${{ matrix.torch-version }}
+      rocm-version: ${{ matrix.rocm-version }}
+      runner: '["self-hosted", "Linux", "x64"]'
+    secrets: inherit
+
   # #########################################################
   # Windows
   # #########################################################
@@ -249,6 +271,7 @@ jobs:
       - build_wheels_linux_arm64_self_hosted
       - build_wheels_linux_no_container
       - build_wheels_linux_arm64_no_container
+      - build_wheels_linux_rocm
       - build_wheels_windows
       - build_wheels_windows_code_build
       - build_wheels_windows_self_hosted
@@ -277,6 +300,7 @@ jobs:
       - build_wheels_linux_arm64_self_hosted
       - build_wheels_linux_no_container
       - build_wheels_linux_arm64_no_container
+      - build_wheels_linux_rocm
       - build_wheels_windows
       - build_wheels_windows_code_build
       - build_wheels_windows_self_hosted
