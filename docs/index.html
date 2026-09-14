@@ -573,7 +573,9 @@
         const REPO_OWNER = 'mjun0812';
         const REPO_NAME = 'flash-attention-prebuild-wheels';
         const API_BASE = 'https://api.github.com';
-        const CACHE_KEY = 'flash-attn-wheels-cache';
+        // v2: cached records carry accelerator / accelVersion. Entries written by the
+        // previous page version (cudaVersion only) live under the old key and are ignored.
+        const CACHE_KEY = 'flash-attn-wheels-cache-v2';
         const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
         const FALLBACK_RELEASES_URL = 'data/releases.json';
         const ITEMS_PER_PAGE = 50;
@@ -806,6 +808,8 @@
 
         // Load data with caching
         async function loadData(forceRefresh = false) {
+            localStorage.removeItem('flash-attn-wheels-cache'); // pre-v2 cache
+
             // Check cache
             if (!forceRefresh) {
                 const cached = localStorage.getItem(CACHE_KEY);
