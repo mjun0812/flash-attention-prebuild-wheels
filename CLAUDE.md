@@ -12,7 +12,7 @@ Pre-built Python wheel distribution for Flash Attention (v2/v3) across multiple 
 
 1. **`create_matrix.py`** — Generates JSON matrices of all build combinations (flash-attn, python, torch, cuda versions). Each platform matrix can be individually toggled `False` in `main()` to skip; the combined `exclude` list is `EXCLUDE` from `scripts/coverage_matrix.py` plus optional inline excludes for already-released cells.
 2. **`build_linux.sh` / `build_windows.ps1`** — Builds a wheel for one combination (args: `<flash-attn-version> <python-version> <torch-version> <cuda-version>`). FA3 paths overlay `patches/fa3/setup_linux.py` (Linux) or `patches/fa3/setup_windows.py` (Windows) onto the upstream clone before invoking `python setup.py bdist_wheel`.
-   - **`build_linux_rocm.sh`** — ROCm counterpart (args: `... <rocm-version>`), FA2 only. Installs torch from `download.pytorch.org/whl/rocm<ver>`, sets `BUILD_TARGET=rocm` and `GPU_ARCHS` (default `gfx90a;gfx942;gfx950`, all in one wheel), and labels the wheel `rocm<ver>torch<major.minor>`. Shares no code with `build_linux.sh`; `MAX_JOBS` is the only parallelism knob (upstream's ROCm branch ignores `NVCC_THREADS`).
+   - **`build_linux_rocm.sh`** — ROCm counterpart (args: `... <rocm-version>`), FA2 only. Installs torch from `download.pytorch.org/whl/rocm<ver>`, sets `BUILD_TARGET=rocm` and `GPU_ARCHS` (default `gfx90a;gfx942;gfx950`, all in one wheel; `create_matrix.py`'s `LINUX_ROCM_MATRIX["gpu-archs"]` overrides it for release builds and must match the pinned version's `allowed_archs`), and labels the wheel `rocm<ver>torch<major.minor>`. Shares no code with `build_linux.sh`; `MAX_JOBS` is the only parallelism knob (upstream's ROCm branch ignores `NVCC_THREADS`).
 3. **`.github/actions/build-and-upload/action.yml`** — Composite action: restore build cache → build → test (`import flash_attn`) → upload → `auditwheel repair` → manylinux test & upload. Cap + cache save logic gated by the `use-build-cache` input.
 
 ### CI/CD Workflow Structure
@@ -96,7 +96,7 @@ gh run rerun <run_id> --failed
 
 ## Key Conventions
 
-- Adding a new version requires updating both `create_matrix.py` (matrix definitions) **and** `scripts/coverage_matrix.py` (`TORCH_SUPPORT_*` tables + `EXCLUDE` rules). For ROCm, `LINUX_ROCM_MATRIX` in both files and `TORCH_SUPPORT_ROCM_VERSIONS`; `linux_rocm` in `create_matrix.main()` is toggled per release like the other platforms.
+- Adding a new version requires updating both `create_matrix.py` (matrix definitions) **and** `scripts/coverage_matrix.py` (`TORCH_SUPPORT_*` tables + `EXCLUDE` rules). For ROCm, `LINUX_ROCM_MATRIX` in both files and `TORCH_SUPPORT_ROCM_VERSIONS`; `linux_rocm` in `create_matrix.main()` is toggled per release like the other platforms. `LINUX_ROCM_MATRIX["gpu-archs"]` (create_matrix.py only) is a scalar, not an axis: every cell of the ROCm job bundles that same target set into one wheel.
 - Build resources (`MAX_JOBS`, `NVCC_THREADS`) are auto-calculated from CPU/RAM in `build_linux.sh`.
 - FA3 builds replace the upstream `hopper/setup.py` with `patches/fa3/setup_linux.py` / `setup_windows.py` (full file copy, not a patch).
 - Cache key prefix is `fa-build-cache-`; the toolchain/script fingerprint in the key already prevents restoring incompatible caches on a layout change (added/removed paths under `~/.fa-build-cache/`).

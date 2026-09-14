@@ -40,6 +40,11 @@ on:
         required: false
         type: string
         default: "auto"
+      gpu-archs:
+        description: "Semicolon-separated GPU targets bundled into the wheel (empty: build_linux_rocm.sh default)"
+        required: false
+        type: string
+        default: ""
       runner:
         description: "Runner type"
         required: false
@@ -109,8 +114,11 @@ jobs:
         run: |
           echo "BUILD_STARTED_AT=$(date +%s)" >> $GITHUB_ENV
 
-      # build_linux_rocm.sh prints the resolved MAX_JOBS and GPU_ARCHS
+      # build_linux_rocm.sh prints the resolved MAX_JOBS and GPU_ARCHS; an empty
+      # GPU_ARCHS falls back to the script's default
       - name: Build wheels
+        env:
+          GPU_ARCHS: ${{ inputs.gpu-archs }}
         run: |
           chmod +x build_linux_rocm.sh
           ./build_linux_rocm.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.rocm-version }}

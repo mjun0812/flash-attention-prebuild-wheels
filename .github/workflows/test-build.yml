@@ -59,6 +59,11 @@ on:
         required: false
         default: "auto"
         type: string
+      gpu-archs:
+        description: "Semicolon-separated GPU targets bundled into the ROCm wheel (empty: build_linux_rocm.sh default)"
+        required: false
+        default: ""
+        type: string
       max-jobs:
         description: "MAX_JOBS (optional, overrides auto-detection)"
         required: false
@@ -135,6 +140,7 @@ jobs:
       torch-version: ${{ inputs.torch-version }}
       rocm-version: ${{ inputs.rocm-version }}
       rocm-install-method: ${{ inputs.rocm-install-method }}
+      gpu-archs: ${{ inputs.gpu-archs }}
       is-upload: false
       runner: '["self-hosted", "Linux", "x64"]'
 

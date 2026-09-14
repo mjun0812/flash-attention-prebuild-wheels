@@ -227,6 +227,12 @@ LINUX_ARM64_NO_CONTAINER_MATRIX = {
 # ROCm (AMD GPU) wheels on the self-hosted no-container runner. FA2 only; the
 # accelerator axis is rocm-version and its exclude list is EXCLUDE_ROCM. One
 # cell takes about 2h50m on the 32-thread runner and 7h20m on the 16-thread one.
+#
+# "gpu-archs" is not a matrix axis: every cell of this matrix bundles the same
+# set of GPU targets into one wheel (device code is generated once per arch,
+# so build time scales with the number of entries). It must stay within the
+# allowed_archs of the pinned flash-attn version; 2.8.3 allows exactly these
+# three, upstream main also allows the RDNA gfx11xx / gfx12xx targets.
 LINUX_ROCM_MATRIX = {
     "flash-attn-version": [
         "2.8.3",
@@ -247,6 +253,7 @@ LINUX_ROCM_MATRIX = {
         "7.2",
         # "7.14",
     ],
+    "gpu-archs": "gfx90a;gfx942;gfx950",
 }
 
 WINDOWS_MATRIX = {

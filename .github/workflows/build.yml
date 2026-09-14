@@ -189,6 +189,7 @@ jobs:
       python-version: ${{ matrix.python-version }}
       torch-version: ${{ matrix.torch-version }}
       rocm-version: ${{ matrix.rocm-version }}
+      gpu-archs: ${{ fromjson(needs.create_matrix.outputs.matrix).linux_rocm.gpu-archs }}
       runner: '["self-hosted", "Linux", "x64"]'
     secrets: inherit
 
