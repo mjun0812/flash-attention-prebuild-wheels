@@ -8,7 +8,7 @@
 
 This script generates markdown release notes from a GitHub release assets JSON file.
 It extracts version information from wheel filenames and creates a formatted table
-showing supported Flash-Attention, Python, PyTorch, and CUDA versions for each platform.
+showing supported Flash-Attention, Python, PyTorch, and CUDA / ROCm versions for each platform.
 
 Usage:
     python create_release_note.py <assets.json>
@@ -58,16 +58,16 @@ def generate_release_notes(assets: list[dict]) -> str:
 
         notes.append(f"## {platform_name}")
         notes.append("")
-        notes.append("| Flash-Attention | Python | PyTorch | CUDA |")
+        notes.append("| Flash-Attention | Python | PyTorch | CUDA / ROCm |")
         notes.append("| --- | --- | --- | --- |")
 
         flash_versions = format_versions(data["flash_versions"])
         python_versions = format_versions(data["python_versions"])
         torch_versions = format_versions(data["torch_versions"])
-        cuda_versions = format_versions(data["cuda_versions"])
+        accelerator_versions = format_versions(data["accelerator_versions"])
 
         notes.append(
-            f"| {flash_versions} | {python_versions} | {torch_versions} | {cuda_versions} |"
+            f"| {flash_versions} | {python_versions} | {torch_versions} | {accelerator_versions} |"
         )
         notes.append("")
 

@@ -66,7 +66,7 @@ def render_body_from_versions(
             [
                 f"#### {platform}",
                 "",
-                "| Flash-Attention | Python | PyTorch | CUDA |",
+                "| Flash-Attention | Python | PyTorch | CUDA / ROCm |",
                 "| --- | --- | --- | --- |",
                 "| "
                 + " | ".join(
@@ -74,7 +74,7 @@ def render_body_from_versions(
                         format_versions(data["flash_versions"]),
                         format_versions(data["python_versions"]),
                         format_versions(data["torch_versions"]),
-                        format_versions(data["cuda_versions"]),
+                        format_versions(data["accelerator_versions"]),
                     ]
                 )
                 + " |",

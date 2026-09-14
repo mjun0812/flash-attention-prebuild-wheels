@@ -1,6 +1,6 @@
 import json
 
-from scripts.coverage_matrix import EXCLUDE
+from scripts.coverage_matrix import EXCLUDE, EXCLUDE_ROCM
 
 FA3_COMMIT = "fa3:e2743ab5b3803bb672b16437ba98a3b1d4576c50"
 
@@ -224,6 +224,31 @@ LINUX_ARM64_NO_CONTAINER_MATRIX = {
     ],
 }
 
+# ROCm (AMD GPU) wheels on the self-hosted no-container runner. FA2 only; the
+# accelerator axis is rocm-version and its exclude list is EXCLUDE_ROCM. One
+# cell takes about 2h50m on the 32-thread runner and 7h20m on the 16-thread one.
+LINUX_ROCM_MATRIX = {
+    "flash-attn-version": [
+        "2.8.3",
+    ],
+    "python-version": [
+        "3.10",
+        "3.11",
+        "3.12",
+        "3.13",
+        "3.14",
+    ],
+    "torch-version": [
+        # "2.13.0",
+        "2.14.0",
+    ],
+    "rocm-version": [
+        # "7.1",
+        "7.2",
+        # "7.14",
+    ],
+}
+
 WINDOWS_MATRIX = {
     "flash-attn-version": [
         "2.8.3",
@@ -347,6 +372,9 @@ def main():
                 "linux_arm64_no_container": False,
                 # "linux_arm64_no_container": LINUX_ARM64_NO_CONTAINER_MATRIX,
                 #
+                "linux_rocm": False,
+                # "linux_rocm": LINUX_ROCM_MATRIX,
+                #
                 # "windows": False,
                 "windows": WINDOWS_MATRIX,
                 #
@@ -357,6 +385,7 @@ def main():
                 # "windows_code_build": WINDOWS_CODEBUILD_MATRIX,
                 #
                 "exclude": EXCLUDE + FA3_SINGLE_PYTHON_EXCLUDE,
+                "exclude_rocm": EXCLUDE_ROCM,
             }
         )
     )

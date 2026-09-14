@@ -22,6 +22,7 @@ on:
           - linux-x64-github-hosted
           - linux-x64-self-hosted
           - linux-x64-no-container
+          - linux-x64-rocm-no-container
           - linux-arm64
           - linux-arm64-self-hosted
           - linux-arm64-no-container
@@ -47,6 +48,16 @@ on:
         description: "CUDA version"
         required: true
         default: "12.8.1"
+        type: string
+      rocm-version:
+        description: "ROCm version (only used by linux-x64-rocm-no-container)"
+        required: false
+        default: "7.2"
+        type: string
+      rocm-install-method:
+        description: "ROCm install method (auto, package-manager, runfile, pip)"
+        required: false
+        default: "auto"
         type: string
       max-jobs:
         description: "MAX_JOBS (optional, overrides auto-detection)"
@@ -109,6 +120,21 @@ jobs:
       python-version: ${{ inputs.python-version }}
       torch-version: ${{ inputs.torch-version }}
       cuda-version: ${{ inputs.cuda-version }}
+      is-upload: false
+      runner: '["self-hosted", "Linux", "x64"]'
+
+  # #########################################################
+  # Linux x86_64 ROCm self-hosted runner (no container)
+  # #########################################################
+  linux-x64-rocm-no-container:
+    if: inputs.platform == 'linux-x64-rocm-no-container'
+    uses: ./.github/workflows/_build_linux_rocm.yml
+    with:
+      flash-attn-version: ${{ inputs.flash-attn-version }}
+      python-version: ${{ inputs.python-version }}
+      torch-version: ${{ inputs.torch-version }}
+      rocm-version: ${{ inputs.rocm-version }}
+      rocm-install-method: ${{ inputs.rocm-install-method }}
       is-upload: false
       runner: '["self-hosted", "Linux", "x64"]'
 
