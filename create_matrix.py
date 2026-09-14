@@ -230,6 +230,7 @@ LINUX_ARM64_NO_CONTAINER_MATRIX = {
 LINUX_ROCM_MATRIX = {
     "flash-attn-version": [
         "2.8.3",
+        # "fa2:<commit>",  # pin an upstream commit (e.g. main for RDNA support)
     ],
     "python-version": [
         "3.10",

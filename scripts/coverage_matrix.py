@@ -84,6 +84,11 @@ TORCH_EXPERIMENTAL_FREE_THREADED_PYTHON_VERSIONS = {
 # platform matrix therefore represents one wheel across all regular Python
 # versions; free-threaded builds (e.g., "3.14t") are not covered.
 FA3_VERSION_PREFIX = "fa3:"
+# "fa2:<commit>" pins an upstream commit for an FA2 build instead of a release
+# tag (for changes that are on main but not yet released, e.g. RDNA support in
+# the ROCm backend). Such wheels carry a git<hash> suffix in the local version
+# and are per-Python like any other FA2 wheel; check_missing_packages keys them
+# as "fa2:<short-hash>".
 
 
 def is_fa3_version(flash_version: str) -> bool:

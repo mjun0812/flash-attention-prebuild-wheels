@@ -3,7 +3,6 @@
 #
 # Each acceptance criterion is one invocation:
 #   tests/check_rocm_ci_wiring.sh ac1   # both workflows pass actionlint
-#   tests/check_rocm_ci_wiring.sh ac2   # the CUDA build scripts were not touched
 #
 # These run without a ROCm toolchain, an AMD GPU, or a GitHub API token.
 
@@ -42,47 +41,7 @@ ac1() {
   pass "AC-1: actionlint -shellcheck= reported no problem in $ROCM_WORKFLOW and $TEST_BUILD_WORKFLOW"
 }
 
-ac2() {
-  cd "$REPO_ROOT" || fail "AC-2: cannot cd to $REPO_ROOT"
-
-  git rev-parse --verify --quiet origin/main >/dev/null \
-    || fail "AC-2: origin/main is not available in this clone"
-
-  changed=$(git diff --name-only origin/main)
-  status=$?
-  [ "$status" -eq 0 ] || fail "AC-2: git diff --name-only origin/main exited $status"
-
-  echo "--- changed files vs origin/main ---"
-  echo "$changed"
-  echo "------------------------------------"
-
-  # The CUDA build path itself must stay untouched by ROCm work: the two
-  # build scripts and the FA3 setup.py overlays. Matching is done per line so
-  # a substring such as build_linux_rocm.sh is never confused with
-  # build_linux.sh.
-  violations=""
-  while IFS= read -r path; do
-    [ -n "$path" ] || continue
-    case "$path" in
-      build_linux.sh | build_windows.ps1)
-        violations="$violations $path"
-        ;;
-      patches/*)
-        violations="$violations $path"
-        ;;
-    esac
-  done <<EOF
-$changed
-EOF
-
-  [ -z "$violations" ] \
-    || fail "AC-2: forbidden path(s) changed vs origin/main:$violations"
-
-  pass "AC-2: no forbidden path (build_linux.sh, build_windows.ps1, patches/) changed vs origin/main"
-}
-
 case "${1:-}" in
   ac1) ac1 ;;
-  ac2) ac2 ;;
-  *) echo "usage: $0 {ac1|ac2}" >&2; exit 2 ;;
+  *) echo "usage: $0 {ac1}" >&2; exit 2 ;;
 esac

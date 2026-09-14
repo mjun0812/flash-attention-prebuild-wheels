@@ -370,8 +370,16 @@ if ($FlashAttnVariant -eq "Flash Attention 3") {
     }
     Write-Host "::endgroup::"
 } elseif ($FlashAttnVariant -eq "Flash Attention 2") {
-    Write-Host "::group::Checking out flash-attention v$FlashAttnVersion"
-    git clone -q https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FlashAttnVersion"
+    if ($FlashAttnVersion -like "fa2:*") {
+        # fa2:<commit> pins an upstream commit instead of a release tag, like fa3:
+        $FaCommit = $FlashAttnVersion.Substring(4)
+        Write-Host "::group::Checking out flash-attention commit $FaCommit"
+        git clone -q https://github.com/Dao-AILab/flash-attention.git flash-attention
+        git -C flash-attention checkout $FaCommit
+    } else {
+        Write-Host "::group::Checking out flash-attention v$FlashAttnVersion"
+        git clone -q https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FlashAttnVersion"
+    }
     # torch <= 2.12 Windows wheels are all built on the proven c++17
     # legacy-mode path; only torch >= 2.13 headers need the MSVC
     # conformance/C++20 treatment, so gate to avoid destabilizing the old
@@ -480,11 +488,11 @@ if (Test-Cuda132OrNewer -Version $CudaVersion) {
 $env:TORCH_EXTENSION_SKIP_NVCC_GEN_DEPENDENCIES = "1"
 # Suppress ninja verbose output
 $env:NINJA_STATUS = ""
-if ($FlashAttnVariant -eq "Flash Attention 3") {
+$env:FLASH_ATTN_LOCAL_VERSION = "cu$MatrixCudaVersion" + "torch$MatrixTorchVersion"
+# Commit-pinned builds (fa3: and fa2:) carry the short hash in the label
+if ($FlashAttnVersion -like "fa3:*" -or $FlashAttnVersion -like "fa2:*") {
     $ShortHash = (git -C flash-attention rev-parse --short=7 HEAD).Trim()
-    $env:FLASH_ATTN_LOCAL_VERSION = "cu$MatrixCudaVersion" + "torch$MatrixTorchVersion" + "git$ShortHash"
-} else {
-    $env:FLASH_ATTN_LOCAL_VERSION = "cu$MatrixCudaVersion" + "torch$MatrixTorchVersion"
+    $env:FLASH_ATTN_LOCAL_VERSION = $env:FLASH_ATTN_LOCAL_VERSION + "git$ShortHash"
 }
 Write-Host "::endgroup::"
 

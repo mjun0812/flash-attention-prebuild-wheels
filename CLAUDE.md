@@ -54,7 +54,7 @@ Typical run-to-completion: attempt 1 caps and saves cache → `gh run rerun <run
 
 ### Version Detection
 
-- FA2: Plain version strings like `"2.6.3"`, `"2.7.4"`, `"2.8.3"`.
+- FA2: Plain version strings like `"2.6.3"`, `"2.7.4"`, `"2.8.3"` (release tags), or `"fa2:<commit-hash>"` to pin an upstream commit (e.g. main for changes not yet released). Commit-pinned FA2 wheels get a `git<short-hash>` local version suffix like FA3 and are otherwise ordinary per-Python FA2 wheels; the coverage tooling keys them as `fa2:<short-hash>`.
 - FA3: Distinguished by `"fa3:<commit-hash>"` prefix. FA3 wheels are abi3 (`cp39-abi3`) — one build covers all non-FT pythons.
 
 ### Wheel Naming Convention

@@ -173,22 +173,22 @@ def normalize_platform_for_comparison(
         return platform_lower
 
 
-def normalize_fa3_version(version: str) -> str:
-    """Normalize FA3 version string for comparison.
+def normalize_pinned_version(version: str) -> str:
+    """Normalize a commit-pinned version string for comparison.
 
-    For FA3 entries in the matrix (e.g., "fa3:bb0656c42a3bc0e88..."), extract
-    the short git hash (first 7 chars) to match what appears in wheel filenames.
+    For commit-pinned entries in the matrix ("fa3:bb0656c42a3bc0e88..." or
+    "fa2:1f7ce2f..."), keep the prefix and shorten the hash to the 7 chars
+    that appear in wheel filenames (the git<hash> local version suffix).
 
     Args:
-        version: Flash-attn version string, possibly with "fa3:" prefix.
+        version: Flash-attn version string, possibly with a "fa3:" / "fa2:" prefix.
 
     Returns:
-        Normalized version string. FA3 versions are shortened to "fa3:{7-char-hash}".
-        Non-FA3 versions are returned unchanged.
+        "fa3:{7-char-hash}" / "fa2:{7-char-hash}", or the version unchanged.
     """
-    if version.startswith("fa3:"):
-        commit = version[4:]
-        return f"fa3:{commit[:7]}"
+    for prefix in ("fa3:", "fa2:"):
+        if version.startswith(prefix):
+            return f"{prefix}{version[len(prefix) :][:7]}"
     return version
 
 
@@ -197,8 +197,9 @@ def build_existing_packages_set(
 ) -> dict[str, set[tuple[str, str, str, str]]]:
     """Build a set of existing packages grouped by normalized platform.
 
-    For flash_attn_3 wheels, the comparison key uses "fa3:{short_git_hash}" format
-    to match the matrix definition style.
+    Commit-pinned wheels carry a git<hash> suffix in the local version; their
+    comparison key is "fa3:{short_git_hash}" (flash_attn_3) or
+    "fa2:{short_git_hash}" (flash_attn) to match the matrix definition style.
 
     For abi3 wheels (e.g., cp39-abi3), a single wheel covers all Python versions
     >= the minimum. These are expanded to all Python versions defined in the
@@ -226,10 +227,11 @@ def build_existing_packages_set(
         if platform not in packages:
             continue
 
-        # For FA3 wheels, use "fa3:{git_hash}" as the version key to match
-        # the matrix definition format (e.g., "fa3:bb0656c...")
-        if info["package_name"] == "flash_attn_3" and info.get("git_hash"):
-            flash_version_key = f"fa3:{info['git_hash']}"
+        # Commit-pinned wheels key by prefix + hash to match the matrix
+        # definition format (e.g., "fa3:bb0656c...", "fa2:1f7ce2f...")
+        if info.get("git_hash"):
+            prefix = "fa3:" if info["package_name"] == "flash_attn_3" else "fa2:"
+            flash_version_key = f"{prefix}{info['git_hash']}"
         else:
             flash_version_key = info["flash_version"]
 
@@ -284,8 +286,8 @@ def create_status_table(
     missing_count = 0
     excluded_count = 0
 
-    # Normalize FA3 version for comparison with existing packages
-    flash_version_key = normalize_fa3_version(flash_version)
+    # Normalize commit-pinned versions for comparison with existing packages
+    flash_version_key = normalize_pinned_version(flash_version)
 
     visible_columns: list[tuple[str, str, str]] = []
     for torch in torch_versions:
@@ -392,7 +394,7 @@ def display_platform_tables(
 
         # Collect missing packages for summary
         if missing > 0:
-            flash_version_key = normalize_fa3_version(flash_version)
+            flash_version_key = normalize_pinned_version(flash_version)
             accelerator = get_matrix_accelerator(matrix)
             for python in matrix.get("python-version", []):
                 for torch in matrix.get("torch-version", []):

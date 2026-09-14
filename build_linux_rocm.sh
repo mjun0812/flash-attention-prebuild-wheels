@@ -47,8 +47,16 @@ python -c "import torch; print('PyTorch:', torch.__version__)"
 python -c "import torch; print('HIP:', torch.version.hip)"
 
 # Checkout flash-attn
-echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
-git clone https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FLASH_ATTN_VERSION"
+if [[ "$FLASH_ATTN_VERSION" == fa2:* ]]; then
+  # fa2:<commit> pins an upstream commit instead of a release tag, like fa3:
+  FA_COMMIT="${FLASH_ATTN_VERSION#fa2:}"
+  echo "Checking out flash-attention commit ${FA_COMMIT}..."
+  git clone https://github.com/Dao-AILab/flash-attention.git flash-attention
+  git -C flash-attention checkout "$FA_COMMIT"
+else
+  echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
+  git clone https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FLASH_ATTN_VERSION"
+fi
 if fa2_needs_cxx20 "$MATRIX_TORCH_VERSION"; then
   if [ "$(grep -c -- '-std=c++17' flash-attention/setup.py)" -eq 0 ]; then
     echo "-std=c++17 not found in flash-attention/setup.py; upstream setup.py may have changed"
@@ -81,6 +89,10 @@ echo "  MAX_JOBS: $MAX_JOBS"
 echo "Building wheels..."
 GPU_ARCHS="${GPU_ARCHS:-gfx90a;gfx942;gfx950}"
 LOCAL_VERSION_LABEL="rocm${ROCM_VERSION}torch${MATRIX_TORCH_VERSION}"
+# Commit-pinned builds carry the short hash in the label, like fa3: does
+if [[ "$FLASH_ATTN_VERSION" == fa2:* ]]; then
+  LOCAL_VERSION_LABEL="${LOCAL_VERSION_LABEL}git$(git -C flash-attention rev-parse --short=7 HEAD)"
+fi
 echo "  GPU_ARCHS: $GPU_ARCHS"
 echo "  Local version label: $LOCAL_VERSION_LABEL"
 cd flash-attention

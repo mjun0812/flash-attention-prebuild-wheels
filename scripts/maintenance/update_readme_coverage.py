@@ -35,7 +35,7 @@ from scripts.coverage_matrix import (
 from scripts.tools.check_missing_packages import (
     build_existing_packages_set,
     load_or_fetch_assets,
-    normalize_fa3_version,
+    normalize_pinned_version,
 )
 
 REPO = "mjun0812/flash-attention-prebuild-wheels"
@@ -71,7 +71,7 @@ def calc_platform_stats(
 
     for flash, python, torch, accel_version in combinations:
         torch_minor = normalize_torch_version(torch)
-        flash_key = normalize_fa3_version(flash)
+        flash_key = normalize_pinned_version(flash)
         if is_excluded_combination(flash, python, torch, accel_version, accelerator):
             excluded += 1
         elif (flash_key, python, torch_minor, accel_version) in existing_set:
