@@ -27,6 +27,7 @@ if __package__ is None or __package__ == "":
 
 from scripts.coverage_matrix import (
     generate_expected_matrix,
+    get_matrix_accelerator,
     get_platform_matrix,
     is_excluded_combination,
     normalize_torch_version,
@@ -40,6 +41,7 @@ from scripts.tools.check_missing_packages import (
 REPO = "mjun0812/flash-attention-prebuild-wheels"
 PLATFORMS = {
     "linux": "Linux x86_64",
+    "linux_rocm": "Linux x86_64 (ROCm)",
     "linux_arm64": "Linux ARM64",
     "windows": "Windows",
 }
@@ -61,17 +63,18 @@ def calc_platform_stats(
 
     existing_set = existing_packages.get(platform, set())
     combinations = generate_expected_matrix(matrix)
+    accelerator = get_matrix_accelerator(matrix)
 
     existing = 0
     missing = 0
     excluded = 0
 
-    for flash, python, torch, cuda in combinations:
+    for flash, python, torch, accel_version in combinations:
         torch_minor = normalize_torch_version(torch)
         flash_key = normalize_fa3_version(flash)
-        if is_excluded_combination(flash, python, torch, cuda):
+        if is_excluded_combination(flash, python, torch, accel_version, accelerator):
             excluded += 1
-        elif (flash_key, python, torch_minor, cuda) in existing_set:
+        elif (flash_key, python, torch_minor, accel_version) in existing_set:
             existing += 1
         else:
             missing += 1

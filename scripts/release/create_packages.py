@@ -52,10 +52,10 @@ from scripts.common import (
     get_os_emoji,
     get_tag_from_url,
     load_assets_json,
-    normalize_platform_name,
     normalize_semantic_version,
     parse_numeric_version,
     parse_wheel_filename,
+    platform_display_name,
 )
 
 ADD_NOTE = """> [!NOTE]
@@ -69,6 +69,11 @@ ADD_NOTE = """> [!NOTE]
 > [!NOTE]
 > Since v0.5.0, wheels are built with a local version label indicating the CUDA and PyTorch versions.
 > Example: `pip list` -> `flash_attn==2.8.3 -> flash_attn==2.8.3+cu130torch2.9`
+
+> [!NOTE]
+> ROCm (AMD GPU) wheels for Linux x86_64 are listed under "Linux x86_64 (ROCm)".
+> Their local version label is `+rocm[ROCm Version]torch[PyTorch Version]` and the
+> "CUDA / ROCm" column shows the ROCm version. They bundle kernels for gfx90a, gfx942 and gfx950.
 """
 
 
@@ -109,8 +114,12 @@ def extract_packages_from_packages_md(packages_md_path: Path) -> list[dict]:
             in_table = False
             continue
 
-        # Detect table start
-        if "| Python | PyTorch | CUDA | package |" in line_stripped:
+        # Detect table start. Files written before the ROCm wheels existed use
+        # "CUDA" as the header; keep reading them so their rows are not lost.
+        if (
+            "| Python | PyTorch | CUDA / ROCm | package |" in line_stripped
+            or "| Python | PyTorch | CUDA | package |" in line_stripped
+        ):
             in_table = True
             continue
 
@@ -125,7 +134,7 @@ def extract_packages_from_packages_md(packages_md_path: Path) -> list[dict]:
             and current_os
             and current_fa_version
         ):
-            # Parse table row: | Python | PyTorch | CUDA | package |
+            # Parse table row: | Python | PyTorch | CUDA / ROCm | package |
             cells = [
                 c.strip() for c in line_stripped.split("|")[1:-1]
             ]  # Remove empty first/last cells
@@ -133,7 +142,7 @@ def extract_packages_from_packages_md(packages_md_path: Path) -> list[dict]:
             if len(cells) >= 4:
                 python_version = cells[0]
                 torch_version = cells[1]
-                cuda_version = cells[2]
+                accelerator_version = cells[2]
                 package_cell = cells[3]
 
                 # Extract all URLs from package cell
@@ -155,7 +164,7 @@ def extract_packages_from_packages_md(packages_md_path: Path) -> list[dict]:
                                 "Flash-Attention": current_fa_version,
                                 "Python": python_version,
                                 "PyTorch": torch_version,
-                                "CUDA": cuda_version,
+                                "Accelerator": accelerator_version,
                                 "OS": current_os,
                                 "package": decoded_url,
                             }
@@ -167,7 +176,7 @@ def extract_packages_from_packages_md(packages_md_path: Path) -> list[dict]:
                             "Flash-Attention": current_fa_version,
                             "Python": python_version,
                             "PyTorch": torch_version,
-                            "CUDA": cuda_version,
+                            "Accelerator": accelerator_version,
                             "OS": current_os,
                             "package": None,
                         }
@@ -198,8 +207,8 @@ def extract_packages_from_assets_json(assets_path: Path) -> list[dict]:
         if not info:
             continue
 
-        # Normalize platform name
-        os_name = normalize_platform_name(info["platform"])
+        # Normalize platform name (ROCm wheels get their own "(ROCm)" section)
+        os_name = platform_display_name(info)
 
         # Decode URL to make it more readable
         decoded_url = unquote(url)
@@ -209,7 +218,7 @@ def extract_packages_from_assets_json(assets_path: Path) -> list[dict]:
                 "Flash-Attention": info["flash_version"],
                 "Python": info["python_version"],
                 "PyTorch": info["torch_version"],
-                "CUDA": info["cuda_version"],
+                "Accelerator": info["accelerator_version"],
                 "OS": os_name,
                 "package": decoded_url,
             }
@@ -223,7 +232,7 @@ def sort_packages(
     flash_ascending: bool = False,
     python_ascending: bool = False,
     pytorch_ascending: bool = False,
-    cuda_ascending: bool = False,
+    accelerator_ascending: bool = False,
     os_ascending: bool = True,
     package_ascending: bool = False,
 ) -> pd.DataFrame:
@@ -235,7 +244,7 @@ def sort_packages(
         flash_ascending: Sort Flash-Attention in ascending order (default: False, newer first)
         python_ascending: Sort Python in ascending order (default: False, newer first)
         pytorch_ascending: Sort PyTorch in ascending order (default: False, newer first)
-        cuda_ascending: Sort CUDA in ascending order (default: False, newer first)
+        accelerator_ascending: Sort CUDA / ROCm in ascending order (default: False, newer first)
         os_ascending: Sort OS in ascending order (default: True, alphabetical)
         package_ascending: Sort package in ascending order (default: False, newer first)
 
@@ -248,7 +257,7 @@ def sort_packages(
     df["fa_sort"] = df["Flash-Attention"].apply(parse_numeric_version)
     df["py_sort"] = df["Python"].apply(parse_numeric_version)
     df["pt_sort"] = df["PyTorch"].apply(parse_numeric_version)
-    df["cu_sort"] = df["CUDA"].apply(parse_numeric_version)
+    df["cu_sort"] = df["Accelerator"].apply(parse_numeric_version)
     df["os_sort"] = df["OS"].str.lower()
 
     # Package sort: extract version from download URL
@@ -286,7 +295,7 @@ def sort_packages(
             os_ascending,
             python_ascending,
             pytorch_ascending,
-            cuda_ascending,
+            accelerator_ascending,
             package_ascending,
         ],
     )
@@ -298,9 +307,9 @@ def sort_packages(
 
 
 def merge_duplicate_rows(df: pd.DataFrame) -> pd.DataFrame:
-    """Merge rows with duplicate Flash-Attention, Python, PyTorch, CUDA, OS values."""
+    """Merge rows with duplicate Flash-Attention, Python, PyTorch, Accelerator, OS values."""
     # Group by all columns except 'package'
-    group_cols = ["Flash-Attention", "Python", "PyTorch", "CUDA", "OS"]
+    group_cols = ["Flash-Attention", "Python", "PyTorch", "Accelerator", "OS"]
 
     def combine_packages(group):
         # Get unique non-null packages (handle both list and scalar values)
@@ -343,8 +352,8 @@ def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
     all_sections = []
 
     # Generate Table of Contents
-    # Custom order: Linux x86_64, Linux arm64, Windows
-    os_order = ["Linux x86_64", "Linux arm64", "Windows"]
+    # Custom order: Linux x86_64, Linux x86_64 (ROCm), Linux arm64, Windows
+    os_order = ["Linux x86_64", "Linux x86_64 (ROCm)", "Linux arm64", "Windows"]
     all_os_names = df["OS"].unique()
     os_names = [os for os in os_order if os in all_os_names]
     # Add any OS not in the predefined order (for flexibility)
@@ -353,8 +362,9 @@ def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
             os_names.append(os)
     toc_lines = ["## Table of Contents", ""]
     for os_name in os_names:
-        # Create anchor link (lowercase, replace spaces with hyphens)
-        os_anchor = os_name.lower().replace(" ", "-")
+        # Create anchor link the way GitHub does: lowercase, spaces to hyphens,
+        # punctuation such as the parentheses in "Linux x86_64 (ROCm)" dropped
+        os_anchor = re.sub(r"[^a-z0-9_-]", "", os_name.lower().replace(" ", "-"))
         toc_lines.append(f"- [{os_name}](#{os_anchor})")
 
         # Add Flash-Attention versions for this OS (sorted)
@@ -371,13 +381,13 @@ def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
     for os_name in os_names:
         os_df = df[df["OS"] == os_name].copy()
 
-        # Sort within OS group: Flash-Attention > Python > PyTorch > CUDA
+        # Sort within OS group: Flash-Attention > Python > PyTorch > CUDA / ROCm
         os_df = sort_packages(
             os_df,
             flash_ascending=False,
             python_ascending=True,
             pytorch_ascending=True,
-            cuda_ascending=True,
+            accelerator_ascending=True,
         )
 
         # Create OS section header with emoji
@@ -389,18 +399,18 @@ def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
         for fa_version in os_df["Flash-Attention"].unique():
             fa_df = os_df[os_df["Flash-Attention"] == fa_version].copy()
 
-            # Sort by Python > PyTorch > CUDA within each Flash-Attention version
+            # Sort by Python > PyTorch > CUDA / ROCm within each Flash-Attention version
             fa_df = sort_packages(
                 fa_df,
                 python_ascending=True,
                 pytorch_ascending=True,
-                cuda_ascending=True,
+                accelerator_ascending=True,
             )
 
             # Create collapsible table for this Flash-Attention version
             table_lines = [
-                "| Python | PyTorch | CUDA | package |",
-                "| ------ | ------- | ---- | ------- |",
+                "| Python | PyTorch | CUDA / ROCm | package |",
+                "| ------ | ------- | ----------- | ------- |",
             ]
 
             for _, row in fa_df.iterrows():
@@ -429,7 +439,7 @@ def generate_markdown_table_by_os(df: pd.DataFrame) -> str:
                         else "-"
                     )
 
-                line = f"| {row['Python']} | {row['PyTorch']} | {row['CUDA']} | {package_cell} |"
+                line = f"| {row['Python']} | {row['PyTorch']} | {row['Accelerator']} | {package_cell} |"
                 table_lines.append(line)
 
             # Create collapsible section for this Flash-Attention version
@@ -491,8 +501,8 @@ def main() -> None:
 
     # Convert to DataFrame and process
     df = pd.DataFrame(all_packages)
-    # Normalize CUDA versions (remove patch version)
-    df["CUDA"] = df["CUDA"].apply(normalize_semantic_version)
+    # Normalize CUDA / ROCm versions (remove patch version)
+    df["Accelerator"] = df["Accelerator"].apply(normalize_semantic_version)
     # Normalize PyTorch versions (remove patch version)
     df["PyTorch"] = df["PyTorch"].apply(normalize_semantic_version)
     # Normalize Python versions (remove patch version)

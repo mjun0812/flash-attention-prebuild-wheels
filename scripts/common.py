@@ -8,6 +8,7 @@ Functions:
     - load_assets_json: Load assets from GitHub release JSON file
     - parse_wheel_filename: Extract version info from wheel filename
     - normalize_platform_name: Standardize platform names for display
+    - platform_display_name: Platform name plus accelerator suffix for ROCm wheels
     - parse_numeric_version: Convert version strings to tuples for sorting
     - normalize_semantic_version: Remove patch version from semantic versions
     - get_tag_from_url: Extract release tag from GitHub download URL
@@ -113,7 +114,11 @@ def collect_versions_from_assets(
                 "flash_versions": {"2.6.3", "2.7.4"},
                 "python_versions": {"3.10", "3.11"},
                 "torch_versions": {"2.5", "2.6"},
-                "cuda_versions": {"12.4", "13.0"}
+                "accelerator_versions": {"12.4", "13.0"}
+            },
+            "Linux x86_64 (ROCm)": {
+                ...
+                "accelerator_versions": {"7.2"}
             },
             ...
         }
@@ -129,21 +134,21 @@ def collect_versions_from_assets(
         if not info:
             continue
 
-        platform = normalize_platform_name(info["platform"])
+        platform = platform_display_name(info)
         platform_data = aggregated.setdefault(
             platform,
             {
                 "flash_versions": set(),
                 "python_versions": set(),
                 "torch_versions": set(),
-                "cuda_versions": set(),
+                "accelerator_versions": set(),
             },
         )
 
         platform_data["flash_versions"].add(info["flash_version"])
         platform_data["python_versions"].add(info["python_version"])
         platform_data["torch_versions"].add(info["torch_version"])
-        platform_data["cuda_versions"].add(info["cuda_version"])
+        platform_data["accelerator_versions"].add(info["accelerator_version"])
 
     return aggregated
 
@@ -174,6 +179,7 @@ def parse_wheel_filename(filename: str) -> dict | None:
         flash_attn-2.8.3+cu126torch2.10-cp314-cp314t-linux_x86_64.whl
         flash_attn_3-3.0.0+cu126torch2.10git1a2b3c4-cp312-cp312-linux_x86_64.whl
         flash_attn_3-3.0.0+cu128torch2.10gite2743ab-cp39-abi3-linux_x86_64.whl
+        flash_attn-2.8.3+rocm7.2torch2.14-cp312-cp312-linux_x86_64.whl
 
     ---
     Wheel filename から情報を抽出
@@ -200,22 +206,31 @@ def parse_wheel_filename(filename: str) -> dict | None:
     # free-threaded Python (cp314t) にも対応 (例: cp314-cp314t)
     # ABI3 (Stable ABI) にも対応 (例: cp39-abi3)
     # fa3 の local_version には git{hash} サフィックスが付く (例: cu126torch2.10git1a2b3c4)
+    # ROCm wheel は cu{ver} の代わりに rocm{major.minor} (例: rocm7.2torch2.14)。
+    # CUDA はドット無し (cu130) だが ROCm はドット付き (rocm7.14 と rocm7.1 を区別するため)
     pattern = (
         r"flash_attn(?:_3)?-(\d+\.\d+\.\d+(?:\.[a-z0-9]+)?)"
-        r"\+cu(\d+)torch(\d+\.\d+)(?:git([0-9a-f]+))?"
+        r"\+(cu|rocm)([\d.]+)torch(\d+\.\d+)(?:git([0-9a-f]+))?"
         r"-cp(\d+)-(?:cp\d+(t?)|abi3)-(.+?)\.whl"
     )
     match = re.match(pattern, filename)
 
     if match:
         flash_version = match.group(1)
-        cuda_version = f"{match.group(2)[:2]}.{match.group(2)[2:]}"  # 130 -> 13.0
-        torch_version = match.group(3)
-        git_hash = match.group(4)  # None or "1a2b3c4"
-        cp_version = match.group(5)  # "39", "310", etc.
-        free_threaded = match.group(6) or ""  # "t", "", or None (abi3)
-        platform = match.group(7)  # linux_x86_64, win32など
-        is_abi3 = match.group(6) is None  # abi3 の場合 group(6) は None
+        if match.group(2) == "cu":
+            accelerator = "cuda"
+            accelerator_version = (
+                f"{match.group(3)[:2]}.{match.group(3)[2:]}"  # 130 -> 13.0
+            )
+        else:
+            accelerator = "rocm"
+            accelerator_version = match.group(3)  # 7.2
+        torch_version = match.group(4)
+        git_hash = match.group(5)  # None or "1a2b3c4"
+        cp_version = match.group(6)  # "39", "310", etc.
+        free_threaded = match.group(7) or ""  # "t", "", or None (abi3)
+        platform = match.group(8)  # linux_x86_64, win32など
+        is_abi3 = match.group(7) is None  # abi3 の場合 group(7) は None
 
         if is_abi3:
             python_version = f"{cp_version[:1]}.{cp_version[1:]}+ (abi3)"  # 39 -> 3.9+ (abi3)
@@ -227,7 +242,8 @@ def parse_wheel_filename(filename: str) -> dict | None:
         result = {
             "package_name": package_name,
             "flash_version": flash_version,
-            "cuda_version": cuda_version,
+            "accelerator": accelerator,
+            "accelerator_version": accelerator_version,
             "torch_version": torch_version,
             "python_version": python_version,
             "platform": platform,
@@ -238,6 +254,22 @@ def parse_wheel_filename(filename: str) -> dict | None:
             result["abi3"] = True
         return result
     return None
+
+
+def platform_display_name(info: dict) -> str:
+    """Platform name for display, with an accelerator suffix for ROCm wheels.
+
+    ROCm wheels carry the same platform tag as CUDA wheels (linux_x86_64), so
+    the accelerator is the only thing that tells them apart.
+
+    Examples:
+        {"platform": "linux_x86_64", "accelerator": "cuda"} -> Linux x86_64
+        {"platform": "linux_x86_64", "accelerator": "rocm"} -> Linux x86_64 (ROCm)
+    """
+    name = normalize_platform_name(info["platform"])
+    if info["accelerator"] == "rocm":
+        name += " (ROCm)"
+    return name
 
 
 def normalize_platform_name(raw: str) -> str:

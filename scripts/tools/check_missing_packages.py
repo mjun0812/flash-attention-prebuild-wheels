@@ -37,6 +37,8 @@ from rich.text import Text
 
 from scripts.common import parse_wheel_filename
 from scripts.coverage_matrix import (
+    get_matrix_accelerator,
+    get_matrix_accelerator_versions,
     get_non_free_threaded_python_versions_for_platform,
     get_platform_matrix,
     is_excluded_combination,
@@ -150,10 +152,15 @@ def load_or_fetch_assets(repo: str, cache_path: Path, use_cache: bool) -> list[d
     return assets
 
 
-def normalize_platform_for_comparison(platform_raw: str) -> str:
+def normalize_platform_for_comparison(
+    platform_raw: str, accelerator: str = "cuda"
+) -> str:
     """Normalize platform string for comparison.
 
-    Returns: "linux", "linux_arm64", or "windows"
+    ROCm wheels carry the same linux_x86_64 tag as CUDA wheels, so the
+    accelerator decides between "linux" and "linux_rocm".
+
+    Returns: "linux", "linux_rocm", "linux_arm64", or "windows"
     """
     platform_lower = platform_raw.lower()
     if "win" in platform_lower:
@@ -161,7 +168,7 @@ def normalize_platform_for_comparison(platform_raw: str) -> str:
     elif "aarch64" in platform_lower or "arm64" in platform_lower:
         return "linux_arm64"
     elif "x86_64" in platform_lower or "linux" in platform_lower:
-        return "linux"
+        return "linux_rocm" if accelerator == "rocm" else "linux"
     else:
         return platform_lower
 
@@ -198,10 +205,11 @@ def build_existing_packages_set(
     platform's coverage matrix.
 
     Returns:
-        Dict mapping platform to set of (flash, python, torch, cuda) tuples
+        Dict mapping platform to set of (flash, python, torch, cuda-or-rocm) tuples
     """
     packages: dict[str, set[tuple[str, str, str, str]]] = {
         "linux": set(),
+        "linux_rocm": set(),
         "linux_arm64": set(),
         "windows": set(),
     }
@@ -212,7 +220,9 @@ def build_existing_packages_set(
         if not info:
             continue
 
-        platform = normalize_platform_for_comparison(info["platform"])
+        platform = normalize_platform_for_comparison(
+            info["platform"], info["accelerator"]
+        )
         if platform not in packages:
             continue
 
@@ -224,21 +234,26 @@ def build_existing_packages_set(
             flash_version_key = info["flash_version"]
 
         torch_version = info["torch_version"]  # This is like "2.9", not "2.9.1"
-        cuda_version = info["cuda_version"]
+        accelerator_version = info["accelerator_version"]
 
         if info.get("abi3"):
             # abi3 wheels do not cover free-threaded interpreters such as cp314t.
             for python_ver in get_non_free_threaded_python_versions_for_platform(
                 platform
             ):
-                key = (flash_version_key, python_ver, torch_version, cuda_version)
+                key = (
+                    flash_version_key,
+                    python_ver,
+                    torch_version,
+                    accelerator_version,
+                )
                 packages[platform].add(key)
         else:
             key = (
                 flash_version_key,
                 info["python_version"],
                 torch_version,
-                cuda_version,
+                accelerator_version,
             )
             packages[platform].add(key)
 
@@ -259,7 +274,11 @@ def create_status_table(
     """
     python_versions = sorted(matrix.get("python-version", []), key=parse_version_tuple)
     torch_versions = sorted(matrix.get("torch-version", []), key=parse_version_tuple)
-    cuda_versions = sorted(matrix.get("cuda-version", []), key=parse_version_tuple)
+    accelerator = get_matrix_accelerator(matrix)
+    accel_versions = sorted(
+        get_matrix_accelerator_versions(matrix), key=parse_version_tuple
+    )
+    accel_label = "ROCm" if accelerator == "rocm" else "CU"
 
     existing_count = 0
     missing_count = 0
@@ -271,23 +290,25 @@ def create_status_table(
     visible_columns: list[tuple[str, str, str]] = []
     for torch in torch_versions:
         torch_minor = normalize_torch_version(torch)
-        for cuda in cuda_versions:
+        for accel in accel_versions:
             has_non_excluded_cell = False
             for python in python_versions:
-                is_excl = is_excluded_combination(flash_version, python, torch, cuda)
+                is_excl = is_excluded_combination(
+                    flash_version, python, torch, accel, accelerator
+                )
                 if is_excl:
                     excluded_count += 1
                     continue
 
                 has_non_excluded_cell = True
-                key = (flash_version_key, python, torch_minor, cuda)
+                key = (flash_version_key, python, torch_minor, accel)
                 if key in existing:
                     existing_count += 1
                 else:
                     missing_count += 1
 
             if has_non_excluded_cell:
-                visible_columns.append((torch, torch_minor, cuda))
+                visible_columns.append((torch, torch_minor, accel))
 
     # Create table
     table = Table(
@@ -301,9 +322,9 @@ def create_status_table(
     table.add_column("Python", style="bold", justify="center")
 
     # Add only columns that contain at least one non-excluded cell.
-    for _, torch_minor, cuda in visible_columns:
+    for _, torch_minor, accel in visible_columns:
         table.add_column(
-            f"T{torch_minor}\nCU{cuda}",
+            f"T{torch_minor}\n{accel_label}{accel}",
             justify="center",
             min_width=6,
         )
@@ -312,9 +333,11 @@ def create_status_table(
     for python in python_versions:
         row = [f"cp{python.replace('.', '')}"]
 
-        for torch, torch_minor, cuda in visible_columns:
-            key = (flash_version_key, python, torch_minor, cuda)
-            if is_excluded_combination(flash_version, python, torch, cuda):
+        for torch, torch_minor, accel in visible_columns:
+            key = (flash_version_key, python, torch_minor, accel)
+            if is_excluded_combination(
+                flash_version, python, torch, accel, accelerator
+            ):
                 cell = Text("-", style="dim")
             elif key in existing:
                 cell = Text("✓", style="bold green")
@@ -339,6 +362,7 @@ def display_platform_tables(
     """Display tables for a platform and return summary statistics."""
     platform_display_names = {
         "linux": "🐧 Linux x86_64",
+        "linux_rocm": "🐧 Linux x86_64 (ROCm)",
         "linux_arm64": "🐧 Linux ARM64",
         "windows": "🪟 Windows",
     }
@@ -369,13 +393,14 @@ def display_platform_tables(
         # Collect missing packages for summary
         if missing > 0:
             flash_version_key = normalize_fa3_version(flash_version)
+            accelerator = get_matrix_accelerator(matrix)
             for python in matrix.get("python-version", []):
                 for torch in matrix.get("torch-version", []):
                     torch_minor = normalize_torch_version(torch)
-                    for cuda in matrix.get("cuda-version", []):
-                        key = (flash_version_key, python, torch_minor, cuda)
+                    for accel in get_matrix_accelerator_versions(matrix):
+                        key = (flash_version_key, python, torch_minor, accel)
                         is_excl = is_excluded_combination(
-                            flash_version, python, torch, cuda
+                            flash_version, python, torch, accel, accelerator
                         )
                         if not is_excl and key not in existing_packages:
                             missing_packages.append(
@@ -384,7 +409,7 @@ def display_platform_tables(
                                     "flash_version": flash_version,
                                     "python_version": python,
                                     "torch_version": torch,
-                                    "cuda_version": cuda,
+                                    "accelerator_version": accel,
                                 }
                             )
 
@@ -425,7 +450,7 @@ def main() -> None:
     parser.add_argument(
         "--platform",
         type=str,
-        choices=["linux", "linux_arm64", "windows", "all"],
+        choices=["linux", "linux_rocm", "linux_arm64", "windows", "all"],
         default="all",
         help="Platform to display (default: all)",
     )
@@ -456,7 +481,7 @@ def main() -> None:
     existing_packages = build_existing_packages_set(assets)
 
     # Determine which platforms to process
-    platforms = ["linux", "linux_arm64", "windows"]
+    platforms = ["linux", "linux_rocm", "linux_arm64", "windows"]
     if args.platform != "all":
         platforms = [args.platform]
 
@@ -548,7 +573,7 @@ def main() -> None:
         missing_table.add_column("Flash-Attn")
         missing_table.add_column("Python")
         missing_table.add_column("Torch")
-        missing_table.add_column("CUDA")
+        missing_table.add_column("CUDA / ROCm")
 
         for pkg in sorted(
             all_missing,
@@ -557,7 +582,7 @@ def main() -> None:
                 parse_version_tuple(x["flash_version"]),
                 parse_version_tuple(x["python_version"]),
                 parse_version_tuple(x["torch_version"]),
-                parse_version_tuple(x["cuda_version"]),
+                parse_version_tuple(x["accelerator_version"]),
             ),
         ):
             missing_table.add_row(
@@ -565,7 +590,7 @@ def main() -> None:
                 pkg["flash_version"],
                 pkg["python_version"],
                 pkg["torch_version"],
-                pkg["cuda_version"],
+                pkg["accelerator_version"],
             )
 
         console.print(missing_table)
