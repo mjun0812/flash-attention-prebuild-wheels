@@ -72,8 +72,16 @@ if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
   cp "$(dirname "$0")/patches/fa3/setup_linux.py" flash-attention/hopper/setup.py
   BUILD_ROOT=flash-attention/hopper/build
 elif [[ "${FLASH_ATTN_VARIANT}" == "Flash Attention 2" ]]; then
-  echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
-  git clone https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FLASH_ATTN_VERSION"
+  if [[ "$FLASH_ATTN_VERSION" == fa2:* ]]; then
+    # fa2:<commit> pins an upstream commit instead of a release tag, like fa3:
+    FA_COMMIT="${FLASH_ATTN_VERSION#fa2:}"
+    echo "Checking out flash-attention commit ${FA_COMMIT}..."
+    git clone https://github.com/Dao-AILab/flash-attention.git flash-attention
+    git -C flash-attention checkout "$FA_COMMIT"
+  else
+    echo "Checking out flash-attention v${FLASH_ATTN_VERSION}..."
+    git clone https://github.com/Dao-AILab/flash-attention.git flash-attention -b "v$FLASH_ATTN_VERSION"
+  fi
   if fa2_needs_cxx20 "$MATRIX_TORCH_VERSION"; then
     if [ "$(grep -c -- '-std=c++17' flash-attention/setup.py)" -eq 0 ]; then
       echo "-std=c++17 not found in flash-attention/setup.py; upstream setup.py may have changed"
@@ -205,12 +213,15 @@ echo "  NVCC_THREADS: $NVCC_THREADS"
 
 # Build wheels
 echo "Building wheels..."
-if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
+LOCAL_VERSION_LABEL="cu${MATRIX_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}"
+# Commit-pinned builds (fa3: and fa2:) carry the short hash in the label
+if [[ "$FLASH_ATTN_VERSION" == fa3:* || "$FLASH_ATTN_VERSION" == fa2:* ]]; then
   SHORT_HASH=$(git -C flash-attention rev-parse --short=7 HEAD)
-  LOCAL_VERSION_LABEL="cu${MATRIX_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}git${SHORT_HASH}"
+  LOCAL_VERSION_LABEL="${LOCAL_VERSION_LABEL}git${SHORT_HASH}"
+fi
+if [[ "$FLASH_ATTN_VARIANT" == "Flash Attention 3" ]]; then
   cd flash-attention/hopper
 else
-  LOCAL_VERSION_LABEL="cu${MATRIX_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}"
   cd flash-attention
 fi
 NVCC_THREADS=$NVCC_THREADS MAX_JOBS=$MAX_JOBS \
