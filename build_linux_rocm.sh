@@ -88,6 +88,24 @@ echo "  MAX_JOBS: $MAX_JOBS"
 # Build wheels
 echo "Building wheels..."
 GPU_ARCHS="${GPU_ARCHS:-gfx90a;gfx942;gfx950}"
+
+# setuptools links the extension by passing every object on one command line.
+# Linux caps a command's argv+environ at RLIMIT_STACK/4 (2MB under the default
+# 8MB stack, and never more than 6MB). Ten GPU targets produce ~7.6k objects
+# whose absolute paths add up to ~2.2MB, so the link fails with "Argument list
+# too long" only after the whole compile has succeeded. Raise the soft limit to
+# put the cap at its 6MB maximum, and refuse to start a build that would hit
+# the same wall hours later.
+ulimit -s 65536 2>/dev/null || true
+STACK_LIMIT_KB=$(ulimit -s)
+echo "  stack limit: ${STACK_LIMIT_KB} KB"
+GPU_ARCH_COUNT=$(awk -F';' '{print NF}' <<< "$GPU_ARCHS")
+if [ "$GPU_ARCH_COUNT" -gt 3 ] && [ "$STACK_LIMIT_KB" != "unlimited" ] && [ "$STACK_LIMIT_KB" -le 8192 ]; then
+  echo "Refusing to build ${GPU_ARCH_COUNT} GPU targets with a ${STACK_LIMIT_KB}KB stack limit:"
+  echo "the final link would exceed the $((STACK_LIMIT_KB / 4))KB argument limit after hours of compiling."
+  echo "Raise the hard limit (e.g. docker run --ulimit stack=67108864:67108864) or build at most 3 targets."
+  exit 1
+fi
 LOCAL_VERSION_LABEL="rocm${ROCM_VERSION}torch${MATRIX_TORCH_VERSION}"
 # Commit-pinned builds carry the short hash in the label, like fa3: does
 if [[ "$FLASH_ATTN_VERSION" == fa2:* ]]; then
