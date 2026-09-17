@@ -77,7 +77,10 @@ pip install ./flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 
 > [!NOTE]
 > ROCm (AMD GPU) wheels are available for Linux x86_64 and Flash Attention 2, built with the
-> Composable Kernel backend for gfx90a, gfx942 and gfx950 (MI200 / MI300 / MI350 series).
+> Composable Kernel backend. One wheel bundles gfx90a, gfx942 and gfx950 (MI200 / MI300 / MI350 series)
+> and gfx1100, gfx1101, gfx1102, gfx1150, gfx1151, gfx1200 and gfx1201 (RDNA 3 / 3.5 / 4).
+> They are built from an upstream commit (`git<hash>` in the local version) because RDNA support
+> is not in a Flash Attention 2 release tag yet.
 > Install the matching ROCm build of PyTorch first, e.g.
 > `pip install torch==2.14.0 --index-url https://download.pytorch.org/whl/rocm7.2`.
 

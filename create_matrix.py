@@ -1,6 +1,6 @@
 import json
 
-from scripts.coverage_matrix import EXCLUDE, EXCLUDE_ROCM
+from scripts.coverage_matrix import EXCLUDE, EXCLUDE_ROCM, FA2_ROCM_COMMIT
 
 FA3_COMMIT = "fa3:e2743ab5b3803bb672b16437ba98a3b1d4576c50"
 
@@ -235,8 +235,8 @@ LINUX_ARM64_NO_CONTAINER_MATRIX = {
 # three, upstream main also allows the RDNA gfx11xx / gfx12xx targets.
 LINUX_ROCM_MATRIX = {
     "flash-attn-version": [
-        "2.8.3",
-        # "fa2:<commit>",  # pin an upstream commit (e.g. main for RDNA support)
+        # "2.8.3",  # CDNA only: gfx90a;gfx942;gfx950
+        FA2_ROCM_COMMIT,
     ],
     "python-version": [
         "3.10",
@@ -254,7 +254,9 @@ LINUX_ROCM_MATRIX = {
         "7.2",
         # "7.14",
     ],
-    "gpu-archs": "gfx90a;gfx942;gfx950",
+    # Every arch the pinned version allows, bundled into one wheel.
+    # 10 archs take ~9h per cell on the 32-thread self-hosted runner.
+    "gpu-archs": "gfx90a;gfx942;gfx950;gfx1100;gfx1101;gfx1102;gfx1150;gfx1151;gfx1200;gfx1201",
 }
 
 WINDOWS_MATRIX = {
@@ -380,11 +382,11 @@ def main():
                 "linux_arm64_no_container": False,
                 # "linux_arm64_no_container": LINUX_ARM64_NO_CONTAINER_MATRIX,
                 #
-                "linux_rocm": False,
-                # "linux_rocm": LINUX_ROCM_MATRIX,
+                # "linux_rocm": False,
+                "linux_rocm": LINUX_ROCM_MATRIX,
                 #
-                # "windows": False,
-                "windows": WINDOWS_MATRIX,
+                "windows": False,
+                # "windows": WINDOWS_MATRIX,
                 #
                 "windows_self_hosted": False,
                 # "windows_self_hosted": WINDOWS_SELF_HOSTED_MATRIX,

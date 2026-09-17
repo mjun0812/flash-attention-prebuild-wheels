@@ -3,6 +3,9 @@
 CoverageMatrix = dict[str, list[str]]
 
 FA3_STABLE_COMMIT = "fa3:e2743ab5b3803bb672b16437ba98a3b1d4576c50"
+# Upstream main with RDNA (gfx11xx / gfx12xx) support in the ROCm CK backend,
+# which is not in any 2.8.x release tag.
+FA2_ROCM_COMMIT = "fa2:4a948e9c94c21067994572f5b6f37318241d436d"
 
 OS = ["linux_x86_64", "linux_arm64", "windows"]
 PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14"]
@@ -266,7 +269,7 @@ WINDOWS_MATRIX = {
 # not built yet even though the ROCm torch index does ship cp314t wheels.
 # Uses "rocm-version" in place of "cuda-version" as the accelerator axis.
 LINUX_ROCM_MATRIX = {
-    "flash-attn-version": ["2.8.3"],
+    "flash-attn-version": [FA2_ROCM_COMMIT],
     "python-version": PYTHON_VERSIONS,
     "torch-version": ["2.14.0"],
     "rocm-version": ["7.2"],
