@@ -133,6 +133,10 @@ jobs:
         run: |
           wheel_path=$(ls flash-attention/dist/*.whl | head -n 1)
           echo "WHEEL_PATH=$wheel_path" >> $GITHUB_OUTPUT
+          # Name the artifact after the wheel: a fa2:/fa3: version would put a
+          # colon in the name, which the artifact service rejects.
+          wheel_name=$(basename "$wheel_path" .whl)
+          echo "ARTIFACT_NAME=rocm-wheel-${wheel_name}-${{ github.run_attempt }}" >> $GITHUB_OUTPUT
 
       - name: Measure after build
         if: always()
@@ -151,7 +155,7 @@ jobs:
       - name: Upload wheel
         uses: actions/upload-artifact@v4
         with:
-          name: rocm-wheel-${{ inputs.flash-attn-version }}-py${{ inputs.python-version }}-torch${{ inputs.torch-version }}-rocm${{ inputs.rocm-version }}-${{ github.run_attempt }}
+          name: ${{ steps.build_wheels.outputs.ARTIFACT_NAME }}
           path: ${{ steps.build_wheels.outputs.WHEEL_PATH }}
           if-no-files-found: ignore
 
