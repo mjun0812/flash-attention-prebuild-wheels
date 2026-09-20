@@ -1447,6 +1447,7 @@
 | 3.11 | 2.14 | 7.2 | [Download1(v1.0.0)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v1.0.0/flash_attn-2.8.4+rocm7.2torch2.14git4a948e9-cp311-cp311-linux_x86_64.whl) |
 | 3.12 | 2.14 | 7.2 | [Download1(v1.0.0)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v1.0.0/flash_attn-2.8.4+rocm7.2torch2.14git4a948e9-cp312-cp312-linux_x86_64.whl) |
 | 3.13 | 2.14 | 7.2 | [Download1(v1.0.0)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v1.0.0/flash_attn-2.8.4+rocm7.2torch2.14git4a948e9-cp313-cp313-linux_x86_64.whl) |
+| 3.14 | 2.14 | 7.2 | [Download1(v1.0.0)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v1.0.0/flash_attn-2.8.4+rocm7.2torch2.14git4a948e9-cp314-cp314-linux_x86_64.whl) |
 
 </details>
 
