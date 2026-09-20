@@ -106,7 +106,11 @@ ac4() {
   stubs=$(mktemp -d)
   trap 'rm -rf "$stubs"' EXIT
   mkdir -p "$stubs/bin" "$stubs/rocm/bin" "$stubs/home"
-  printf '#!/bin/sh\necho "ccache version 4.9"\n' > "$stubs/bin/ccache"
+  # Record what the script asks ccache to persist, so the check can tell a
+  # bound that every ccache invocation will see from one that only applies to
+  # this script's own calls.
+  printf '#!/bin/sh\nif [ "${1#--set-config=}" != "$1" ]; then echo "$1" >> "%s/set-config.log"; fi\necho "ccache version 4.9"\n' \
+    "$stubs" > "$stubs/bin/ccache"
   printf '#!/bin/sh\nexit 0\n' > "$stubs/rocm/bin/hipcc"
   chmod +x "$stubs/bin/ccache" "$stubs/rocm/bin/hipcc"
 
@@ -119,11 +123,14 @@ ac4() {
     || fail "AC-4: CCACHE_DIR does not default to a ROCm-specific directory"
   echo "$out" | grep -qx "CCACHE_MAXSIZE=20G" \
     || fail "AC-4: CCACHE_MAXSIZE has no bound, so the cache could fill the disk"
+  grep -qx -- "--set-config=max_size=20G" "$stubs/set-config.log" 2>/dev/null \
+    || fail "AC-4: the bound was only exported, so ccache keeps enforcing its 5G default for every other caller"
   echo "$out" | grep -qx "CCACHE_COMPILERCHECK=content" \
     || fail "AC-4: CCACHE_COMPILERCHECK is not content, so reinstalling ROCm would miss every entry"
 
   # A caller's own settings must win, so the same cache can be pointed
   # somewhere else outside CI.
+  rm -f "$stubs/set-config.log"
   out=$(run_ccache_block "$stubs" CCACHE_DIR=/tmp/elsewhere CCACHE_MAXSIZE=5G)
   echo "--- caller overrides ---"
   echo "$out"
@@ -131,6 +138,8 @@ ac4() {
     || fail "AC-4: CCACHE_DIR set by the caller was overwritten"
   echo "$out" | grep -qx "CCACHE_MAXSIZE=5G" \
     || fail "AC-4: CCACHE_MAXSIZE set by the caller was overwritten"
+  [ ! -s "$stubs/set-config.log" ] \
+    || fail "AC-4: the caller's own ccache config was rewritten"
 
   # No ccache installed must not be an error: the build just runs uncached.
   rm -f "$stubs/bin/ccache"

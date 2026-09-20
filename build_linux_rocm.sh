@@ -123,7 +123,14 @@ if command -v ccache > /dev/null 2>&1 && [ -x "$HIPCC_PATH" ]; then
   # police itself. ccache evicts least-recently-used entries, which is also
   # how stale torch / flash-attn / ROCm combinations disappear on their own.
   export CCACHE_DIR="${CCACHE_DIR:-$HOME/.cache/ccache-rocm}"
-  export CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-20G}"
+  if [ -z "${CCACHE_MAXSIZE:-}" ]; then
+    # Persist the bound in the cache's own config rather than only exporting
+    # it. An env var applies to the invocations this script makes and to
+    # nothing else, so ccache would still report -- and enforce, for every
+    # other caller -- its 5G default.
+    export CCACHE_MAXSIZE=20G
+    ccache --set-config=max_size="$CCACHE_MAXSIZE" 2>/dev/null || true
+  fi
   # The runner reinstalls ROCm for every job, so hipcc's mtime changes even
   # when the compiler does not. Hash its content instead of its mtime.
   export CCACHE_COMPILERCHECK="${CCACHE_COMPILERCHECK:-content}"
