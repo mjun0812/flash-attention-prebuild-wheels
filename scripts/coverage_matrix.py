@@ -67,6 +67,9 @@ TORCH_SUPPORT_PYTHON_VERSIONS = {
 # ships that torch release. ROCm keeps the dot (7.2, 7.14) because both rocm7.1
 # and rocm7.14 exist; see ADR 0002.
 TORCH_SUPPORT_ROCM_VERSIONS = {
+    "2.10": ("7.0", "7.1"),
+    "2.11": ("7.1", "7.2"),
+    "2.12": ("7.1", "7.2"),
     "2.13": ("7.1", "7.2"),
     "2.14": ("7.2", "7.14"),
 }
@@ -268,11 +271,15 @@ WINDOWS_MATRIX = {
 # (PyTorch ships no aarch64 / Windows ROCm wheels). Free-threaded CPython is
 # not built yet even though the ROCm torch index does ship cp314t wheels.
 # Uses "rocm-version" in place of "cuda-version" as the accelerator axis.
+# Every torch release PyTorch publishes a ROCm build for, from 2.10 on. The
+# rocm-version axis lists all of them; EXCLUDE_ROCM drops the pairs that have
+# no wheel on download.pytorch.org. ROCm ships no free-threaded torch, so the
+# python axis is PYTHON_VERSIONS rather than ALL_PYTHON_VERSIONS.
 LINUX_ROCM_MATRIX = {
     "flash-attn-version": [FA2_ROCM_COMMIT],
     "python-version": PYTHON_VERSIONS,
-    "torch-version": ["2.14.0"],
-    "rocm-version": ["7.2"],
+    "torch-version": ["2.10.0", "2.11.0", "2.12.1", "2.13.0", "2.14.0"],
+    "rocm-version": ROCM_VERSIONS,
 }
 
 _PLATFORM_MATRICES = {
