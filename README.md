@@ -31,9 +31,10 @@ flash_attn-[flash_attn Version]+cu[CUDA Version]torch[PyTorch Version]-cp[Python
 # Example: Python 3.11, CUDA 12.4, PyTorch 2.5, and flash_attn 2.6.3
 flash_attn-2.6.3+cu124torch2.5-cp312-cp312-linux_x86_64.whl
 
-# ROCm (AMD GPU) wheels use rocm[ROCm Version] instead of cu[CUDA Version]
-# Example: Python 3.12, ROCm 7.2, PyTorch 2.14, and flash_attn 2.8.3
-flash_attn-2.8.3+rocm7.2torch2.14-cp312-cp312-linux_x86_64.whl
+# ROCm (AMD GPU) wheels use rocm[ROCm Version] instead of cu[CUDA Version],
+# and carry git[commit] when built from an upstream commit rather than a release tag
+# Example: Python 3.12, ROCm 7.2, PyTorch 2.14, and flash_attn 2.8.4 at commit 4a948e9
+flash_attn-2.8.4+rocm7.2torch2.14git4a948e9-cp312-cp312-linux_x86_64.whl
 ```
 
 2. Find the corresponding version of a wheel from the **[Useful Search Page](https://mjunya.com/flash-attention-prebuild-wheels/)**, [Packages](./doc/packages.md) page, or [releases](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases) page.
