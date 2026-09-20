@@ -106,6 +106,42 @@ if [ "$GPU_ARCH_COUNT" -gt 3 ] && [ "$STACK_LIMIT_KB" != "unlimited" ] && [ "$ST
   echo "Raise the hard limit (e.g. docker run --ulimit stack=67108864:67108864) or build at most 3 targets."
   exit 1
 fi
+# Route every hipcc call through ccache when it is available, so an
+# interrupted build resumes and a build that differs only in Python version
+# recompiles almost nothing. A ninja build-directory cache cannot do this
+# here: the ROCm path of upstream setup.py regenerates all ~7.6k kernel
+# sources on every run (generate.py -> rename_cpp_to_cu -> hipify) and the
+# compile lines carry no depfiles, so ninja would rebuild everything from the
+# regenerated mtimes. A content-addressed cache is indifferent to that, and to
+# which torch or flash-attn version asks for the same kernel.
+# PyTorch reads PYTORCH_NVCC when it writes the ninja file, and ninja runs the
+# rule through a shell, so a "ccache <hipcc>" prefix is enough.
+HIPCC_PATH="${ROCM_HOME:-${ROCM_PATH:-/opt/rocm}}/bin/hipcc"
+if command -v ccache > /dev/null 2>&1 && [ -x "$HIPCC_PATH" ]; then
+  # Bound the cache. The CI runner purges its pip and uv caches after every
+  # job to keep the disk from filling; this one is kept instead, so it has to
+  # police itself. ccache evicts least-recently-used entries, which is also
+  # how stale torch / flash-attn / ROCm combinations disappear on their own.
+  export CCACHE_DIR="${CCACHE_DIR:-$HOME/.cache/ccache-rocm}"
+  if [ -z "${CCACHE_MAXSIZE:-}" ]; then
+    # Persist the bound in the cache's own config rather than only exporting
+    # it. An env var applies to the invocations this script makes and to
+    # nothing else, so ccache would still report -- and enforce, for every
+    # other caller -- its 5G default.
+    export CCACHE_MAXSIZE=20G
+    ccache --set-config=max_size="$CCACHE_MAXSIZE" 2>/dev/null || true
+  fi
+  # The runner reinstalls ROCm for every job, so hipcc's mtime changes even
+  # when the compiler does not. Hash its content instead of its mtime.
+  export CCACHE_COMPILERCHECK="${CCACHE_COMPILERCHECK:-content}"
+  export PYTORCH_NVCC="ccache $HIPCC_PATH"
+  # Counters only; this deletes nothing. Without it the summary printed after
+  # the build would be cumulative and say nothing about this build.
+  ccache --zero-stats > /dev/null 2>&1 || true
+  echo "  ccache: $(ccache --version | head -n 1) (dir $CCACHE_DIR, max $CCACHE_MAXSIZE)"
+else
+  echo "  ccache: not in use; install ccache to make interrupted or repeated builds resume"
+fi
 LOCAL_VERSION_LABEL="rocm${ROCM_VERSION}torch${MATRIX_TORCH_VERSION}"
 # Commit-pinned builds carry the short hash in the label, like fa3: does
 if [[ "$FLASH_ATTN_VERSION" == fa2:* ]]; then
@@ -122,3 +158,7 @@ export FLASH_ATTN_LOCAL_VERSION=$LOCAL_VERSION_LABEL
 time python setup.py bdist_wheel --dist-dir=dist
 wheel_name=$(basename $(ls dist/*.whl | head -n 1))
 echo "Built wheel: $wheel_name"
+if [ -n "${PYTORCH_NVCC:-}" ]; then
+  echo "ccache statistics for this build:"
+  ccache --show-stats || true
+fi
