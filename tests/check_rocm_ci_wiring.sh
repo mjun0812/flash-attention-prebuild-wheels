@@ -3,6 +3,7 @@
 #
 # Each acceptance criterion is one invocation:
 #   tests/check_rocm_ci_wiring.sh ac1   # both workflows pass actionlint
+#   tests/check_rocm_ci_wiring.sh ac2   # the build is capped and ccache survives cleanup
 #
 # These run without a ROCm toolchain, an AMD GPU, or a GitHub API token.
 
@@ -41,7 +42,28 @@ ac1() {
   pass "AC-1: actionlint -shellcheck= reported no problem in $ROCM_WORKFLOW and $TEST_BUILD_WORKFLOW"
 }
 
+ac2() {
+  cd "$REPO_ROOT" || fail "AC-2: cannot cd to $REPO_ROOT"
+
+  # The job's GITHUB_TOKEN dies 24h after the job starts, so the cap has to be
+  # measured from the job rather than from the build.
+  grep -q 'BUILD_JOB_STARTED_AT=\$(date +%s)' "$ROCM_WORKFLOW" \
+    || fail "AC-2: the job start time is never recorded, so the cap cannot be relative to it"
+  grep -q 'timeout --signal=TERM' "$ROCM_WORKFLOW" \
+    || fail "AC-2: the build is not capped, so it can outlive its token"
+  grep -q 'BUILD_JOB_STARTED_AT + BUILD_TIMEOUT_MINUTES \* 60' "$ROCM_WORKFLOW" \
+    || fail "AC-2: the deadline is not derived from the job start time"
+
+  # Cleanup removes the pip and uv caches; removing ccache too would throw away
+  # exactly what makes a capped build resumable.
+  awk '/name: Cleanup/,0' "$ROCM_WORKFLOW" | grep -Eq 'rm -rf .*[Cc][Cc][Aa][Cc][Hh][Ee]-rocm' \
+    && fail "AC-2: cleanup deletes the ccache directory"
+
+  pass "AC-2: the build is capped from job start and cleanup keeps the ccache directory"
+}
+
 case "${1:-}" in
   ac1) ac1 ;;
-  *) echo "usage: $0 {ac1}" >&2; exit 2 ;;
+  ac2) ac2 ;;
+  *) echo "usage: $0 {ac1|ac2}" >&2; exit 2 ;;
 esac

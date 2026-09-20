@@ -5,6 +5,7 @@
 #   tests/check_build_linux_rocm.sh ac1   # syntax is sound
 #   tests/check_build_linux_rocm.sh ac2   # FA3 is rejected
 #   tests/check_build_linux_rocm.sh ac3   # no CUDA-only env vars
+#   tests/check_build_linux_rocm.sh ac4   # hipcc is routed through ccache
 #
 # These run without a ROCm toolchain, an AMD GPU, or network access.
 
@@ -80,9 +81,72 @@ ac3() {
   pass "AC-3: build_linux_rocm.sh references no NVCC_APPEND_FLAGS / NVCC_THREADS"
 }
 
+# Run the script's ccache block on its own against stub binaries. Building for
+# real needs a ROCm toolchain, but the part that decides whether hipcc is
+# cached is pure shell, so it can be exercised here.
+run_ccache_block() {
+  # $1: directory holding the stubs, $2...: extra env assignments
+  stubs=$1
+  shift
+  probe="$stubs/probe.sh"
+  sed -n '/^HIPCC_PATH=/,/^fi$/p' "$SCRIPT" > "$probe"
+  [ -s "$probe" ] || fail "AC-4: could not find the ccache block in $SCRIPT"
+  cat >> "$probe" <<'PROBE'
+echo "PYTORCH_NVCC=${PYTORCH_NVCC-<unset>}"
+echo "CCACHE_DIR=${CCACHE_DIR-<unset>}"
+echo "CCACHE_MAXSIZE=${CCACHE_MAXSIZE-<unset>}"
+echo "CCACHE_COMPILERCHECK=${CCACHE_COMPILERCHECK-<unset>}"
+PROBE
+  env -i HOME="$stubs/home" PATH="$stubs/bin:/usr/bin:/bin" ROCM_HOME="$stubs/rocm" "$@" \
+    bash "$probe"
+}
+
+ac4() {
+  require_script
+  stubs=$(mktemp -d)
+  trap 'rm -rf "$stubs"' EXIT
+  mkdir -p "$stubs/bin" "$stubs/rocm/bin" "$stubs/home"
+  printf '#!/bin/sh\necho "ccache version 4.9"\n' > "$stubs/bin/ccache"
+  printf '#!/bin/sh\nexit 0\n' > "$stubs/rocm/bin/hipcc"
+  chmod +x "$stubs/bin/ccache" "$stubs/rocm/bin/hipcc"
+
+  out=$(run_ccache_block "$stubs")
+  echo "--- defaults ---"
+  echo "$out"
+  echo "$out" | grep -qx "PYTORCH_NVCC=ccache $stubs/rocm/bin/hipcc" \
+    || fail "AC-4: PYTORCH_NVCC does not prefix the resolved hipcc with ccache"
+  echo "$out" | grep -qx "CCACHE_DIR=$stubs/home/.cache/ccache-rocm" \
+    || fail "AC-4: CCACHE_DIR does not default to a ROCm-specific directory"
+  echo "$out" | grep -qx "CCACHE_MAXSIZE=20G" \
+    || fail "AC-4: CCACHE_MAXSIZE has no bound, so the cache could fill the disk"
+  echo "$out" | grep -qx "CCACHE_COMPILERCHECK=content" \
+    || fail "AC-4: CCACHE_COMPILERCHECK is not content, so reinstalling ROCm would miss every entry"
+
+  # A caller's own settings must win, so the same cache can be pointed
+  # somewhere else outside CI.
+  out=$(run_ccache_block "$stubs" CCACHE_DIR=/tmp/elsewhere CCACHE_MAXSIZE=5G)
+  echo "--- caller overrides ---"
+  echo "$out"
+  echo "$out" | grep -qx "CCACHE_DIR=/tmp/elsewhere" \
+    || fail "AC-4: CCACHE_DIR set by the caller was overwritten"
+  echo "$out" | grep -qx "CCACHE_MAXSIZE=5G" \
+    || fail "AC-4: CCACHE_MAXSIZE set by the caller was overwritten"
+
+  # No ccache installed must not be an error: the build just runs uncached.
+  rm -f "$stubs/bin/ccache"
+  out=$(run_ccache_block "$stubs")
+  echo "--- ccache absent ---"
+  echo "$out"
+  echo "$out" | grep -qx "PYTORCH_NVCC=<unset>" \
+    || fail "AC-4: PYTORCH_NVCC was set even though ccache is not installed"
+
+  pass "AC-4: hipcc is routed through a bounded ccache, caller settings win, and a missing ccache is not fatal"
+}
+
 case "${1:-}" in
   ac1) ac1 ;;
   ac2) ac2 ;;
   ac3) ac3 ;;
-  *) echo "usage: $0 {ac1|ac2|ac3}" >&2; exit 2 ;;
+  ac4) ac4 ;;
+  *) echo "usage: $0 {ac1|ac2|ac3|ac4}" >&2; exit 2 ;;
 esac
