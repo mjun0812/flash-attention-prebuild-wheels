@@ -3,7 +3,7 @@
 #
 # Each acceptance criterion is one invocation:
 #   tests/check_rocm_ci_wiring.sh ac1   # both workflows pass actionlint
-#   tests/check_rocm_ci_wiring.sh ac2   # the build is capped and ccache survives cleanup
+#   tests/check_rocm_ci_wiring.sh ac2   # the build is capped and its cache travels with the run
 #
 # These run without a ROCm toolchain, an AMD GPU, or a GitHub API token.
 
@@ -54,12 +54,19 @@ ac2() {
   grep -q 'BUILD_JOB_STARTED_AT + BUILD_TIMEOUT_MINUTES \* 60' "$ROCM_WORKFLOW" \
     || fail "AC-2: the deadline is not derived from the job start time"
 
-  # Cleanup removes the pip and uv caches; removing ccache too would throw away
-  # exactly what makes a capped build resumable.
-  awk '/name: Cleanup/,0' "$ROCM_WORKFLOW" | grep -Eq 'rm -rf .*[Cc][Cc][Aa][Cc][Hh][Ee]-rocm' \
-    && fail "AC-2: cleanup deletes the ccache directory"
+  # The two self-hosted runners share one label, so a re-run lands on either
+  # of them. The cache has to travel with the run rather than sit on the disk
+  # of whichever machine happened to build first.
+  grep -q 'actions/cache/restore@v4' "$ROCM_WORKFLOW" \
+    || fail "AC-2: the cache is never restored, so a re-run on the other runner starts from nothing"
+  grep -q 'actions/cache/save@v4' "$ROCM_WORKFLOW" \
+    || fail "AC-2: the cache is never saved, so a capped build leaves nothing behind"
+  grep -q "steps.build.outputs.capped == 'true'" "$ROCM_WORKFLOW" \
+    || fail "AC-2: the cache is saved unconditionally instead of only for a capped build"
+  grep -q 'github.run_id' "$ROCM_WORKFLOW" \
+    || fail "AC-2: the cache key is not tied to the run, so attempts of different runs would share it"
 
-  pass "AC-2: the build is capped from job start and cleanup keeps the ccache directory"
+  pass "AC-2: the build is capped from job start and its cache travels with the run"
 }
 
 case "${1:-}" in

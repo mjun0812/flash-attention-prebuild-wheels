@@ -77,13 +77,9 @@ jobs:
       # A job's GITHUB_TOKEN expires 24h after the job starts, so a build that
       # runs longer succeeds and then fails to upload its release asset. The
       # cap below is measured from here rather than from the build so that
-      # ROCm setup and torch download count toward it. CCACHE_DIR is pinned
-      # here too so the build and the steps that report on it agree on one
-      # directory.
+      # ROCm setup and torch download count toward it.
       - name: Record job start time
-        run: |
-          echo "BUILD_JOB_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
-          echo "CCACHE_DIR=$HOME/.cache/ccache-rocm" >> "$GITHUB_ENV"
+        run: echo "BUILD_JOB_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
 
       - name: Check environment
         run: |
@@ -126,6 +122,40 @@ jobs:
           fi
           ccache --version | head -n 1
 
+      # The compile cache is carried between attempts through actions/cache
+      # rather than left on the runner's disk, because the two self-hosted
+      # runners share one label and a re-run lands on either of them. Keeping
+      # it off the disk is also why cleanup can delete it like the pip and uv
+      # caches: nothing here has to survive the job.
+      #
+      # The key ties the cache to this exact cell and workflow run, so a
+      # re-run restores only what an earlier attempt of the same run saved.
+      # Each attempt saves under its own immutable key; the restore prefix
+      # drops the attempt suffix.
+      - name: Compute ccache key
+        id: cache_meta
+        run: |
+          echo "CCACHE_DIR=$RUNNER_TEMP/ccache-rocm" >> "$GITHUB_ENV"
+          fingerprint=$({
+            hipcc --version
+            cat build_linux_rocm.sh
+            echo "${{ inputs.gpu-archs }}"
+          } | sha256sum | cut -c1-16)
+          # A fa2:/fa3: version carries a colon, which has no business in a key.
+          fa=$(echo "${{ inputs.flash-attn-version }}" | tr ':' '-')
+          base="fa-rocm-ccache-fa${fa}-py${{ inputs.python-version }}-torch${{ inputs.torch-version }}-rocm${{ inputs.rocm-version }}-${fingerprint}-${{ github.run_id }}"
+          echo "key=${base}-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+          echo "restore-prefix=${base}-" >> "$GITHUB_OUTPUT"
+          echo "Cache key: ${base}-${{ github.run_attempt }}"
+
+      - name: Restore ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ steps.cache_meta.outputs.key }}
+          restore-keys: |
+            ${{ steps.cache_meta.outputs.restore-prefix }}
+
       - name: Measure before build
         if: always()
         run: |
@@ -143,6 +173,7 @@ jobs:
       # build_linux_rocm.sh prints the resolved MAX_JOBS and GPU_ARCHS; an empty
       # GPU_ARCHS falls back to the script's default
       - name: Build wheels
+        id: build
         env:
           GPU_ARCHS: ${{ inputs.gpu-archs }}
           BUILD_TIMEOUT_MINUTES: ${{ inputs.build-timeout-minutes }}
@@ -159,9 +190,19 @@ jobs:
           timeout --signal=TERM "${remaining}s" \
             ./build_linux_rocm.sh ${{ inputs.flash-attn-version }} ${{ inputs.python-version }} ${{ inputs.torch-version }} ${{ inputs.rocm-version }} || rc=$?
           if [ "$rc" = "124" ]; then
+            # Only a capped build is worth carrying over: a finished one has
+            # nothing left to resume, and a compile error would be repeated.
+            echo "capped=true" >> "$GITHUB_OUTPUT"
             echo "::warning::Build hit the ${BUILD_TIMEOUT_MINUTES}m cap. Every object compiled so far is in ccache, so re-running this job resumes from there instead of starting over."
           fi
           exit "$rc"
+
+      - name: Save ccache (only when capped)
+        if: ${{ always() && steps.build.outputs.capped == 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ steps.cache_meta.outputs.key }}
 
       - name: Report build duration
         if: always() && env.BUILD_STARTED_AT
@@ -233,41 +274,41 @@ jobs:
           # 1. Remove flash-attention directory (source and build artifacts)
           FLASH_ATTN_DIR="$(pwd)/flash-attention"
           if [ -d "$FLASH_ATTN_DIR" ]; then
-            echo "[1/5] Removing flash-attention directory: $FLASH_ATTN_DIR"
+            echo "[1/6] Removing flash-attention directory: $FLASH_ATTN_DIR"
             rm -rf "$FLASH_ATTN_DIR" || true
           else
-            echo "[1/5] flash-attention directory not found, skipping"
+            echo "[1/6] flash-attention directory not found, skipping"
           fi
 
           # 2. Remove Python virtual environment (.venv)
           VENV_DIR="$(pwd)/.venv"
           if [ -d "$VENV_DIR" ]; then
-            echo "[2/5] Removing Python virtual environment: $VENV_DIR"
+            echo "[2/6] Removing Python virtual environment: $VENV_DIR"
             rm -rf "$VENV_DIR" || true
           else
-            echo "[2/5] .venv directory not found, skipping"
+            echo "[2/6] .venv directory not found, skipping"
           fi
 
           # 3. Remove pip cache
           PIP_CACHE_DIR="$HOME/.cache/pip"
           if [ -d "$PIP_CACHE_DIR" ]; then
-            echo "[3/5] Removing pip cache: $PIP_CACHE_DIR"
+            echo "[3/6] Removing pip cache: $PIP_CACHE_DIR"
             rm -rf "$PIP_CACHE_DIR" || true
           else
-            echo "[3/5] pip cache not found, skipping"
+            echo "[3/6] pip cache not found, skipping"
           fi
 
           # 4. Remove uv cache
           UV_CACHE_DIR="$HOME/.cache/uv"
           if [ -d "$UV_CACHE_DIR" ]; then
-            echo "[4/5] Removing uv cache: $UV_CACHE_DIR"
+            echo "[4/6] Removing uv cache: $UV_CACHE_DIR"
             rm -rf "$UV_CACHE_DIR" || true
           else
-            echo "[4/5] uv cache not found, skipping"
+            echo "[4/6] uv cache not found, skipping"
           fi
 
           # 5. Uninstall ROCm
-          echo "[5/5] Removing ROCm installation..."
+          echo "[5/6] Removing ROCm installation..."
           if command -v apt-get >/dev/null 2>&1; then
             sudo apt-get remove -y --purge 'rocm*' 'hip*' 'hsa-*' 2>/dev/null || true
             sudo apt-get autoremove -y 2>/dev/null || true
@@ -280,14 +321,14 @@ jobs:
           fi
           sudo rm -rf /opt/rocm* || true
 
-          # ccache is deliberately kept, unlike the pip and uv caches removed
-          # above: it is what lets a capped build resume and what makes a cell
-          # that differs only in Python version nearly free. CCACHE_MAXSIZE
-          # bounds it, so it cannot grow into the disk pressure the removals
-          # above exist to relieve.
-          if command -v ccache > /dev/null 2>&1; then
-            echo "Keeping ccache at ${CCACHE_DIR:-$HOME/.cache/ccache}"
-            du -sh "${CCACHE_DIR:-$HOME/.cache/ccache}" 2>/dev/null || true
+          # The compile cache lives in actions/cache, so the copy on this
+          # runner is disposable and goes the way of the pip and uv caches.
+          if [ -n "${CCACHE_DIR:-}" ] && [ -d "$CCACHE_DIR" ]; then
+            echo "[6/6] Removing ccache directory: $CCACHE_DIR"
+            du -sh "$CCACHE_DIR" 2>/dev/null || true
+            rm -rf "$CCACHE_DIR" || true
+          else
+            echo "[6/6] ccache directory not found, skipping"
           fi
 
           echo "=========================================="
