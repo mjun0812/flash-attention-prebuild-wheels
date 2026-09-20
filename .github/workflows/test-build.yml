@@ -64,6 +64,11 @@ on:
         required: false
         default: ""
         type: string
+      rocm-build-timeout-minutes:
+        description: "Minutes from job start until the ROCm build is capped; set it low to exercise the capped-then-resumed path"
+        required: false
+        default: "1200"
+        type: string
       max-jobs:
         description: "MAX_JOBS (optional, overrides auto-detection)"
         required: false
@@ -141,6 +146,7 @@ jobs:
       rocm-version: ${{ inputs.rocm-version }}
       rocm-install-method: ${{ inputs.rocm-install-method }}
       gpu-archs: ${{ inputs.gpu-archs }}
+      build-timeout-minutes: ${{ fromjson(inputs.rocm-build-timeout-minutes) }}
       is-upload: false
       runner: '["self-hosted", "Linux", "x64"]'
 
