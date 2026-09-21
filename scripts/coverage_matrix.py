@@ -64,8 +64,8 @@ TORCH_SUPPORT_PYTHON_VERSIONS = {
     "2.14": ("3.10", "3.14"),
 }
 # torch_version: ROCm versions whose PyTorch index (download.pytorch.org/whl/rocmX.Y)
-# ships that torch release. ROCm keeps the dot (7.2, 7.14) because both rocm7.1
-# and rocm7.14 exist; see ADR 0002.
+# ships that torch release, oldest first. ROCm keeps the dot (7.2, 7.14)
+# because both rocm7.1 and rocm7.14 exist; see ADR 0002.
 TORCH_SUPPORT_ROCM_VERSIONS = {
     "2.10": ("7.0", "7.1"),
     "2.11": ("7.1", "7.2"),
@@ -189,6 +189,20 @@ for torch_version in TORCH_SUPPORT_CUDA_VERSIONS:
             _EXCLUDE_ROCM.append(
                 {"torch-version": torch_full_version, "rocm-version": rocm_version}
             )
+# One wheel per torch release covers every ROCm version that release is
+# published for, so only the first (oldest) entry above is built. Verified on
+# an MI300X: the ROCm 7.2 build ran unchanged on a ROCm 7.14 runtime and
+# reproduced all 81 cases with byte-identical error values. See ADR 0005 for
+# why the oldest is chosen rather than the newest.
+for torch_version, torch_rocm_versions in TORCH_SUPPORT_ROCM_VERSIONS.items():
+    torch_full_version = next(
+        v for v in TORCH_FULL_VERSIONS if v.startswith(f"{torch_version}.")
+    )
+    for rocm_version in torch_rocm_versions[1:]:
+        _EXCLUDE_ROCM.append(
+            {"torch-version": torch_full_version, "rocm-version": rocm_version}
+        )
+
 _EXCLUDE_COMMON = []
 # Exclude incompatible Python versions for each PyTorch version
 for torch_version, (min_py, max_py) in TORCH_SUPPORT_PYTHON_VERSIONS.items():
