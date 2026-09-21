@@ -246,12 +246,15 @@ LINUX_ROCM_MATRIX = {
         "3.14",
     ],
     "torch-version": [
-        # "2.13.0",
-        "2.14.0",
+        "2.13.0",
+        # "2.14.0",  # released in v1.0.0
     ],
+    # The oldest ROCm version PyTorch publishes for the torch above; one build
+    # covers the newer ones too (ADR 0005), so this axis never holds more than
+    # one entry.
     "rocm-version": [
-        # "7.1",
-        "7.2",
+        "7.1",
+        # "7.2",
         # "7.14",
     ],
     # Every arch the pinned version allows, bundled into one wheel.
