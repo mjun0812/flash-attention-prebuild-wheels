@@ -246,7 +246,8 @@ LINUX_ROCM_MATRIX = {
         "3.14",
     ],
     "torch-version": [
-        "2.13.0",
+        "2.12.1",
+        # "2.13.0",  # released in v1.1.0
         # "2.14.0",  # released in v1.0.0
     ],
     # The oldest ROCm version PyTorch publishes for the torch above; one build
