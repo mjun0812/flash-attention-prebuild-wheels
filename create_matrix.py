@@ -246,7 +246,8 @@ LINUX_ROCM_MATRIX = {
         "3.14",
     ],
     "torch-version": [
-        "2.11.0",
+        "2.10.0",
+        # "2.11.0",  # released in v1.3.0
         # "2.12.1",  # released in v1.2.0
         # "2.13.0",  # released in v1.1.0
         # "2.14.0",  # released in v1.0.0
@@ -255,7 +256,8 @@ LINUX_ROCM_MATRIX = {
     # covers the newer ones too (ADR 0005), so this axis never holds more than
     # one entry.
     "rocm-version": [
-        "7.1",
+        "7.0",
+        # "7.1",
         # "7.2",
         # "7.14",
     ],
