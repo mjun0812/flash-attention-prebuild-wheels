@@ -8,7 +8,7 @@ FA3_COMMIT = "fa3:e2743ab5b3803bb672b16437ba98a3b1d4576c50"
 # Build FA3 only with Python 3.12 and let the abi3 wheel fill the rest.
 FA3_SINGLE_PYTHON_EXCLUDE = [
     {"flash-attn-version": FA3_COMMIT, "python-version": python_version}
-    for python_version in ["3.10", "3.11", "3.13", "3.14"]
+    for python_version in ["3.10", "3.11", "3.13", "3.14", "3.15"]
 ]
 
 
@@ -26,6 +26,8 @@ LINUX_MATRIX = {
         # "3.13t",
         # "3.14",
         # "3.14t",
+        # "3.15",
+        # "3.15t",
     ],
     "torch-version": [
         # "2.5.1",
@@ -38,6 +40,7 @@ LINUX_MATRIX = {
         # "2.12.1",
         # "2.13.0",
         # "2.14.0",
+        # "2.15.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -46,6 +49,7 @@ LINUX_MATRIX = {
         # "12.9",
         # "13.0",
         # "13.2",
+        # "13.4",
     ],
 }
 
@@ -61,16 +65,20 @@ LINUX_ARM64_MATRIX = {
         "3.13",
         "3.14",
         "3.14t",
+        "3.15",
+        "3.15t",
     ],
     "torch-version": [
         # "2.12.1",
         # "2.13.0",
         "2.14.0",
+        "2.15.0",
     ],
     "cuda-version": [
         "12.6",
         "13.0",
         "13.2",
+        "13.4",
     ],
 }
 
@@ -87,8 +95,10 @@ LINUX_SELF_HOSTED_MATRIX = {
         "3.12",
         "3.13",
         "3.14",
+        "3.15",
         "3.13t",
         "3.14t",
+        "3.15t",
     ],
     "torch-version": [
         # "2.5.1",
@@ -101,6 +111,7 @@ LINUX_SELF_HOSTED_MATRIX = {
         # "2.12.1",
         # "2.13.0",
         "2.14.0",
+        "2.15.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -109,6 +120,7 @@ LINUX_SELF_HOSTED_MATRIX = {
         # "12.9",
         "13.0",
         "13.2",
+        "13.4",
     ],
 }
 
@@ -125,6 +137,8 @@ LINUX_ARM64_SELF_HOSTED_MATRIX = {
         # "3.13t",
         # "3.14",
         # "3.14t",
+        # "3.15",
+        # "3.15t",
     ],
     "torch-version": [
         # "2.5.1",
@@ -137,6 +151,7 @@ LINUX_ARM64_SELF_HOSTED_MATRIX = {
         "2.12.1",
         "2.13.0",
         "2.14.0",
+        "2.15.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -145,6 +160,7 @@ LINUX_ARM64_SELF_HOSTED_MATRIX = {
         # "12.9",
         # "13.0",
         # "13.2",
+        # "13.4",
     ],
 }
 
@@ -161,8 +177,10 @@ LINUX_NO_CONTAINER_MATRIX = {
         "3.12",
         "3.13",
         "3.14",
+        "3.15",
         "3.13t",
         "3.14t",
+        "3.15t",
     ],
     "torch-version": [
         # "2.5.1",
@@ -175,6 +193,7 @@ LINUX_NO_CONTAINER_MATRIX = {
         "2.12.1",
         "2.13.0",
         "2.14.0",
+        "2.15.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -183,6 +202,7 @@ LINUX_NO_CONTAINER_MATRIX = {
         # "12.9",
         "13.0",
         "13.2",
+        "13.4",
     ],
 }
 
@@ -199,8 +219,10 @@ LINUX_ARM64_NO_CONTAINER_MATRIX = {
         "3.12",
         "3.13",
         "3.14",
+        "3.15",
         "3.13t",
         "3.14t",
+        "3.15t",
     ],
     "torch-version": [
         # "2.5.1",
@@ -213,6 +235,7 @@ LINUX_ARM64_NO_CONTAINER_MATRIX = {
         "2.12.1",
         "2.13.0",
         "2.14.0",
+        "2.15.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -221,6 +244,7 @@ LINUX_ARM64_NO_CONTAINER_MATRIX = {
         # "12.9",
         "13.0",
         "13.2",
+        "13.4",
     ],
 }
 
@@ -244,6 +268,7 @@ LINUX_ROCM_MATRIX = {
         "3.12",
         "3.13",
         "3.14",
+        "3.15",
     ],
     "torch-version": [
         "2.10.0",
@@ -251,6 +276,7 @@ LINUX_ROCM_MATRIX = {
         # "2.12.1",  # released in v1.2.0
         # "2.13.0",  # released in v1.1.0
         # "2.14.0",  # released in v1.0.0
+        # "2.15.0",
     ],
     # The oldest ROCm version PyTorch publishes for the torch above; one build
     # covers the newer ones too (ADR 0005), so this axis never holds more than
@@ -260,6 +286,7 @@ LINUX_ROCM_MATRIX = {
         # "7.1",
         # "7.2",
         # "7.14",
+        # "10.0",
     ],
     # Every arch the pinned version allows, bundled into one wheel.
     # 10 archs take ~9h per cell on the 32-thread self-hosted runner.
@@ -277,6 +304,7 @@ WINDOWS_MATRIX = {
         "3.12",
         "3.13",
         "3.14",
+        "3.15",
     ],
     "torch-version": [
         # "2.5.1",
@@ -289,6 +317,7 @@ WINDOWS_MATRIX = {
         # "2.12.1",
         # "2.13.0",
         "2.14.0",
+        "2.15.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -297,6 +326,7 @@ WINDOWS_MATRIX = {
         # "12.9",
         "13.0",
         "13.2",
+        "13.4",
     ],
 }
 
@@ -319,11 +349,13 @@ WINDOWS_CODEBUILD_MATRIX = {
         # "2.12.1",
         # "2.13.0",
         # "2.14.0",
+        # "2.15.0",
     ],
     "cuda-version": [
         "12.8",
         # "13.0",
         # "13.2",
+        # "13.4",
     ],
 }
 
@@ -338,8 +370,9 @@ WINDOWS_SELF_HOSTED_MATRIX = {
         "3.12",
         "3.13",
         "3.14",
-        # "3.13t",  # torch 2.12.1/2.13.0/2.14.0 no longer publish cp313t wheels
-        # "3.14t",  # Excluded: torch 2.12.x/2.13.0/2.14.0's setuptools/cpp_extension cannot
+        "3.15",
+        # "3.13t",  # torch 2.12.1/2.13.0/2.14.0/2.15.0 no longer publish cp313t wheels
+        # "3.14t" / "3.15t",  # Excluded: torch 2.12.x-2.15.0's setuptools/cpp_extension cannot
         # resolve the free-threaded import library on Windows
         # (LNK1104: python314.lib vs python314t.lib). Re-enable once PyTorch
         # / setuptools handle this for free-threaded CPython on Windows.
@@ -355,6 +388,7 @@ WINDOWS_SELF_HOSTED_MATRIX = {
         "2.12.1",
         "2.13.0",
         "2.14.0",
+        "2.15.0",
     ],
     "cuda-version": [
         # "12.4",
@@ -363,6 +397,7 @@ WINDOWS_SELF_HOSTED_MATRIX = {
         # "12.9",
         "13.0",
         "13.2",
+        "13.4",
     ],
 }
 
