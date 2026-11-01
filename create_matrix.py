@@ -110,7 +110,7 @@ LINUX_SELF_HOSTED_MATRIX = {
         # "2.11.0",
         # "2.12.1",
         # "2.13.0",
-        "2.14.0",
+        # "2.14.0",
         "2.15.0",
     ],
     "cuda-version": [
@@ -412,8 +412,8 @@ def main():
                 "linux_arm64": False,
                 # "linux_arm64": LINUX_ARM64_MATRIX,
                 #
-                "linux_self_hosted": False,
-                # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
+                # "linux_self_hosted": False,
+                "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
                 #
                 "linux_arm64_self_hosted": False,
                 # "linux_arm64_self_hosted": LINUX_ARM64_SELF_HOSTED_MATRIX,
@@ -424,8 +424,8 @@ def main():
                 "linux_arm64_no_container": False,
                 # "linux_arm64_no_container": LINUX_ARM64_NO_CONTAINER_MATRIX,
                 #
-                # "linux_rocm": False,
-                "linux_rocm": LINUX_ROCM_MATRIX,
+                "linux_rocm": False,
+                # "linux_rocm": LINUX_ROCM_MATRIX,
                 #
                 "windows": False,
                 # "windows": WINDOWS_MATRIX,
