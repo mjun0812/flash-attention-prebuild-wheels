@@ -8,8 +8,8 @@ FA3_STABLE_COMMIT = "fa3:e2743ab5b3803bb672b16437ba98a3b1d4576c50"
 FA2_ROCM_COMMIT = "fa2:4a948e9c94c21067994572f5b6f37318241d436d"
 
 OS = ["linux_x86_64", "linux_arm64", "windows"]
-PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14"]
-FREE_THREADED_PYTHON_VERSIONS = ["3.13t", "3.14t"]
+PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+FREE_THREADED_PYTHON_VERSIONS = ["3.13t", "3.14t", "3.15t"]
 ALL_PYTHON_VERSIONS = PYTHON_VERSIONS + FREE_THREADED_PYTHON_VERSIONS
 TORCH_FULL_VERSIONS = [
     "2.0.1",
@@ -27,6 +27,7 @@ TORCH_FULL_VERSIONS = [
     "2.12.1",
     "2.13.0",
     "2.14.0",
+    "2.15.0",
 ]
 TORCH_SUPPORT_CUDA_VERSIONS = {
     "2.0": ("11.7", "11.8"),
@@ -44,6 +45,7 @@ TORCH_SUPPORT_CUDA_VERSIONS = {
     "2.12": ("12.6", "13.0", "13.2"),
     "2.13": ("12.6", "13.0", "13.2"),
     "2.14": ("12.6", "13.0", "13.2"),
+    "2.15": ("13.2", "13.4"),
 }
 # torch_version: minimum and maximum supported Python versions
 TORCH_SUPPORT_PYTHON_VERSIONS = {
@@ -62,6 +64,7 @@ TORCH_SUPPORT_PYTHON_VERSIONS = {
     "2.12": ("3.10", "3.14"),
     "2.13": ("3.10", "3.14"),
     "2.14": ("3.10", "3.14"),
+    "2.15": ("3.11", "3.15"),
 }
 # torch_version: ROCm versions whose PyTorch index (download.pytorch.org/whl/rocmX.Y)
 # ships that torch release, oldest first. ROCm keeps the dot (7.2, 7.14)
@@ -72,6 +75,7 @@ TORCH_SUPPORT_ROCM_VERSIONS = {
     "2.12": ("7.1", "7.2"),
     "2.13": ("7.1", "7.2"),
     "2.14": ("7.2", "7.14"),
+    "2.15": ("7.14", "10.0"),
 }
 TORCH_EXPERIMENTAL_FREE_THREADED_PYTHON_VERSIONS = {
     "2.6": ("3.13t",),
@@ -83,6 +87,7 @@ TORCH_EXPERIMENTAL_FREE_THREADED_PYTHON_VERSIONS = {
     "2.12": ("3.14t",),
     "2.13": ("3.14t",),
     "2.14": ("3.14t",),
+    "2.15": ("3.14t", "3.15t"),
 }
 
 # FA3 is distributed as a single ABI3 wheel per (torch, cuda) combination, so
@@ -109,7 +114,8 @@ CUDA_VERSIONS = [
 ]  # Flatten the list of CUDA versions from the support mapping
 CUDA_VERSIONS = sorted(set(CUDA_VERSIONS))
 ROCM_VERSIONS = sorted(
-    {v for versions in TORCH_SUPPORT_ROCM_VERSIONS.values() for v in versions}
+    {v for versions in TORCH_SUPPORT_ROCM_VERSIONS.values() for v in versions},
+    key=lambda v: tuple(int(part) for part in v.split(".")),  # 7.14 < 10.0
 )
 
 
@@ -242,8 +248,9 @@ LINUX_MATRIX = {
         "2.12.1",
         "2.13.0",
         "2.14.0",
+        "2.15.0",
     ],
-    "cuda-version": ["12.4", "12.6", "12.8", "12.9", "13.0", "13.2"],
+    "cuda-version": ["12.4", "12.6", "12.8", "12.9", "13.0", "13.2", "13.4"],
 }
 
 LINUX_ARM64_MATRIX = {
@@ -256,14 +263,15 @@ LINUX_ARM64_MATRIX = {
         "2.12.1",
         "2.13.0",
         "2.14.0",
+        "2.15.0",
     ],
-    "cuda-version": ["12.6", "12.8", "12.9", "13.0", "13.2"],
+    "cuda-version": ["12.6", "12.8", "12.9", "13.0", "13.2", "13.4"],
 }
 
-# Windows excludes "3.14t" because torch 2.12.x's setuptools/cpp_extension cannot
-# resolve the free-threaded import library on Windows
+# Windows excludes "3.14t" / "3.15t" because torch 2.12.x's setuptools/cpp_extension
+# cannot resolve the free-threaded import library on Windows
 # (LNK1104: python314.lib vs python314t.lib). 3.13t is pruned for torch
-# 2.12.1/2.13.0/2.14.0 by TORCH_EXPERIMENTAL_FREE_THREADED_PYTHON_VERSIONS because
+# 2.12.1/2.13.0/2.14.0/2.15.0 by TORCH_EXPERIMENTAL_FREE_THREADED_PYTHON_VERSIONS because
 # those versions do not publish cp313t wheels.
 WINDOWS_PYTHON_VERSIONS = [*PYTHON_VERSIONS, "3.13t"]
 
@@ -277,8 +285,9 @@ WINDOWS_MATRIX = {
         "2.12.1",
         "2.13.0",
         "2.14.0",
+        "2.15.0",
     ],
-    "cuda-version": ["12.6", "12.8", "13.0", "13.2"],
+    "cuda-version": ["12.6", "12.8", "13.0", "13.2", "13.4"],
 }
 
 # ROCm wheels: FA2 only (FA3 has no Composable Kernel path), Linux x86_64 only
@@ -292,7 +301,7 @@ WINDOWS_MATRIX = {
 LINUX_ROCM_MATRIX = {
     "flash-attn-version": [FA2_ROCM_COMMIT],
     "python-version": PYTHON_VERSIONS,
-    "torch-version": ["2.10.0", "2.11.0", "2.12.1", "2.13.0", "2.14.0"],
+    "torch-version": ["2.10.0", "2.11.0", "2.12.1", "2.13.0", "2.14.0", "2.15.0"],
     "rocm-version": ROCM_VERSIONS,
 }
 
