@@ -125,7 +125,7 @@ docker compose up -d runner-arm
 
 ### Native runner (`runner`)
 
-1. Starts Docker daemon (Docker-in-Docker via privileged mode)
+1. Starts Docker daemon (Docker-in-Docker via privileged mode) after removing the `docker.pid` left by the previous container run, and exits if the daemon does not come up within 60 seconds so the runner is never registered without Docker
 2. Configures the GitHub Actions runner with the provided credentials
 3. Starts the runner process
 
