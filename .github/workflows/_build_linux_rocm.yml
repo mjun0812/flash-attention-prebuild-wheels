@@ -4,6 +4,8 @@
 # Prerequisites (must be pre-installed on the runner):
 #   - sudo access
 #   - Basic tools: curl, wget, git
+#   - rsync: ROCm's runfile installer refuses to run without it, and
+#     setup-rocm takes that route for versions apt does not ship (7.14)
 #
 # All other dependencies (Python, ROCm) are installed during
 # the workflow and cleaned up afterwards.
