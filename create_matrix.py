@@ -271,21 +271,21 @@ LINUX_ROCM_MATRIX = {
         "3.15",
     ],
     "torch-version": [
-        "2.10.0",
+        # "2.10.0",  # released in v1.4.0
         # "2.11.0",  # released in v1.3.0
         # "2.12.1",  # released in v1.2.0
         # "2.13.0",  # released in v1.1.0
         # "2.14.0",  # released in v1.0.0
-        # "2.15.0",
+        "2.15.0",
     ],
     # The oldest ROCm version PyTorch publishes for the torch above; one build
     # covers the newer ones too (ADR 0005), so this axis never holds more than
     # one entry.
     "rocm-version": [
-        "7.0",
+        # "7.0",
         # "7.1",
         # "7.2",
-        # "7.14",
+        "7.14",
         # "10.0",
     ],
     # Every arch the pinned version allows, bundled into one wheel.
@@ -424,11 +424,11 @@ def main():
                 "linux_arm64_no_container": False,
                 # "linux_arm64_no_container": LINUX_ARM64_NO_CONTAINER_MATRIX,
                 #
-                "linux_rocm": False,
-                # "linux_rocm": LINUX_ROCM_MATRIX,
+                # "linux_rocm": False,
+                "linux_rocm": LINUX_ROCM_MATRIX,
                 #
-                # "windows": False,
-                "windows": WINDOWS_MATRIX,
+                "windows": False,
+                # "windows": WINDOWS_MATRIX,
                 #
                 "windows_self_hosted": False,
                 # "windows_self_hosted": WINDOWS_SELF_HOSTED_MATRIX,
