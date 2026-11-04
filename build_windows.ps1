@@ -388,6 +388,20 @@ if ($FlashAttnVariant -eq "Flash Attention 3") {
     if ([Version]$MatrixTorchVersion -ge [Version]"2.13") {
         Patch-Fa2SetupMsvcConformance -SetupPath "flash-attention\setup.py"
     }
+    # With CUDA 13.4 and nvcc -std=c++20, MSVC resolves
+    # CompactLambda<...>::template seq<Shape> in cute/stride.hpp to the
+    # namespace-scope cute::seq<int...> and fails with C3545; CUDA 13.2
+    # compiles the same source. Renaming the member alias avoids the clash.
+    if ([Version]$CudaVersion -ge [Version]"13.4") {
+        git -C flash-attention submodule update --init csrc/cutlass
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to initialize cutlass submodule for the CUDA 13.4+ cute seq workaround"
+            exit 1
+        }
+        $cutlassRoot = Join-Path (Resolve-Path "flash-attention").Path "csrc\cutlass"
+        $cutlassPatch = Join-Path $PSScriptRoot "patches\fa2\cutlass_compact_seq_fix.patch"
+        Apply-GitPatch -RepoPath $cutlassRoot -PatchPath $cutlassPatch -Description "cute CompactLambda seq rename for CUDA 13.4+"
+    }
     # Remove FA4 (flash_attn/cute) to prevent it from being included in the FA2 wheel
     if (Test-Path "flash-attention\flash_attn\cute") {
         Remove-Item -Recurse -Force "flash-attention\flash_attn\cute"
