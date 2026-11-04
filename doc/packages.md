@@ -2715,6 +2715,8 @@
 | 3.9+ (abi3) | 2.14 | 12.6 | [Download1(v0.10.2)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.10.2/flash_attn_3-3.0.0+cu126torch2.14gite2743ab-cp39-abi3-win_amd64.whl) |
 | 3.9+ (abi3) | 2.14 | 13.0 | [Download1(v0.10.2)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.10.2/flash_attn_3-3.0.0+cu130torch2.14gite2743ab-cp39-abi3-win_amd64.whl) |
 | 3.9+ (abi3) | 2.14 | 13.2 | [Download1(v0.10.2)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.10.2/flash_attn_3-3.0.0+cu132torch2.14gite2743ab-cp39-abi3-win_amd64.whl) |
+| 3.9+ (abi3) | 2.15 | 13.2 | [Download1(v1.6.0)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v1.6.0/flash_attn_3-3.0.0+cu132torch2.15gite2743ab-cp39-abi3-win_amd64.whl) |
+| 3.9+ (abi3) | 2.15 | 13.4 | [Download1(v1.6.0)](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v1.6.0/flash_attn_3-3.0.0+cu134torch2.15gite2743ab-cp39-abi3-win_amd64.whl) |
 
 </details>
 
