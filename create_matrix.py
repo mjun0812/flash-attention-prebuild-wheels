@@ -296,7 +296,7 @@ LINUX_ROCM_MATRIX = {
 WINDOWS_MATRIX = {
     "flash-attn-version": [
         "2.8.3",
-        FA3_COMMIT,
+        # FA3_COMMIT,  # built in v1.6.0
     ],
     "python-version": [
         "3.10",
@@ -321,11 +321,11 @@ WINDOWS_MATRIX = {
     ],
     "cuda-version": [
         # "12.4",
-        "12.6",
+        # "12.6",
         # "12.8",
         # "12.9",
-        "13.0",
-        "13.2",
+        # "13.0",
+        # "13.2",  # built in v1.6.0
         "13.4",
     ],
 }
@@ -409,8 +409,8 @@ def main():
                 "linux": False,
                 # "linux": LINUX_MATRIX,
                 #
-                # "linux_arm64": False,
-                "linux_arm64": LINUX_ARM64_MATRIX,
+                "linux_arm64": False,
+                # "linux_arm64": LINUX_ARM64_MATRIX,
                 #
                 "linux_self_hosted": False,
                 # "linux_self_hosted": LINUX_SELF_HOSTED_MATRIX,
