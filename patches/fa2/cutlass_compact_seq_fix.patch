@@ -1,0 +1,31 @@
+diff --git a/include/cute/stride.hpp b/include/cute/stride.hpp
+index 629cdfd..18d2d82 100644
+--- a/include/cute/stride.hpp
++++ b/include/cute/stride.hpp
+@@ -296,7 +296,7 @@ compact(Shape   const& shape,
+ {
+   if constexpr (is_tuple<Shape>::value) { // Shape::tuple Current::int
+     using Lambda = CompactLambda<Major>;                  // Append or Prepend
+-    using Seq    = typename Lambda::template seq<Shape>;  // Seq or RSeq
++    using Seq    = typename Lambda::template compact_seq<Shape>;  // Seq or RSeq
+     return cute::detail::fold(shape, cute::make_tuple(cute::make_tuple(), current), Lambda{}, Seq{});
+   } else {                                // Shape::int Current::int
+     if constexpr (is_constant<1, Shape>::value) {
+@@ -321,7 +321,7 @@ struct CompactLambda<LayoutLeft>
+   }
+ 
+   template <class Shape>
+-  using seq = tuple_seq<Shape>;                                                     // Seq
++  using compact_seq = tuple_seq<Shape>;                                                     // Seq
+ };
+ 
+ // For GCC8.5 -- Specialization LayoutRight
+@@ -336,7 +336,7 @@ struct CompactLambda<LayoutRight>
+   }
+ 
+   template <class Shape>
+-  using seq = tuple_rseq<Shape>;                                                     // RSeq
++  using compact_seq = tuple_rseq<Shape>;                                                     // RSeq
+ };
+ 
+ } // end namespace detail
