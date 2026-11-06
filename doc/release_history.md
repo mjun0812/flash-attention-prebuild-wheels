@@ -1,5 +1,16 @@
 ## History
 
+### v1.7.0
+
+[Release](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v1.7.0)
+
+#### Linux x86_64 (ROCm)
+
+| Flash-Attention | Python | PyTorch | CUDA / ROCm |
+| --- | --- | --- | --- |
+| 2.8.4 | 3.11, 3.12, 3.13, 3.14, 3.15 | 2.15 | 7.14 |
+
+
 ### v1.6.1
 
 [Release](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v1.6.1)
@@ -9,17 +20,6 @@
 | Flash-Attention | Python | PyTorch | CUDA / ROCm |
 | --- | --- | --- | --- |
 | 2.8.3 | 3.11, 3.12, 3.13, 3.14 | 2.15 | 13.4 |
-
-
-### v1.7.0
-
-[Release](https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/tag/v1.7.0)
-
-#### Linux x86_64 (ROCm)
-
-| Flash-Attention | Python | PyTorch | CUDA / ROCm |
-| --- | --- | --- | --- |
-| 2.8.4 | 3.11, 3.13, 3.14 | 2.15 | 7.14 |
 
 
 ### v1.6.0
