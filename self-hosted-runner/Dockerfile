@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     keyboard-configuration \
     time \
     patchelf \
+    rsync \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Docker
